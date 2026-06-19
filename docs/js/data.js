@@ -39,14 +39,34 @@ window.MsiData = (function () {
   }
 
   // ===== Filter helpers =====
-  // filters: { seriesGroup: 'Gaming'|'Business& Productivity'|null, customer: string|null,
+  // filters: { seriesGroup: string|string[]|null, customer: string|string[]|null,
+  //            year: string|string[]|null, quarter: string|string[]|null,
   //            weekFrom: string|null, weekTo: string|null, brand: string|null }
+  // Moi key co the la 1 string (exact match - dung cho cac vong lap override noi bo)
+  // hoac 1 array (multi-select tu dropdown UI; mang rong = khong loc / All)
+  function matchesMulti(rowVal, filterVal) {
+    if (filterVal === undefined || filterVal === null || filterVal === '') return true;
+    if (Array.isArray(filterVal)) {
+      if (filterVal.length === 0) return true;
+      return filterVal.indexOf(rowVal) !== -1;
+    }
+    return rowVal === filterVal;
+  }
+
+  // Chuan hoa 1 filter value (string|string[]|null) thanh array de dung lam danh sach duyet
+  function toArray(v) {
+    if (!v) return [];
+    return Array.isArray(v) ? v : [v];
+  }
+
   function applyFilters(filters) {
     filters = filters || {};
     return rawRows.filter(function (r) {
-      if (filters.seriesGroup && r.sg !== filters.seriesGroup) return false;
-      if (filters.customer && r.cust !== filters.customer) return false;
-      if (filters.brand && r.brand !== filters.brand) return false;
+      if (!matchesMulti(r.sg, filters.seriesGroup)) return false;
+      if (!matchesMulti(r.cust, filters.customer)) return false;
+      if (!matchesMulti(r.brand, filters.brand)) return false;
+      if (!matchesMulti(r.y, filters.year)) return false;
+      if (!matchesMulti(r.q, filters.quarter)) return false;
       if (filters.weekFrom && r.w < filters.weekFrom) return false;
       if (filters.weekTo && r.w > filters.weekTo) return false;
       return true;
@@ -64,6 +84,20 @@ window.MsiData = (function () {
   function getLastNWeeks(n) {
     var weeks = getWeeks();
     return weeks.slice(Math.max(0, weeks.length - n));
+  }
+
+  // Danh sach Year duy nhat ('Y2024'...), sap xep tang dan
+  function getYears() {
+    var set = {};
+    rawRows.forEach(function (r) { if (r.y) set[r.y] = true; });
+    return Object.keys(set).sort();
+  }
+
+  // Danh sach Quarter duy nhat ('Q1'...'Q4'), sap xep tang dan
+  function getQuarters() {
+    var set = {};
+    rawRows.forEach(function (r) { if (r.q) set[r.q] = true; });
+    return Object.keys(set).sort();
   }
 
   // ===== Aggregations =====
@@ -98,7 +132,7 @@ window.MsiData = (function () {
     if (!weeks.length) return [];
     var lastWeek = weeks[weeks.length - 1];
 
-    var customers = filters.customer ? [filters.customer] : (meta.customers || []);
+    var customers = toArray(filters.customer).length ? toArray(filters.customer) : (meta.customers || []);
 
     return customers.map(function (cust) {
       var f = Object.assign({}, filters, { customer: cust });
@@ -127,7 +161,7 @@ window.MsiData = (function () {
       var prevWeek = weeks.length > 1 ? weeks[weeks.length - 2] : null;
       var curWeekVol = sum(totalRows.filter(function (r) { return r.w === lastWeek; }), 'ttlVol');
       var prevWeekVol = prevWeek ? sum(totalRows.filter(function (r) { return r.w === prevWeek; }), 'ttlVol') : null;
-      var wow = (prevWeekVol && prevWeekVol > 0) ? (curWeekVol - prevWeekVol) / prevWeekVol : null;
+      var wow = (curWeekVol > 0 && prevWeekVol && prevWeekVol > 0) ? (curWeekVol - prevWeekVol) / prevWeekVol : null;
 
       return {
         customer: cust,
@@ -171,7 +205,7 @@ window.MsiData = (function () {
       var prevWeek = weeks2.length > 1 ? weeks2[weeks2.length - 2] : null;
       var curWeekVol = sum(rows.filter(function (r) { return r.w === lastWeek; }), 'brandVol');
       var prevWeekVol = prevWeek ? sum(rows.filter(function (r) { return r.w === prevWeek; }), 'brandVol') : null;
-      var wow = (prevWeekVol && prevWeekVol > 0) ? (curWeekVol - prevWeekVol) / prevWeekVol : null;
+      var wow = (curWeekVol > 0 && prevWeekVol && prevWeekVol > 0) ? (curWeekVol - prevWeekVol) / prevWeekVol : null;
 
       return {
         brand: brand,
@@ -189,7 +223,7 @@ window.MsiData = (function () {
 
   // Stacked share theo dealer (cho 100% stacked bar chart): cho moi dealer, % cua tung brand
   function dealerBrandShareMatrix(filters) {
-    var customers = filters.customer ? [filters.customer] : (meta.customers || []);
+    var customers = toArray(filters.customer).length ? toArray(filters.customer) : (meta.customers || []);
     var brands = meta.brands || [];
 
     return customers.map(function (cust) {
@@ -221,6 +255,8 @@ window.MsiData = (function () {
     getRows: getRows,
     getWeeks: getWeeks,
     getLastNWeeks: getLastNWeeks,
+    getYears: getYears,
+    getQuarters: getQuarters,
     applyFilters: applyFilters,
     msiWeeklyVolume: msiWeeklyVolume,
     dealerWeeklyVolume: dealerWeeklyVolume,

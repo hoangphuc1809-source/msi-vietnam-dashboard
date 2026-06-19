@@ -7,8 +7,13 @@
   var F = window.MsiFilterState;
   var Charts = window.MsiCharts;
   var Tables = window.MsiTables;
+  var fmt = window.MsiFormat;
 
   var refreshTimer = null;
+  var ts = { year: null, quarter: null, seriesGroup: null, dealers: null };
+  var selectsReady = false;
+
+  var SG_LABEL = { 'Gaming': 'Gaming', 'Business& Productivity': 'B&P', 'Handheld': 'Handheld' };
 
   function init() {
     bindHeaderControls();
@@ -21,17 +26,77 @@
   }
 
   function bindHeaderControls() {
-    document.querySelectorAll('.chip[data-sg]').forEach(function (chip) {
-      chip.addEventListener('click', function () {
-        F.setSeriesGroup(chip.getAttribute('data-sg'));
-      });
-    });
     document.getElementById('resetFilterBtn').addEventListener('click', function () {
       F.reset();
+      if (selectsReady) {
+        ts.year.clear(true);
+        ts.quarter.clear(true);
+        ts.seriesGroup.clear(true);
+        ts.dealers.clear(true);
+      }
     });
     document.getElementById('refreshBtn').addEventListener('click', function () {
       loadData(false);
     });
+  }
+
+  // ===== Filter dropdowns (Tom Select) =====
+  function initSelects() {
+    var meta = D.getMeta();
+    var years = D.getYears();
+    var quarters = D.getQuarters();
+    var seriesGroups = (meta.seriesGroups && meta.seriesGroups.length) ? meta.seriesGroups : ['Gaming', 'Business& Productivity', 'Handheld'];
+    var customers = meta.customers || [];
+
+    fillNativeOptions('yearSelect', years, function (y) { return y.replace(/^Y/, ''); });
+    fillNativeOptions('quarterSelect', quarters, function (q) { return q; });
+    fillNativeOptions('seriesGroupSelect', seriesGroups, function (sg) { return SG_LABEL[sg] || sg; });
+    fillNativeOptions('dealersSelect', customers, function (c) { return c; });
+
+    var common = {
+      plugins: ['remove_button'],
+      maxOptions: null,
+      onChange: function () {} // overridden per-instance below
+    };
+
+    ts.year = new TomSelect('#yearSelect', Object.assign({}, common, {
+      placeholder: 'All Years',
+      onChange: function (vals) { F.setYears(vals); }
+    }));
+    ts.quarter = new TomSelect('#quarterSelect', Object.assign({}, common, {
+      placeholder: 'All Quarters',
+      onChange: function (vals) { F.setQuarters(vals); }
+    }));
+    ts.seriesGroup = new TomSelect('#seriesGroupSelect', Object.assign({}, common, {
+      placeholder: 'All Series',
+      onChange: function (vals) { F.setSeriesGroups(vals); }
+    }));
+    ts.dealers = new TomSelect('#dealersSelect', Object.assign({}, common, {
+      placeholder: 'All Dealers',
+      onChange: function (vals) { F.setCustomers(vals); }
+    }));
+
+    selectsReady = true;
+  }
+
+  function fillNativeOptions(selectId, values, labelFn) {
+    var el = document.getElementById(selectId);
+    el.innerHTML = '';
+    values.forEach(function (v) {
+      var opt = document.createElement('option');
+      opt.value = v;
+      opt.textContent = labelFn(v);
+      el.appendChild(opt);
+    });
+  }
+
+  // Dong bo lai UI cua 4 dropdown theo state hien tai (vd khi xoa 1 filter-tag)
+  function syncSelectsFromState(state) {
+    if (!selectsReady) return;
+    ts.year.setValue(state.years, true);
+    ts.quarter.setValue(state.quarters, true);
+    ts.seriesGroup.setValue(state.seriesGroups, true);
+    ts.dealers.setValue(state.customers, true);
   }
 
   async function loadData(isFirstLoad) {
@@ -41,6 +106,7 @@
     try {
       await D.fetchData();
       errBanner.classList.remove('show');
+      if (!selectsReady) initSelects();
       updateMetaInfo();
       renderAll();
     } catch (err) {
@@ -62,10 +128,21 @@
     }
   }
 
+  // Bo loc co so dung chung cho moi section (Year / Quarter / Series Group / Dealers)
+  function baseFilters(state) {
+    return {
+      seriesGroup: state.seriesGroups,
+      customer: state.customers,
+      year: state.years,
+      quarter: state.quarters
+    };
+  }
+
   function renderAll() {
     var state = F.getState();
-    renderChips(state);
+    syncSelectsFromState(state);
     renderFilterTags(state);
+    renderTicker(state);
     renderMsiTrendSection(state);
     renderDealersWeeklySection(state);
     renderMultiLineSection(state);
@@ -77,11 +154,60 @@
     renderBrandsTableSection(state);
   }
 
-  function renderChips(state) {
-    document.querySelectorAll('.chip[data-sg]').forEach(function (chip) {
-      var sg = chip.getAttribute('data-sg');
-      chip.classList.toggle('active', state.seriesGroup === sg);
-    });
+  // ===== Market Pulse ticker (signature element) =====
+  function sumField(rows, field) {
+    return rows.reduce(function (acc, r) { return acc + (r[field] || 0); }, 0);
+  }
+
+  function renderTicker(state) {
+    var el = document.getElementById('marketPulseInner');
+    if (!el) return;
+    var filters = baseFilters(state);
+    var weeks = D.getWeeks();
+    if (!weeks.length) { el.innerHTML = ''; return; }
+    var lastWeek = weeks[weeks.length - 1];
+    var prevWeek = weeks.length > 1 ? weeks[weeks.length - 2] : null;
+
+    var msiRows = D.applyFilters(Object.assign({}, filters, { brand: 'MSI' })).filter(function (r) { return !r.isTotal; });
+    var totalRows = D.applyFilters(filters).filter(function (r) { return r.isTotal; });
+
+    var msiThisWk = sumField(msiRows.filter(function (r) { return r.w === lastWeek; }), 'brandVol');
+    var totalThisWk = sumField(totalRows.filter(function (r) { return r.w === lastWeek; }), 'ttlVol');
+    var shareThisWk = totalThisWk > 0 ? msiThisWk / totalThisWk : null;
+
+    var msiPrevWk = prevWeek ? sumField(msiRows.filter(function (r) { return r.w === prevWeek; }), 'brandVol') : null;
+    var totalPrevWk = prevWeek ? sumField(totalRows.filter(function (r) { return r.w === prevWeek; }), 'ttlVol') : null;
+    var sharePrevWk = (totalPrevWk && totalPrevWk > 0) ? msiPrevWk / totalPrevWk : null;
+    var shareDeltaPP = (shareThisWk !== null && sharePrevWk !== null) ? (shareThisWk - sharePrevWk) * 100 : null;
+
+    var msiLastYear = sumField(msiRows.filter(function (r) { return r.w === lastWeek; }), 'lastYear');
+    var msiYoy = msiLastYear > 0 ? (msiThisWk - msiLastYear) / msiLastYear : null;
+
+    var capTable = D.dealersCapacityTable(filters);
+    var movers = capTable.filter(function (r) { return r.wow !== null && isFinite(r.wow); })
+      .sort(function (a, b) { return Math.abs(b.wow) - Math.abs(a.wow); });
+    var topMover = movers[0];
+
+    var items = [];
+    items.push(tickerItem('MSI SHARE · ' + fmt.weekShort(lastWeek), fmt.percent(shareThisWk, 1), null));
+    items.push(tickerItem('SHARE Δ WoW', (shareDeltaPP === null ? '-' : (shareDeltaPP >= 0 ? '+' : '') + shareDeltaPP.toFixed(1) + 'pp'), shareDeltaPP));
+    items.push(tickerItem('MSI VOLUME Δ YoY', fmt.percentSigned(msiYoy, 1), msiYoy));
+    if (topMover) {
+      items.push(tickerItem('TOP MOVER · ' + fmt.truncate(topMover.customer, 16), fmt.percentSigned(topMover.wow, 0) + ' WoW', topMover.wow));
+    }
+
+    el.innerHTML = items.join('');
+  }
+
+  function tickerItem(label, value, deltaSign) {
+    var cls = 'tk-flat';
+    if (deltaSign !== null && deltaSign !== undefined && isFinite(deltaSign)) {
+      cls = deltaSign >= 0 ? 'tk-up' : 'tk-down';
+    }
+    return '<span class="tk-item">' +
+      '<span class="tk-label">' + escapeHtml(label) + '</span>' +
+      '<span class="tk-value ' + cls + '">' + escapeHtml(value) + '</span>' +
+      '</span>';
   }
 
   function renderFilterTags(state) {
@@ -90,30 +216,40 @@
     if (!tags.length) { el.innerHTML = ''; return; }
     var html = '<span class="filter-tags-label">Dang loc:</span>';
     tags.forEach(function (t) {
-      html += '<span class="filter-tag">' + escapeHtml(t.label) +
-        '<button data-clear="' + t.type + '" aria-label="Bo loc">\u00d7</button></span>';
+      var label = t.type === 'seriesGroup' ? (SG_LABEL[t.label] || t.label) : t.label;
+      html += '<span class="filter-tag">' + escapeHtml(label) +
+        '<button data-clear-type="' + t.type + '" data-clear-value="' + escapeHtmlAttr(t.value) + '" aria-label="Bo loc">\u00d7</button></span>';
     });
     el.innerHTML = html;
-    el.querySelectorAll('button[data-clear]').forEach(function (b) {
-      b.addEventListener('click', function () { F.clearTag(b.getAttribute('data-clear')); });
+    el.querySelectorAll('button[data-clear-type]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        F.clearTag(b.getAttribute('data-clear-type'), b.getAttribute('data-clear-value'));
+      });
     });
+  }
+
+  function dealersLabel(state, fallback) {
+    if (!state.customers.length) return fallback;
+    if (state.customers.length === 1) return state.customers[0];
+    return state.customers.length + ' dealers';
   }
 
   function renderMsiTrendSection(state) {
     var weeks = D.getLastNWeeks(state.weeksBack);
-    var filters = { seriesGroup: state.seriesGroup, customer: state.customer };
+    var filters = baseFilters(state);
     var series = D.msiWeeklyVolume(filters, weeks);
     Charts.renderMsiWeeklyTrend('msiTrendChart', weeks, series);
 
     var titleEl = document.getElementById('msiTrendTitle');
-    titleEl.textContent = state.customer ? ('MSI - weekly S/O @ ' + state.customer) : 'MSI - weekly S/O (Market)';
+    var label = dealersLabel(state, null);
+    titleEl.textContent = label ? ('MSI - weekly S/O @ ' + label) : 'MSI - weekly S/O (Market)';
   }
 
   function renderDealersWeeklySection(state) {
     var weeks = D.getLastNWeeks(state.weeksBack);
-    var filters = { seriesGroup: state.seriesGroup, customer: state.customer };
+    var filters = baseFilters(state);
 
-    var targetCustomers = state.customer ? [state.customer] : (D.getMeta().customers || []);
+    var targetCustomers = state.customers.length ? state.customers : (D.getMeta().customers || []);
     var byWeek = {};
     weeks.forEach(function (w) { byWeek[w] = 0; });
 
@@ -131,12 +267,13 @@
     });
 
     Charts.renderDealersWeeklyBar('dealersWeeklyChart', weeks, series, wowSeries);
-    document.getElementById('dealersWeeklyTitle').textContent = state.customer ? (state.customer + ' - weekly S/O') : 'Key Dealers - weekly S/O';
+    var label = dealersLabel(state, null);
+    document.getElementById('dealersWeeklyTitle').textContent = label ? (label + ' - weekly S/O') : 'Key Dealers - weekly S/O';
   }
 
   function renderMultiLineSection(state) {
     var weeks = D.getLastNWeeks(state.weeksBack);
-    var filters = { seriesGroup: state.seriesGroup, customer: state.customer };
+    var filters = baseFilters(state);
     var brands = D.getMeta().brands || [];
     var map = {};
 
@@ -183,7 +320,7 @@
   }
 
   function renderBrandSharedSection(state) {
-    var filters = { seriesGroup: state.seriesGroup, customer: state.customer };
+    var filters = baseFilters(state);
     var rows = D.brandsTable(filters);
     var C = window.MSI_CONFIG.COLORS.brand;
     Charts.renderHBarShare('brandSharedChart', rows, 'shared', 'brand', function (d) {
@@ -192,7 +329,7 @@
   }
 
   function renderBrandVolumeSection(state) {
-    var filters = { seriesGroup: state.seriesGroup, customer: state.customer };
+    var filters = baseFilters(state);
     var rows = D.brandsTable(filters);
     var C = window.MSI_CONFIG.COLORS.brand;
     Charts.renderHBarShare('brandVolumeChart', rows, 'volume', 'brand', function (d) {
@@ -201,7 +338,7 @@
   }
 
   function renderDealersVolumeSection(state) {
-    var filters = { seriesGroup: state.seriesGroup, brand: state.brand };
+    var filters = Object.assign({}, baseFilters(state), { brand: state.brand });
     var rows = D.dealersCapacityTable(filters).slice(0, 8);
     Charts.renderHBarShare('dealersVolumeChart', rows, 'capacity', 'customer', function () {
       return window.MSI_CONFIG.COLORS.dgw;
@@ -209,22 +346,23 @@
   }
 
   function renderStackedMixSection(state) {
-    var filters = { seriesGroup: state.seriesGroup };
+    var filters = baseFilters(state);
     var dealerData = D.dealerBrandShareMatrix(filters).slice(0, 8);
     var brands = D.getMeta().brands || [];
     Charts.renderStackedShareByDealer('stackedMixChart', dealerData, brands);
   }
 
   function renderCapacityTableSection(state) {
-    var filters = { seriesGroup: state.seriesGroup, brand: state.brand };
+    var filters = Object.assign({}, baseFilters(state), { brand: state.brand });
     var rows = D.dealersCapacityTable(filters);
-    Tables.renderDealersCapacityTable('dealersCapacityTable', rows, state.customer, function (cust) {
+    var highlighted = state.customers.length === 1 ? state.customers[0] : null;
+    Tables.renderDealersCapacityTable('dealersCapacityTable', rows, highlighted, function (cust) {
       F.setCustomer(cust);
     });
   }
 
   function renderBrandsTableSection(state) {
-    var filters = { seriesGroup: state.seriesGroup, customer: state.customer };
+    var filters = baseFilters(state);
     var rows = D.brandsTable(filters);
     Tables.renderBrandsTable('brandsTable', rows, state.brand, function (brand) {
       F.setBrand(brand);

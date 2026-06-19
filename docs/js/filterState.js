@@ -1,14 +1,16 @@
 // MSI Vietnam Dashboard - Global filter state
-// Quan ly trang thai filter dung chung cho toan bo dashboard (click-to-filter)
+// Quan ly trang thai filter dung chung cho toan bo dashboard (dropdown multi-select + click-to-filter)
 
 window.MsiFilterState = (function () {
   'use strict';
 
   var state = {
-    seriesGroup: null,  // 'Gaming' | 'Business& Productivity' | null (= All)
-    customer: null,      // ten dealer hoac null
-    brand: null,          // ten brand hoac null (khi click vao 1 brand trong legend/bar)
-    weeksBack: 11          // so tuan hien thi tren trend chart (mac dinh 11 tuan giong anh mau)
+    years: [],         // array of 'Y2026'... ; rong = All
+    quarters: [],       // array of 'Q1'... ; rong = All
+    seriesGroups: [],   // array of 'Gaming' | 'Business& Productivity' | 'Handheld' ; rong = All
+    customers: [],       // array ten dealer (Dealers dropdown, multi-select) ; rong = All
+    brand: null,          // single - click-to-filter tu legend/bar (giu nguyen UX cu)
+    weeksBack: 11           // so tuan hien thi tren trend chart
   };
 
   var listeners = [];
@@ -23,13 +25,18 @@ window.MsiFilterState = (function () {
     });
   }
 
-  function setSeriesGroup(sg) {
-    state.seriesGroup = (state.seriesGroup === sg) ? null : sg;
-    notify();
-  }
+  function setYears(arr) { state.years = arr || []; notify(); }
+  function setQuarters(arr) { state.quarters = arr || []; notify(); }
+  function setSeriesGroups(arr) { state.seriesGroups = arr || []; notify(); }
+  function setCustomers(arr) { state.customers = arr || []; notify(); }
 
+  // Click-to-filter tu bang/chart: chon dung 1 dealer (toggle)
   function setCustomer(cust) {
-    state.customer = (state.customer === cust) ? null : cust;
+    if (state.customers.length === 1 && state.customers[0] === cust) {
+      state.customers = [];
+    } else {
+      state.customers = [cust];
+    }
     notify();
   }
 
@@ -39,7 +46,7 @@ window.MsiFilterState = (function () {
   }
 
   function reset() {
-    state = { seriesGroup: null, customer: null, brand: null, weeksBack: state.weeksBack };
+    state = { years: [], quarters: [], seriesGroups: [], customers: [], brand: null, weeksBack: state.weeksBack };
     notify();
   }
 
@@ -49,22 +56,29 @@ window.MsiFilterState = (function () {
 
   function getActiveFilterTags() {
     var tags = [];
-    if (state.seriesGroup) tags.push({ type: 'seriesGroup', label: state.seriesGroup, value: state.seriesGroup });
-    if (state.customer) tags.push({ type: 'customer', label: state.customer, value: state.customer });
+    state.years.forEach(function (y) { tags.push({ type: 'year', label: y, value: y }); });
+    state.quarters.forEach(function (q) { tags.push({ type: 'quarter', label: q, value: q }); });
+    state.seriesGroups.forEach(function (sg) { tags.push({ type: 'seriesGroup', label: sg, value: sg }); });
+    state.customers.forEach(function (c) { tags.push({ type: 'customer', label: c, value: c }); });
     if (state.brand) tags.push({ type: 'brand', label: state.brand, value: state.brand });
     return tags;
   }
 
-  function clearTag(type) {
-    if (type === 'seriesGroup') state.seriesGroup = null;
-    if (type === 'customer') state.customer = null;
+  function clearTag(type, value) {
+    if (type === 'year') state.years = state.years.filter(function (v) { return v !== value; });
+    if (type === 'quarter') state.quarters = state.quarters.filter(function (v) { return v !== value; });
+    if (type === 'seriesGroup') state.seriesGroups = state.seriesGroups.filter(function (v) { return v !== value; });
+    if (type === 'customer') state.customers = state.customers.filter(function (v) { return v !== value; });
     if (type === 'brand') state.brand = null;
     notify();
   }
 
   return {
     onChange: onChange,
-    setSeriesGroup: setSeriesGroup,
+    setYears: setYears,
+    setQuarters: setQuarters,
+    setSeriesGroups: setSeriesGroups,
+    setCustomers: setCustomers,
     setCustomer: setCustomer,
     setBrand: setBrand,
     reset: reset,

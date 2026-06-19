@@ -87,7 +87,7 @@ window.MsiCharts = (function () {
             if (value === null || value === undefined) return;
             ctx.save();
             ctx.fillStyle = color;
-            ctx.font = '700 11px Inter, sans-serif';
+            ctx.font = "700 11px 'IBM Plex Mono', monospace";
             ctx.textAlign = 'center';
             ctx.fillText(window.MsiFormat.number(value), point.x, point.y - 10);
             ctx.restore();
@@ -141,7 +141,7 @@ window.MsiCharts = (function () {
           var value = chart.data.datasets[0].data[idx];
           ctx.save();
           ctx.fillStyle = '#0F172A';
-          ctx.font = '700 11px Inter, sans-serif';
+          ctx.font = "700 11px 'IBM Plex Mono', monospace";
           ctx.textAlign = 'center';
           ctx.fillText(window.MsiFormat.number(value), bar.x, bar.y - 22);
           ctx.restore();
@@ -155,7 +155,7 @@ window.MsiCharts = (function () {
             var w = ctx.measureText(label).width + 12;
             ctx.fillRect(bar.x - w / 2, bar.y - 16, w, 14);
             ctx.fillStyle = '#fff';
-            ctx.font = '700 10px Inter, sans-serif';
+            ctx.font = "700 10px 'IBM Plex Mono', monospace";
             ctx.textAlign = 'center';
             ctx.fillText(label, bar.x, bar.y - 6);
             ctx.restore();
@@ -258,7 +258,7 @@ window.MsiCharts = (function () {
           var label = valueField === 'shared' ? window.MsiFormat.percent(value, 1) : window.MsiFormat.number(value);
           ctx.save();
           ctx.fillStyle = '#0F172A';
-          ctx.font = '700 11px Inter, sans-serif';
+          ctx.font = "700 11px 'IBM Plex Mono', monospace";
           ctx.textAlign = 'left';
           ctx.textBaseline = 'middle';
           ctx.fillText(label, bar.x + 6, bar.y);
