@@ -65,7 +65,7 @@ window.MsiData = (function () {
       if (!matchesMulti(r.sg, filters.seriesGroup)) return false;
       if (!matchesMulti(r.cust, filters.customer)) return false;
       if (!matchesMulti(r.brand, filters.brand)) return false;
-      if (!matchesMulti(r.y, filters.year)) return false;
+      if (!matchesMulti(yearOfWeek(r.w), filters.year)) return false;
       if (!matchesMulti(r.q, filters.quarter)) return false;
       if (filters.weekFrom && r.w < filters.weekFrom) return false;
       if (filters.weekTo && r.w > filters.weekTo) return false;
@@ -86,10 +86,17 @@ window.MsiData = (function () {
     return weeks.slice(Math.max(0, weeks.length - n));
   }
 
-  // Danh sach Year duy nhat ('Y2024'...), sap xep tang dan
+  // Lay 4 ky tu dau cua Week ('2026W24' -> '2026'). Dung de loc/list nam thay vi
+  // phu thuoc cot Year rieng trong sheet (co the bi dien thieu/khong nhat quan
+  // cho cac dong moi); cot Week luon duoc dien day du va dang tin cay hon.
+  function yearOfWeek(w) {
+    return (w && w.length >= 4) ? w.slice(0, 4) : '';
+  }
+
+  // Danh sach Year duy nhat (suy ra tu Week, vd '2026'), sap xep tang dan
   function getYears() {
     var set = {};
-    rawRows.forEach(function (r) { if (r.y) set[r.y] = true; });
+    rawRows.forEach(function (r) { var y = yearOfWeek(r.w); if (y) set[y] = true; });
     return Object.keys(set).sort();
   }
 

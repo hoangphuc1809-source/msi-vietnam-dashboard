@@ -48,30 +48,32 @@
     var seriesGroups = (meta.seriesGroups && meta.seriesGroups.length) ? meta.seriesGroups : ['Gaming', 'Business& Productivity', 'Handheld'];
     var customers = meta.customers || [];
 
-    fillNativeOptions('yearSelect', years, function (y) { return y.replace(/^Y/, ''); });
+    fillNativeOptions('yearSelect', years, function (y) { return y; });
     fillNativeOptions('quarterSelect', quarters, function (q) { return q; });
     fillNativeOptions('seriesGroupSelect', seriesGroups, function (sg) { return SG_LABEL[sg] || sg; });
     fillNativeOptions('dealersSelect', customers, function (c) { return c; });
 
-    var common = {
-      plugins: ['remove_button'],
-      maxOptions: null,
-      onChange: function () {} // overridden per-instance below
-    };
+    function tsConfig(extra) {
+      return Object.assign({
+        plugins: ['remove_button'],
+        maxOptions: null,
+        onChange: function () {}
+      }, extra);
+    }
 
-    ts.year = new TomSelect('#yearSelect', Object.assign({}, common, {
+    ts.year = new TomSelect('#yearSelect', tsConfig({
       placeholder: 'All Years',
       onChange: function (vals) { F.setYears(vals); }
     }));
-    ts.quarter = new TomSelect('#quarterSelect', Object.assign({}, common, {
+    ts.quarter = new TomSelect('#quarterSelect', tsConfig({
       placeholder: 'All Quarters',
       onChange: function (vals) { F.setQuarters(vals); }
     }));
-    ts.seriesGroup = new TomSelect('#seriesGroupSelect', Object.assign({}, common, {
+    ts.seriesGroup = new TomSelect('#seriesGroupSelect', tsConfig({
       placeholder: 'All Series',
       onChange: function (vals) { F.setSeriesGroups(vals); }
     }));
-    ts.dealers = new TomSelect('#dealersSelect', Object.assign({}, common, {
+    ts.dealers = new TomSelect('#dealersSelect', tsConfig({
       placeholder: 'All Dealers',
       onChange: function (vals) { F.setCustomers(vals); }
     }));
