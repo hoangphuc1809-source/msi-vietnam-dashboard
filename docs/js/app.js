@@ -63,19 +63,19 @@
 
     ts.year = new TomSelect('#yearSelect', tsConfig({
       placeholder: 'All Years',
-      onChange: function (vals) { F.setYears(vals); }
+      onChange: function (vals) { console.log('[MSI] Year onChange:', vals); F.setYears(vals); }
     }));
     ts.quarter = new TomSelect('#quarterSelect', tsConfig({
       placeholder: 'All Quarters',
-      onChange: function (vals) { F.setQuarters(vals); }
+      onChange: function (vals) { console.log('[MSI] Quarter onChange:', vals); F.setQuarters(vals); }
     }));
     ts.seriesGroup = new TomSelect('#seriesGroupSelect', tsConfig({
       placeholder: 'All Series',
-      onChange: function (vals) { F.setSeriesGroups(vals); }
+      onChange: function (vals) { console.log('[MSI] SeriesGroup onChange:', vals); F.setSeriesGroups(vals); }
     }));
     ts.dealers = new TomSelect('#dealersSelect', tsConfig({
       placeholder: 'All Dealers',
-      onChange: function (vals) { F.setCustomers(vals); }
+      onChange: function (vals) { console.log('[MSI] Dealers onChange:', vals); F.setCustomers(vals); }
     }));
 
     selectsReady = true;
@@ -142,7 +142,11 @@
 
   function renderAll() {
     var state = F.getState();
-    syncSelectsFromState(state);
+    console.log('[MSI] renderAll state:', JSON.stringify({ years: state.years, quarters: state.quarters, seriesGroups: state.seriesGroups, customers: state.customers }));
+    // Defer ra tick sau: tranh goi setValue() len chinh Tom Select instance
+    // dang con trong qua trinh xu ly onChange cua no (reentrancy) - day la
+    // nguyen nhan khien item vua chon bi "bien mat" khoi control.
+    setTimeout(function () { syncSelectsFromState(state); }, 0);
     renderFilterTags(state);
     renderTicker(state);
     renderMsiTrendSection(state);
