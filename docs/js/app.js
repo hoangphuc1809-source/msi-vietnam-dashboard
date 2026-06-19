@@ -165,7 +165,7 @@
     var el = document.getElementById('marketPulseInner');
     if (!el) return;
     var filters = baseFilters(state);
-    var weeks = D.getWeeks();
+    var weeks = D.getWeeksForFilters(filters);
     if (!weeks.length) { el.innerHTML = ''; return; }
     var lastWeek = weeks[weeks.length - 1];
     var prevWeek = weeks.length > 1 ? weeks[weeks.length - 2] : null;
@@ -237,7 +237,7 @@
   }
 
   function renderMsiTrendSection(state) {
-    var weeks = D.getLastNWeeks(state.weeksBack);
+    var weeks = D.getLastNWeeksForFilters(baseFilters(state), state.weeksBack);
     var filters = baseFilters(state);
     var series = D.msiWeeklyVolume(filters, weeks);
     Charts.renderMsiWeeklyTrend('msiTrendChart', weeks, series);
@@ -248,7 +248,7 @@
   }
 
   function renderDealersWeeklySection(state) {
-    var weeks = D.getLastNWeeks(state.weeksBack);
+    var weeks = D.getLastNWeeksForFilters(baseFilters(state), state.weeksBack);
     var filters = baseFilters(state);
 
     var targetCustomers = state.customers.length ? state.customers : (D.getMeta().customers || []);
@@ -274,7 +274,7 @@
   }
 
   function renderMultiLineSection(state) {
-    var weeks = D.getLastNWeeks(state.weeksBack);
+    var weeks = D.getLastNWeeksForFilters(baseFilters(state), state.weeksBack);
     var filters = baseFilters(state);
     var brands = D.getMeta().brands || [];
     var map = {};

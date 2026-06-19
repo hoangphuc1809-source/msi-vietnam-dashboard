@@ -80,9 +80,25 @@ window.MsiData = (function () {
     return Object.keys(set).sort();
   }
 
-  // Lay N tuan gan nhat (dua tren maxWeek trong meta)
+  // Lay N tuan gan nhat (dua tren toan bo rawRows, khong theo filter)
   function getLastNWeeks(n) {
     var weeks = getWeeks();
+    return weeks.slice(Math.max(0, weeks.length - n));
+  }
+
+  // Danh sach week duy nhat CHI trong pham vi filter hien tai (vd khi da chon Year=2024,
+  // danh sach tuan se chi gom cac tuan thuoc 2024, khong phai tuan gan nhat toan cuc)
+  function getWeeksForFilters(filters) {
+    var set = {};
+    applyFilters(filters).forEach(function (r) { if (r.w) set[r.w] = true; });
+    return Object.keys(set).sort();
+  }
+
+  // Lay N tuan gan nhat TRONG PHAM VI filter (dung cho cac chart theo tuan de
+  // ton trong dung Year/Quarter/Series/Dealers dang duoc chon, thay vi luon
+  // mac dinh ve N tuan gan nhat toan cuc bat ke filter)
+  function getLastNWeeksForFilters(filters, n) {
+    var weeks = getWeeksForFilters(filters);
     return weeks.slice(Math.max(0, weeks.length - n));
   }
 
@@ -135,7 +151,7 @@ window.MsiData = (function () {
   // Dealers Capacity table: cho tat ca customers, tinh TTL volume (capacity), YoY, MSI share,
   // Last3Wk/Last2Wk/LastWk (theo brand=MSI block, hoac theo TTL neu can dealer-level)
   function dealersCapacityTable(filters) {
-    var weeks = getWeeks();
+    var weeks = getWeeksForFilters(filters);
     if (!weeks.length) return [];
     var lastWeek = weeks[weeks.length - 1];
 
@@ -186,7 +202,7 @@ window.MsiData = (function () {
 
   // Brands table: cho tat ca brands (toan thi truong hoac 1 dealer neu filter.customer set)
   function brandsTable(filters) {
-    var weeks = getWeeks();
+    var weeks = getWeeksForFilters(filters);
     if (!weeks.length) return [];
     var lastWeek = weeks[weeks.length - 1];
     var brands = filters.brand ? [filters.brand] : (meta.brands || []);
@@ -262,6 +278,8 @@ window.MsiData = (function () {
     getRows: getRows,
     getWeeks: getWeeks,
     getLastNWeeks: getLastNWeeks,
+    getWeeksForFilters: getWeeksForFilters,
+    getLastNWeeksForFilters: getLastNWeeksForFilters,
     getYears: getYears,
     getQuarters: getQuarters,
     applyFilters: applyFilters,
