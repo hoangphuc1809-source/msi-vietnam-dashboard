@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MSI Vietnam - Market Share Dashboard (IHS)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/dashboard.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+</head>
+<body>
+
+<div class="app-shell">
+
+  <header class="app-header">
+    <div class="app-logo">
+      <img src="assets/msi-logo.png" alt="MSI">
+      <span>
+        <div class="title">Market Overall</div>
+        <div class="subtitle">IHS Share Tracking</div>
+      </span>
+    </div>
+
+    <div class="series-filter-group">
+      <button class="chip" data-sg="Gaming">Gaming</button>
+      <button class="chip" data-sg="Business&#38; Productivity">B&amp;P</button>
+      <button class="chip" data-sg="Handheld">Handheld</button>
+      <button class="chip reset" id="resetFilterBtn">Reset Filter</button>
+    </div>
+
+    <div class="header-meta">
+      <span id="lastUpdated">Dang tai du lieu...</span>
+      <button class="refresh-btn" id="refreshBtn">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        Refresh
+      </button>
+    </div>
+  </header>
+
+  <div class="error-banner" id="errorBanner"></div>
+  <div class="filter-tags" id="filterTags"></div>
+
+  <!-- ROW 1: MSI trend / Key dealers weekly bar / Multi-line market share -->
+  <div class="dash-grid">
+    <div class="card accent-green">
+      <h3 class="card-title" id="msiTrendTitle">
+        <span class="dot" style="background:#059669"></span>
+        MSI - weekly S/O
+      </h3>
+      <div class="chart-wrap">
+        <canvas id="msiTrendChart"></canvas>
+      </div>
+    </div>
+
+    <div class="card accent-amber">
+      <h3 class="card-title" id="dealersWeeklyTitle">
+        <span class="dot" style="background:#F97316"></span>
+        Key Dealers - weekly S/O
+      </h3>
+      <div class="chart-wrap">
+        <canvas id="dealersWeeklyChart"></canvas>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 class="card-title">
+        <span class="dot" style="background:#94A3B8"></span>
+        Market Share Trend by Brand
+        <span class="hint">% weekly</span>
+      </h3>
+      <div class="legend-row" id="multiLineLegend"></div>
+      <div class="chart-wrap">
+        <canvas id="multiLineChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROW 2: Brand shared / Brand volume / Dealers volume (horizontal bars) -->
+  <div class="dash-grid">
+    <div class="card">
+      <h3 class="card-title">Key Dealers - Brand shared</h3>
+      <div class="chart-wrap">
+        <canvas id="brandSharedChart"></canvas>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 class="card-title">Key Dealers - Brand Volume</h3>
+      <div class="chart-wrap">
+        <canvas id="brandVolumeChart"></canvas>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 class="card-title">Key Dealers - Volume</h3>
+      <div class="chart-wrap">
+        <canvas id="dealersVolumeChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROW 3: Stacked brand mix per dealer -->
+  <div class="dash-grid" style="grid-template-columns: 1fr;">
+    <div class="card">
+      <h3 class="card-title">Brand mix theo Dealer (Top 8)</h3>
+      <div class="chart-wrap tall">
+        <canvas id="stackedMixChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROW 4: Tables -->
+  <div class="dash-grid" style="grid-template-columns: 1.4fr 1fr;">
+    <div class="card">
+      <h3 class="card-title">Dealers Capacity</h3>
+      <div class="table-scroll" id="dealersCapacityTable"></div>
+    </div>
+
+    <div class="card">
+      <h3 class="card-title">Brands</h3>
+      <div class="table-scroll" id="brandsTable"></div>
+    </div>
+  </div>
+
+  <footer class="app-footer">
+    MSI Vietnam &middot; Market Overall Dashboard &middot; Nguon: RAW - IHS (Google Sheets, auto-sync)
+  </footer>
+
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/format.js"></script>
+<script src="js/filterState.js"></script>
+<script src="js/data.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/tables.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
