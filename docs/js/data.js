@@ -103,21 +103,25 @@ window.MsiData = (function () {
     return customers.map(function (cust) {
       var f = Object.assign({}, filters, { customer: cust });
       var totalRows = applyFilters(f).filter(function (r) { return r.isTotal; });
+      // QUAN TRONG: lastYear/lastWk/last2Wk/last3Wk chi duoc dien o dong brand rieng le
+      // (MSI, HP, Asus...) trong sheet RAW - IHS, KHONG BAO GIO o dong TTL (isTotal=true).
+      // Phai cong don tu brandRows, giong cach brandsTable() da lam dung.
+      var brandRows = applyFilters(f).filter(function (r) { return !r.isTotal; });
       var msiRows = applyFilters(Object.assign({}, f, { brand: 'MSI' })).filter(function (r) { return !r.isTotal; });
 
       var capacity = sum(totalRows, 'ttlVol');
-      var lastYearCapacity = sum(totalRows, 'lastYear');
+      var lastYearCapacity = sum(brandRows, 'lastYear');
       var yoy = lastYearCapacity > 0 ? (capacity - lastYearCapacity) / lastYearCapacity : null;
 
       var msiVolTotal = sum(msiRows, 'brandVol');
       var msiShare = capacity > 0 ? msiVolTotal / capacity : 0;
 
-      // Last3Wk/Last2Wk/LastWk: lay tu cac row co w === lastWeek (cac cot lastWk/last2Wk/last3Wk
-      // da duoc tinh san trong sheet IHS cho tuan hien tai)
-      var lastWeekTotalRows = totalRows.filter(function (r) { return r.w === lastWeek; });
-      var last3 = sum(lastWeekTotalRows, 'last3Wk');
-      var last2 = sum(lastWeekTotalRows, 'last2Wk');
-      var last1 = sum(lastWeekTotalRows, 'lastWk');
+      // Last3Wk/Last2Wk/LastWk: lay tu cac dong brand co w === lastWeek (cac cot lastWk/last2Wk/last3Wk
+      // da duoc tinh san trong sheet IHS cho tuan hien tai, chi o dong brand)
+      var lastWeekBrandRows = brandRows.filter(function (r) { return r.w === lastWeek; });
+      var last3 = sum(lastWeekBrandRows, 'last3Wk');
+      var last2 = sum(lastWeekBrandRows, 'last2Wk');
+      var last1 = sum(lastWeekBrandRows, 'lastWk');
 
       // WoW: tuan gan nhat so voi tuan truoc do (dua tren capacity 2 tuan cuoi)
       var prevWeek = weeks.length > 1 ? weeks[weeks.length - 2] : null;
