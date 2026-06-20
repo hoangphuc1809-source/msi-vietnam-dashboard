@@ -524,9 +524,14 @@
   }
 
   function renderGpuTierMixSection() {
-    var window13 = getRolling13WeekLabels_();
-    var rows = NV.gpuTierComparison(window13);
+    var gpuWeeks = NV.getGpuWeeks();
+    if (!gpuWeeks.length) return;
+    var latestWeek = gpuWeeks[gpuWeeks.length - 1];
+    var rows = NV.gpuTierComparison([latestWeek]);
     Charts.renderGpuTierGroupedBar('gpuTierChart', rows);
+
+    var hintEl = document.getElementById('gpuTierHint');
+    if (hintEl) hintEl.textContent = fmt.weekShort(latestWeek) + ' (latest available)';
   }
 
   function escapeHtml(s) {

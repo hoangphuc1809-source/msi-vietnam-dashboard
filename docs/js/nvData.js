@@ -50,6 +50,7 @@ window.MsiNvData = (function () {
   }
 
   function getWeeks() { return distinctWeeksSorted(brandRows); }
+  function getGpuWeeks() { return distinctWeeksSorted(gpuRows); }
 
   // ===== Weekly MSI vs Market (whole market, tat ca brand) =====
   function weeklyMsiShare(n) {
@@ -161,6 +162,7 @@ window.MsiNvData = (function () {
     isLoaded: isLoaded,
     getMeta: getMeta,
     getWeeks: getWeeks,
+    getGpuWeeks: getGpuWeeks,
     weeklyMsiShare: weeklyMsiShare,
     quarterlyTrend: quarterlyTrend,
     latestWeekBrandRanking: latestWeekBrandRanking,
