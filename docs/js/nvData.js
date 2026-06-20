@@ -121,12 +121,14 @@ window.MsiNvData = (function () {
     }).sort(function (a, b) { return b.vol - a.vol; });
   }
 
-  // ===== GPU tier mix: MSI vs whole market, gop N tuan gan nhat =====
-  function gpuTierComparison(n) {
-    n = n || 8;
-    var weeks = distinctWeeksSorted(gpuRows).slice(-n);
+  // ===== GPU tier mix: MSI vs whole market, gop theo danh sach tuan cu the =====
+  // (weekLabels: mang cac tuan can gop, vd rolling 13w neo theo lich thuc te -
+  // xem getRolling13WeekLabels() trong app.js. Truoc day ham nay tu lay "N tuan
+  // gan nhat co trong data", nhung nhu vay phu thuoc vao data co day du hay khong;
+  // gio nhan danh sach tuan tu ben ngoai de dam bao dung khung thoi gian mong muon.)
+  function gpuTierComparison(weekLabels) {
     var weekSet = {};
-    weeks.forEach(function (w) { weekSet[w] = true; });
+    (weekLabels || []).forEach(function (w) { weekSet[w] = true; });
 
     var byTier = {};
     gpuRows.forEach(function (r) {

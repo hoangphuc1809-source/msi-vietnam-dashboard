@@ -456,29 +456,54 @@
   // "Market Reality Check": so sanh MSI Share o Key Dealers (IHS) vs toan thi truong
   // (NV Report). So sanh tren CUNG mot tap hop tuan (giao giua 2 nguon) de cong bang -
   // NV Report la snapshot tinh nen co the cham hon IHS vai tuan.
+  // Tinh nhan ISO-8601 week ('YYYYWNN') cho 1 ngay bat ky - khop voi cach data
+  // dang dung (da verify: hom nay 20/6/2026 = W25, tuan truoc = W24 = dung maxWeek
+  // hien co trong IHS).
+  function isoWeekLabel_(date) {
+    var d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    var dayNum = (d.getUTCDay() + 6) % 7;
+    d.setUTCDate(d.getUTCDate() - dayNum + 3);
+    var firstThursday = new Date(Date.UTC(d.getUTCFullYear(), 0, 4));
+    var firstDayNum = (firstThursday.getUTCDay() + 6) % 7;
+    firstThursday.setUTCDate(firstThursday.getUTCDate() - firstDayNum + 3);
+    var weekNum = 1 + Math.round((d - firstThursday) / (7 * 24 * 3600 * 1000));
+    return d.getUTCFullYear() + 'W' + (weekNum < 10 ? '0' + weekNum : weekNum);
+  }
+
+  // 13 tuan rolling, neo o TUAN TRUOC (today - 1 tuan) chu khong phai tuan hien
+  // tai (co the chua du lieu day du) - tinh theo lich thuc te, KHONG phu thuoc
+  // vao tuan moi nhat dang co trong data (de tranh bi lech neu 1 nguon cap nhat
+  // cham hon nguon kia). Tra ve mang 13 nhan tuan, cu -> moi.
+  function getRolling13WeekLabels_() {
+    var today = new Date();
+    var labels = [];
+    for (var i = 13; i >= 1; i--) {
+      var d = new Date(today.getTime() - i * 7 * 24 * 3600 * 1000);
+      labels.push(isoWeekLabel_(d));
+    }
+    return labels;
+  }
+
+  // "Market Reality Check": so sanh MSI Share o Key Dealers (IHS, Gaming only)
+  // vs toan thi truong (NV Report - ban than NV chi report Gaming, khong ap dung
+  // cho cac dong san pham khac). Ca 2 phia deu gop tren CUNG 1 khung 13 tuan
+  // rolling co dinh (neo o tuan truoc theo lich thuc te), khong phai "giao nhau
+  // giua 2 nguon" nhu truoc - de khung thoi gian on dinh, khong troi theo data.
   function renderMarketRealityCheckSection() {
-    var ihsWeeks = D.getWeeksForFilters({ seriesGroup: ['Gaming'] });
-    var nvWeeks = NV.getWeeks();
-    var ihsWeekSet = {};
-    ihsWeeks.forEach(function (w) { ihsWeekSet[w] = true; });
-    var common = nvWeeks.filter(function (w) { return ihsWeekSet[w]; }).slice(-8);
+    var window13 = getRolling13WeekLabels_();
+    var windowSet = {};
+    window13.forEach(function (w) { windowSet[w] = true; });
 
     var el = document.getElementById('realityCheckStats');
-    if (!common.length) {
-      el.innerHTML = '<div class="alert-empty">Khong co tuan trung giua IHS va NV Report de so sanh.</div>';
-      return;
-    }
-    var commonSet = {};
-    common.forEach(function (w) { commonSet[w] = true; });
 
-    var ihsTotalRows = D.applyFilters({ seriesGroup: ['Gaming'] }).filter(function (r) { return r.isTotal && commonSet[r.w]; });
-    var ihsMsiRows = D.applyFilters({ seriesGroup: ['Gaming'], brand: 'MSI' }).filter(function (r) { return !r.isTotal && commonSet[r.w]; });
+    var ihsTotalRows = D.applyFilters({ seriesGroup: ['Gaming'] }).filter(function (r) { return r.isTotal && windowSet[r.w]; });
+    var ihsMsiRows = D.applyFilters({ seriesGroup: ['Gaming'], brand: 'MSI' }).filter(function (r) { return !r.isTotal && windowSet[r.w]; });
     var ihsTotal = ihsTotalRows.reduce(function (a, r) { return a + (r.ttlVol || 0); }, 0);
     var ihsMsi = ihsMsiRows.reduce(function (a, r) { return a + (r.brandVol || 0); }, 0);
     var ihsShare = ihsTotal > 0 ? ihsMsi / ihsTotal : null;
 
     var nvAll = NV.weeklyMsiShare();
-    var nvFiltered = nvAll.filter(function (d) { return commonSet[d.week]; });
+    var nvFiltered = nvAll.filter(function (d) { return windowSet[d.week]; });
     var nvTotal = nvFiltered.reduce(function (a, d) { return a + d.total; }, 0);
     var nvMsi = nvFiltered.reduce(function (a, d) { return a + d.msi; }, 0);
     var nvShare = nvTotal > 0 ? nvMsi / nvTotal : null;
@@ -486,20 +511,21 @@
     var gap = nvTotal - ihsTotal;
     var gapPct = nvTotal > 0 ? gap / nvTotal : null;
 
-    var weekRangeLabel = fmt.weekShort(common[0]) + '\u2013' + fmt.weekShort(common[common.length - 1]);
+    var weekRangeLabel = fmt.weekShort(window13[0]) + '\u2013' + fmt.weekShort(window13[window13.length - 1]);
 
     el.innerHTML =
-      '<div class="rc-stat"><div class="rc-label">MSI Share @ Key Dealers (IHS)</div><div class="rc-value">' + fmt.percent(ihsShare, 1) + '</div></div>' +
-      '<div class="rc-stat"><div class="rc-label">MSI Share @ Whole Market (NV)</div><div class="rc-value">' + fmt.percent(nvShare, 1) + '</div></div>' +
+      '<div class="rc-stat"><div class="rc-label">MSI Share @ Key Dealers (IHS, Gaming)</div><div class="rc-value">' + fmt.percent(ihsShare, 1) + '</div></div>' +
+      '<div class="rc-stat"><div class="rc-label">MSI Share @ Whole Market (NV, Gaming)</div><div class="rc-value">' + fmt.percent(nvShare, 1) + '</div></div>' +
       '<div class="rc-stat"><div class="rc-label">Coverage Gap</div><div class="rc-value">' + fmt.number(gap) + ' <span class="rc-sub">(' + fmt.percent(gapPct, 0) + ')</span></div></div>' +
-      '<div class="rc-stat"><div class="rc-label">Window</div><div class="rc-value rc-value-sm">' + weekRangeLabel + '</div></div>';
+      '<div class="rc-stat"><div class="rc-label">Window (13w rolling)</div><div class="rc-value rc-value-sm">' + weekRangeLabel + '</div></div>';
 
     var trend = NV.quarterlyTrend();
     Charts.renderQuarterlyTrendLine('quarterlyTrendChart', trend);
   }
 
   function renderGpuTierMixSection() {
-    var rows = NV.gpuTierComparison(8);
+    var window13 = getRolling13WeekLabels_();
+    var rows = NV.gpuTierComparison(window13);
     Charts.renderGpuTierGroupedBar('gpuTierChart', rows);
   }
 
