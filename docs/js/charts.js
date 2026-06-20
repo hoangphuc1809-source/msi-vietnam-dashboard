@@ -499,6 +499,53 @@ window.MsiCharts = (function () {
     });
   }
 
+  // ===== Mini dual-bar: Top-N entity, This Period (colored) vs Last Year (gray) =====
+  // Dung cho scorecard card (Key Dealers / NV Report) - so sanh nhanh truc quan.
+  function renderDualMiniBar(canvasId, items, valueField, refField, labelField, color) {
+    destroyIfExists(canvasId);
+    var ctx = document.getElementById(canvasId).getContext('2d');
+
+    charts[canvasId] = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: items.map(function (d) { return window.MsiFormat.truncate(String(d[labelField]), 14); }),
+        datasets: [
+          {
+            label: 'Last Year',
+            data: items.map(function (d) { return d[refField] || 0; }),
+            backgroundColor: '#CBD5E1',
+            borderRadius: 3,
+            maxBarThickness: 9
+          },
+          {
+            label: 'This Period',
+            data: items.map(function (d) { return d[valueField] || 0; }),
+            backgroundColor: color,
+            borderRadius: 3,
+            maxBarThickness: 9
+          }
+        ]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#0F172A', padding: 8, cornerRadius: 6,
+            titleFont: { size: 10 }, bodyFont: { size: 10 },
+            callbacks: { label: function (ctx) { return ctx.dataset.label + ': ' + window.MsiFormat.number(ctx.parsed.x); } }
+          }
+        },
+        scales: {
+          x: { display: false, beginAtZero: true },
+          y: { grid: { display: false }, ticks: { color: C.textSecondary, font: { size: 10, weight: '600' } } }
+        }
+      }
+    });
+  }
+
   return {
     renderMsiWeeklyTrend: renderMsiWeeklyTrend,
     renderDealersWeeklyBar: renderDealersWeeklyBar,
@@ -507,6 +554,7 @@ window.MsiCharts = (function () {
     renderStackedShareByDealer: renderStackedShareByDealer,
     renderQuarterlyTrendLine: renderQuarterlyTrendLine,
     renderWeeklyShareDualLine: renderWeeklyShareDualLine,
-    renderGpuTierGroupedBar: renderGpuTierGroupedBar
+    renderGpuTierGroupedBar: renderGpuTierGroupedBar,
+    renderDualMiniBar: renderDualMiniBar
   };
 })();

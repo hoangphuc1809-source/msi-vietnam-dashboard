@@ -52,6 +52,25 @@ window.MsiNvData = (function () {
   function getWeeks() { return distinctWeeksSorted(brandRows); }
   function getGpuWeeks() { return distinctWeeksSorted(gpuRows); }
 
+  // Loc danh sach tuan cua NV theo CUNG Year/Quarter dropdown filter voi IHS -
+  // NV luu y dang 'Y2026' (co tien to Y) trong khi dropdown dung '2026' (khong
+  // co Y) nen phai bo tien to truoc khi so sanh. Mang rong = khong loc theo dim do.
+  function getWeeksForYearQuarter(years, quarters) {
+    var ySet = (years && years.length) ? {} : null;
+    if (ySet) years.forEach(function (y) { ySet[y] = true; });
+    var qSet = (quarters && quarters.length) ? {} : null;
+    if (qSet) quarters.forEach(function (q) { qSet[q] = true; });
+
+    var weekSet = {};
+    brandRows.forEach(function (r) {
+      var yPlain = String(r.y || '').replace(/^Y/, '');
+      if (ySet && !ySet[yPlain]) return;
+      if (qSet && !qSet[r.q]) return;
+      if (r.w) weekSet[r.w] = true;
+    });
+    return Object.keys(weekSet).sort();
+  }
+
   // ===== Weekly MSI vs Market (whole market, tat ca brand) =====
   function weeklyMsiShare(n) {
     var weeks = distinctWeeksSorted(brandRows);
@@ -157,15 +176,69 @@ window.MsiNvData = (function () {
       .sort(function (a, b) { return b.marketShare - a.marketShare; });
   }
 
+  // ===== Brand summary table (cho "NV Report" scorecard) =====
+  // weekLabels: danh sach tuan trong pham vi (vd theo Year/Quarter filter dang chon).
+  // QUAN TRONG: cot Last Wk/Last 2 Wk/Last 3 Wk trong sheet NV Report goc LUON RONG
+  // (da xac nhan khi xay dung tinh nang nay) - nen phai TU TINH bang cach cong don
+  // chinh du lieu brandRows theo tuan, khac voi cach IHS lam (IHS co san san cac
+  // cot do, chi can doc truc tiep).
+  function brandSummaryTable(weekLabels) {
+    var weeks = (weekLabels || []).slice().sort();
+    if (!weeks.length) return [];
+    var weekSet = {};
+    weeks.forEach(function (w) { weekSet[w] = true; });
+    var lastWeek = weeks[weeks.length - 1];
+    var prevWeek = weeks.length > 1 ? weeks[weeks.length - 2] : null;
+    var last2Weeks = weeks.slice(-2);
+    var last3Weeks = weeks.slice(-3);
+
+    var byBrand = {};
+    brandRows.forEach(function (r) {
+      if (!weekSet[r.w]) return;
+      if (!byBrand[r.brand]) {
+        byBrand[r.brand] = { vol: 0, lastYearAtLastWeek: 0, last3WkVol: 0, last2WkVol: 0, lastWkVol: 0, prevWeekVol: 0 };
+      }
+      var b = byBrand[r.brand];
+      b.vol += r.vol;
+      if (r.w === lastWeek) { b.lastYearAtLastWeek += r.lastYear; b.lastWkVol += r.vol; }
+      if (last3Weeks.indexOf(r.w) !== -1) b.last3WkVol += r.vol;
+      if (last2Weeks.indexOf(r.w) !== -1) b.last2WkVol += r.vol;
+      if (r.w === prevWeek) b.prevWeekVol += r.vol;
+    });
+
+    var grandTotal = 0;
+    Object.keys(byBrand).forEach(function (brand) { grandTotal += byBrand[brand].vol; });
+
+    return Object.keys(byBrand).map(function (brand) {
+      var b = byBrand[brand];
+      var yoy = b.lastYearAtLastWeek > 0 ? (b.lastWkVol - b.lastYearAtLastWeek) / b.lastYearAtLastWeek : null;
+      var wow = (b.lastWkVol > 0 && b.prevWeekVol > 0) ? (b.lastWkVol - b.prevWeekVol) / b.prevWeekVol : null;
+      return {
+        brand: brand,
+        volume: b.vol,
+        lastYearVol: b.lastYearAtLastWeek,
+        shared: grandTotal > 0 ? b.vol / grandTotal : 0,
+        yoy: yoy,
+        last3Wk: b.last3WkVol,
+        last2Wk: b.last2WkVol,
+        lastWk: b.lastWkVol,
+        wow: wow
+      };
+    }).filter(function (d) { return d.volume > 0; })
+      .sort(function (a, b) { return b.volume - a.volume; });
+  }
+
   return {
     fetchData: fetchData,
     isLoaded: isLoaded,
     getMeta: getMeta,
     getWeeks: getWeeks,
     getGpuWeeks: getGpuWeeks,
+    getWeeksForYearQuarter: getWeeksForYearQuarter,
     weeklyMsiShare: weeklyMsiShare,
     quarterlyTrend: quarterlyTrend,
     latestWeekBrandRanking: latestWeekBrandRanking,
-    gpuTierComparison: gpuTierComparison
+    gpuTierComparison: gpuTierComparison,
+    brandSummaryTable: brandSummaryTable
   };
 })();

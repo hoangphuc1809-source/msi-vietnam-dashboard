@@ -455,6 +455,69 @@ html, body {
 .card.accent-green { border-top-color: var(--signal-green); }
 .card.accent-amber { border-top-color: var(--signal-amber); }
 .card.accent-red { border-top-color: var(--msi-red); }
+.card.accent-blue { border-top-color: #2563EB; }
+
+/* ===== Scorecard card (Key Dealers / Whole Market snapshot) ===== */
+.scorecard-card { display: flex; flex-direction: column; }
+
+.scorecard-title {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+
+.scorecard-title .hint {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-transform: none;
+  margin-left: 4px;
+}
+
+.scorecard-big {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.scorecard-number {
+  font-family: var(--font-mono);
+  font-size: 34px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1;
+}
+
+.scorecard-yoy {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.scorecard-minichart {
+  height: 160px;
+  margin-bottom: 14px;
+}
+
+.scorecard-footer {
+  display: flex;
+  gap: 18px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--text-secondary);
+}
+
+.scorecard-footer b { color: var(--text-primary); font-weight: 700; }
+
+.scorecard-yoy.val-up { color: var(--signal-green); }
+.scorecard-yoy.val-down { color: var(--signal-red); }
 .card.accent-slate { border-top-color: var(--space-gray); }
 
 .chart-wrap {

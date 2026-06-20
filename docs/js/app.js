@@ -208,6 +208,10 @@
     setTimeout(function () { syncSelectsFromState(state); }, 0);
     renderFilterTags(state);
     renderTicker(state);
+    renderKeyDealersScorecardSection(state);
+    if (nvReady) {
+      renderNvScorecardSection(state);
+    }
     renderMsiTrendSection(state);
     renderDealersWeeklySection(state);
     renderMultiLineSection(state);
@@ -305,6 +309,67 @@
     if (state.customers.length === 1) return state.customers[0];
     return state.customers.length + ' dealers';
   }
+
+  // ===== Snapshot scorecards: Key Dealers (IHS) vs Whole Market (NV Report) =====
+  // Theo mau report cu cua Phuc: so to + YoY + mini bar so sanh Top-N (This Period
+  // vs Last Year) + bang brand breakdown + footer Last Week/WoW.
+  function renderKeyDealersScorecardSection(state) {
+    var filters = baseFilters(state);
+    var rows = D.brandsTable(filters);
+    var grandTotal = rows.reduce(function (a, r) { return a + r.volume; }, 0);
+    var grandLastYear = rows.reduce(function (a, r) { return a + (r.lastYearVol || 0); }, 0);
+    var yoy = grandLastYear > 0 ? (grandTotal - grandLastYear) / grandLastYear : null;
+    var trend = D.grandWeeklyTrend(filters);
+
+    document.getElementById('kdScorecardNumber').textContent = fmt.number(grandTotal);
+    var yoyEl = document.getElementById('kdScorecardYoy');
+    yoyEl.textContent = (yoy === null ? '-' : (yoy >= 0 ? '\u25b2 ' : '\u25bc ') + Math.abs(yoy * 100).toFixed(1) + '% YoY');
+    yoyEl.className = 'scorecard-yoy ' + (yoy === null ? '' : (yoy >= 0 ? 'val-up' : 'val-down'));
+
+    var top = rows.slice().sort(function (a, b) { return b.volume - a.volume; }).slice(0, 6);
+    Charts.renderDualMiniBar('kdMiniChart', top, 'volume', 'lastYearVol', 'brand', '#F97316');
+
+    Tables.renderBrandsTable('kdScorecardTable', rows, state.brand, function (brand) { F.setBrand(brand); });
+
+    document.getElementById('kdScorecardFooter').innerHTML =
+      'Last week: <b>' + fmt.number(trend.lastWeekVol) + '</b> &nbsp;\u00b7&nbsp; WoW: <b class="' +
+      (trend.wow === null ? '' : (trend.wow >= 0 ? 'val-up' : 'val-down')) + '">' + fmt.percentSigned(trend.wow, 1) + '</b>';
+  }
+
+  function renderNvScorecardSection(state) {
+    var weeks = NV.getWeeksForYearQuarter(state.years, state.quarters);
+    var rows = NV.brandSummaryTable(weeks);
+    var grandTotal = rows.reduce(function (a, r) { return a + r.volume; }, 0);
+    var grandLastYear = rows.reduce(function (a, r) { return a + (r.lastYearVol || 0); }, 0);
+    var yoy = grandLastYear > 0 ? (grandTotal - grandLastYear) / grandLastYear : null;
+
+    // WoW dung tuan lien ke THUC SU (khong dung last2Wk/last3Wk - xem ghi chu
+    // o grandWeeklyTrend trong data.js, cung 1 ly do ap dung cho ca NV).
+    var sortedWeeks = weeks.slice().sort();
+    var lastW = sortedWeeks.length ? sortedWeeks[sortedWeeks.length - 1] : null;
+    var prevW = sortedWeeks.length > 1 ? sortedWeeks[sortedWeeks.length - 2] : null;
+    var weeklyAll = NV.weeklyMsiShare();
+    var weeklyMap = {};
+    weeklyAll.forEach(function (d) { weeklyMap[d.week] = d.total; });
+    var lastWeekVol = lastW ? (weeklyMap[lastW] || 0) : 0;
+    var prevWeekVol = prevW ? (weeklyMap[prevW] || 0) : null;
+    var wow = (lastWeekVol > 0 && prevWeekVol && prevWeekVol > 0) ? (lastWeekVol - prevWeekVol) / prevWeekVol : null;
+
+    document.getElementById('nvScorecardNumber').textContent = fmt.number(grandTotal);
+    var yoyEl = document.getElementById('nvScorecardYoy');
+    yoyEl.textContent = (yoy === null ? '-' : (yoy >= 0 ? '\u25b2 ' : '\u25bc ') + Math.abs(yoy * 100).toFixed(1) + '% YoY');
+    yoyEl.className = 'scorecard-yoy ' + (yoy === null ? '' : (yoy >= 0 ? 'val-up' : 'val-down'));
+
+    var top = rows.slice().sort(function (a, b) { return b.volume - a.volume; }).slice(0, 6);
+    Charts.renderDualMiniBar('nvMiniChart', top, 'volume', 'lastYearVol', 'brand', '#2563EB');
+
+    Tables.renderBrandsTable('nvScorecardTable', rows, null, function () {});
+
+    document.getElementById('nvScorecardFooter').innerHTML =
+      'Last week: <b>' + fmt.number(lastWeekVol) + '</b> &nbsp;\u00b7&nbsp; WoW: <b class="' +
+      (wow === null ? '' : (wow >= 0 ? 'val-up' : 'val-down')) + '">' + fmt.percentSigned(wow, 1) + '</b>';
+  }
+
 
   function renderMsiTrendSection(state) {
     var weeks = D.getLastNWeeksForFilters(baseFilters(state), state.weeksBack);

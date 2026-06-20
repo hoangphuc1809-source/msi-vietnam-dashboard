@@ -6,7 +6,7 @@
 <title>MSI Vietnam - Market Share Dashboard (IHS)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/dashboard.css?v=1781960807">
+<link rel="stylesheet" href="css/dashboard.css?v=1781986529">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
@@ -60,6 +60,37 @@
 
   <div class="error-banner" id="errorBanner"></div>
   <div class="filter-tags" id="filterTags"></div>
+
+  <!-- ===== ZONE 0: SNAPSHOT (Key Dealers vs Whole Market scorecards) ===== -->
+  <div class="zone-label">Snapshot</div>
+
+  <div class="dash-grid">
+    <div class="card scorecard-card accent-amber">
+      <div class="scorecard-title">Key Dealers</div>
+      <div class="scorecard-big">
+        <span class="scorecard-number" id="kdScorecardNumber">-</span>
+        <span class="scorecard-yoy" id="kdScorecardYoy">-</span>
+      </div>
+      <div class="scorecard-minichart">
+        <canvas id="kdMiniChart"></canvas>
+      </div>
+      <div class="table-scroll" id="kdScorecardTable"></div>
+      <div class="scorecard-footer" id="kdScorecardFooter"></div>
+    </div>
+
+    <div class="card scorecard-card accent-blue">
+      <div class="scorecard-title">Whole Market <span class="hint">(NV Report)</span></div>
+      <div class="scorecard-big">
+        <span class="scorecard-number" id="nvScorecardNumber">-</span>
+        <span class="scorecard-yoy" id="nvScorecardYoy">-</span>
+      </div>
+      <div class="scorecard-minichart">
+        <canvas id="nvMiniChart"></canvas>
+      </div>
+      <div class="table-scroll" id="nvScorecardTable"></div>
+      <div class="scorecard-footer" id="nvScorecardFooter"></div>
+    </div>
+  </div>
 
   <!-- ===== ZONE 1: EXECUTIVE SUMMARY ===== -->
   <div class="zone-label">Executive Summary</div>
@@ -215,14 +246,14 @@
 
 </div>
 
-<script src="js/config.js?v=1781960807"></script>
-<script src="js/format.js?v=1781960807"></script>
-<script src="js/filterState.js?v=1781960807"></script>
-<script src="js/data.js?v=1781960807"></script>
-<script src="js/nvData.js?v=1781960807"></script>
-<script src="js/salesData.js?v=1781960807"></script>
-<script src="js/charts.js?v=1781960807"></script>
-<script src="js/tables.js?v=1781960807"></script>
-<script src="js/app.js?v=1781960807"></script>
+<script src="js/config.js?v=1781986529"></script>
+<script src="js/format.js?v=1781986529"></script>
+<script src="js/filterState.js?v=1781986529"></script>
+<script src="js/data.js?v=1781986529"></script>
+<script src="js/nvData.js?v=1781986529"></script>
+<script src="js/salesData.js?v=1781986529"></script>
+<script src="js/charts.js?v=1781986529"></script>
+<script src="js/tables.js?v=1781986529"></script>
+<script src="js/app.js?v=1781986529"></script>
 </body>
 </html>

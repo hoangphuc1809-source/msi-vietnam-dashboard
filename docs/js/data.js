@@ -209,6 +209,7 @@ window.MsiData = (function () {
       return {
         customer: cust,
         capacity: capacity,
+        lastYearCapacity: lastYearCapacity,
         selectedBrandVolume: selectedBrandVolume,
         yoy: yoy,
         msiShare: msiShare,
@@ -256,6 +257,7 @@ window.MsiData = (function () {
       return {
         brand: brand,
         volume: volume,
+        lastYearVol: lastYearVol,
         shared: shared,
         yoy: yoy,
         last3Wk: last3,
@@ -428,6 +430,25 @@ window.MsiData = (function () {
       .sort(function (a, b) { return b.stdev - a.stdev; });
   }
 
+  // TTL volume (brand-agnostic) cho tuan gan nhat va tuan ngay truoc do, dung de
+  // tinh WoW dung cach. KHONG dung cac cot lastWk/last2Wk/last3Wk cho viec nay -
+  // 3 cot do la 3 SNAPSHOT TUAN RIENG LE (tuan hien tai, tuan -2, tuan -3 - co
+  // mot khoang trong o tuan -1), khong phai tong don, nen lay hieu giua chung
+  // KHONG cho ra "tuan truoc" chinh xac (da gay bug WoW sai lech hang nghin %).
+  function grandWeeklyTrend(filters) {
+    var weeks = getWeeksForFilters(filters);
+    if (!weeks.length) return { lastWeekVol: 0, prevWeekVol: null, wow: null };
+    var lastWeek = weeks[weeks.length - 1];
+    var prevWeek = weeks.length > 1 ? weeks[weeks.length - 2] : null;
+    var fNoBrand = Object.assign({}, filters);
+    delete fNoBrand.brand;
+    var totalRows = applyFilters(fNoBrand).filter(function (r) { return r.isTotal; });
+    var lastWeekVol = sum(totalRows.filter(function (r) { return r.w === lastWeek; }), 'ttlVol');
+    var prevWeekVol = prevWeek ? sum(totalRows.filter(function (r) { return r.w === prevWeek; }), 'ttlVol') : null;
+    var wow = (lastWeekVol > 0 && prevWeekVol && prevWeekVol > 0) ? (lastWeekVol - prevWeekVol) / prevWeekVol : null;
+    return { lastWeekVol: lastWeekVol, prevWeekVol: prevWeekVol, wow: wow };
+  }
+
   function sum(rows, field) {
     return rows.reduce(function (acc, r) { return acc + (r[field] || 0); }, 0);
   }
@@ -449,6 +470,7 @@ window.MsiData = (function () {
     dealersCapacityTable: dealersCapacityTable,
     brandsTable: brandsTable,
     dealerBrandShareMatrix: dealerBrandShareMatrix,
+    grandWeeklyTrend: grandWeeklyTrend,
     getChannelTypes: getChannelTypes,
     channelTypeScorecard: channelTypeScorecard,
     whitespaceList: whitespaceList,
