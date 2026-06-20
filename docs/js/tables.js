@@ -10,17 +10,22 @@ window.MsiTables = (function () {
     return v >= 0 ? 'val-up' : 'val-down';
   }
 
-  function renderDealersCapacityTable(containerId, rows, activeCustomer, onRowClick) {
+  function renderDealersCapacityTable(containerId, rows, activeCustomer, onRowClick, weekLabels) {
     var el = document.getElementById(containerId);
     var grandTotal = rows.reduce(function (a, r) { return a + r.capacity; }, 0);
-    var grand3 = rows.reduce(function (a, r) { return a + (r.last3Wk || 0); }, 0);
-    var grand2 = rows.reduce(function (a, r) { return a + (r.last2Wk || 0); }, 0);
-    var grand1 = rows.reduce(function (a, r) { return a + (r.lastWk || 0); }, 0);
+    var has3 = rows.some(function (r) { return r.last3Wk !== null && r.last3Wk !== undefined; });
+    var has2 = rows.some(function (r) { return r.last2Wk !== null && r.last2Wk !== undefined; });
+    var has1 = rows.some(function (r) { return r.lastWk !== null && r.lastWk !== undefined; });
+    var grand3 = has3 ? rows.reduce(function (a, r) { return a + (r.last3Wk || 0); }, 0) : null;
+    var grand2 = has2 ? rows.reduce(function (a, r) { return a + (r.last2Wk || 0); }, 0) : null;
+    var grand1 = has1 ? rows.reduce(function (a, r) { return a + (r.lastWk || 0); }, 0) : null;
+    var wl = weekLabels || [];
+    var h3 = wl[0] || 'Last 3 Wk', h2 = wl[1] || 'Last 2 Wk', h1 = wl[2] || 'Last Wk';
 
     var html = '<table class="data-table">';
     html += '<thead><tr>' +
       '<th>Dealers Capacity</th><th>Capacity</th><th>YoY</th><th>MSI share</th>' +
-      '<th>Last 3 Wk</th><th>Last 2 Wk</th><th>Last Wk</th><th>WoW</th>' +
+      '<th>' + escapeAttr(h3) + '</th><th>' + escapeAttr(h2) + '</th><th>' + escapeAttr(h1) + '</th><th>WoW</th>' +
       '</tr></thead><tbody>';
 
     rows.forEach(function (r) {
@@ -59,18 +64,23 @@ window.MsiTables = (function () {
     }
   }
 
-  function renderBrandsTable(containerId, rows, activeBrand, onRowClick) {
+  function renderBrandsTable(containerId, rows, activeBrand, onRowClick, weekLabels) {
     var el = document.getElementById(containerId);
     var grandTotal = rows.reduce(function (a, r) { return a + r.volume; }, 0);
     var grandShared = rows.reduce(function (a, r) { return a + r.shared; }, 0);
-    var grand3 = rows.reduce(function (a, r) { return a + (r.last3Wk || 0); }, 0);
-    var grand2 = rows.reduce(function (a, r) { return a + (r.last2Wk || 0); }, 0);
-    var grand1 = rows.reduce(function (a, r) { return a + (r.lastWk || 0); }, 0);
+    var has3 = rows.some(function (r) { return r.last3Wk !== null && r.last3Wk !== undefined; });
+    var has2 = rows.some(function (r) { return r.last2Wk !== null && r.last2Wk !== undefined; });
+    var has1 = rows.some(function (r) { return r.lastWk !== null && r.lastWk !== undefined; });
+    var grand3 = has3 ? rows.reduce(function (a, r) { return a + (r.last3Wk || 0); }, 0) : null;
+    var grand2 = has2 ? rows.reduce(function (a, r) { return a + (r.last2Wk || 0); }, 0) : null;
+    var grand1 = has1 ? rows.reduce(function (a, r) { return a + (r.lastWk || 0); }, 0) : null;
+    var wl = weekLabels || [];
+    var h3 = wl[0] || 'Last 3 Wk', h2 = wl[1] || 'Last 2 Wk', h1 = wl[2] || 'Last Wk';
 
     var html = '<table class="data-table">';
     html += '<thead><tr>' +
       '<th>Brands</th><th>Volume</th><th>Shared</th><th>YoY</th>' +
-      '<th>Last 3 Wk</th><th>Last 2 Wk</th><th>Last Wk</th><th>WoW</th>' +
+      '<th>' + escapeAttr(h3) + '</th><th>' + escapeAttr(h2) + '</th><th>' + escapeAttr(h1) + '</th><th>WoW</th>' +
       '</tr></thead><tbody>';
 
     rows.forEach(function (r) {

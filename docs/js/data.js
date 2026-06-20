@@ -151,7 +151,11 @@ window.MsiData = (function () {
 
   // Dealers Capacity table: cho tat ca customers, tinh TTL volume (capacity), YoY, MSI share,
   // Last3Wk/Last2Wk/LastWk (theo brand=MSI block, hoac theo TTL neu can dealer-level)
-  function dealersCapacityTable(filters) {
+  // recentWeeks (tuy chon): mang 3 nhan tuan [tuan-2, tuan-1, tuan-0], giong
+  // brandsTable(). Last3Wk/2Wk/1Wk gio la TONG TOAN THI TRUONG (ttlVol) cua dung
+  // 3 tuan do tai dealer, tinh truc tiep tu data hang tuan - khong dung cot
+  // last3Wk/last2Wk/lastWk co san trong sheet nua (ly do xem ghi chu brandsTable()).
+  function dealersCapacityTable(filters, recentWeeks) {
     var weeks = getWeeksForFilters(filters);
     if (!weeks.length) return [];
 
@@ -166,25 +170,25 @@ window.MsiData = (function () {
     var filtersNoBrand = Object.assign({}, filters);
     delete filtersNoBrand.brand;
 
-    // QUAN TRONG (giong brandsTable): "Last Wk/2Wk/3Wk/WoW" la khai niem tuong
-    // doi voi HIEN TAI, khong phai voi pham vi Year/Quarter dang loc - cac cot
-    // do trong sheet chi dien o dong cua tuan moi nhat TUYET DOI. Neu Quarter
-    // dropdown khong con la quy hien tai, tuan "lastWeek" theo pham vi loc se
-    // lech khoi tuan thuc su co du lieu -> ve 0. Tinh rieng 1 bo filter khong
-    // bi Year/Quarter rang buoc chi de tra cuu cac gia tri "gan day" nay.
     var filtersForRecent = Object.assign({}, filtersNoBrand);
     delete filtersForRecent.year;
     delete filtersForRecent.quarter;
-    var globalWeeks = getWeeksForFilters(filtersForRecent);
-    var lastWeek = globalWeeks.length ? globalWeeks[globalWeeks.length - 1] : weeks[weeks.length - 1];
-    var prevWeek = globalWeeks.length > 1 ? globalWeeks[globalWeeks.length - 2] : null;
+
+    var rw = recentWeeks;
+    if (!rw || !rw.length) {
+      var globalWeeks = getWeeksForFilters(filtersForRecent);
+      rw = globalWeeks.slice(-3);
+      while (rw.length < 3) rw.unshift(null);
+    }
+    var wkN2 = rw[0] || null;
+    var wkN1 = rw[1] || null;
+    var wkN = rw[2] || null;
 
     return customers.map(function (cust) {
       var fNoBrand = Object.assign({}, filtersNoBrand, { customer: cust });
       var totalRows = applyFilters(fNoBrand).filter(function (r) { return r.isTotal; });
-      // QUAN TRONG: lastYear/lastWk/last2Wk/last3Wk chi duoc dien o dong brand rieng le
-      // (MSI, HP, Asus...) trong sheet RAW - IHS, KHONG BAO GIO o dong TTL (isTotal=true).
-      // Phai cong don tu brandRows, giong cach brandsTable() da lam dung.
+      // QUAN TRONG: lastYear chi duoc dien o dong brand rieng le (MSI, HP, Asus...)
+      // trong sheet RAW - IHS, KHONG BAO GIO o dong TTL (isTotal=true).
       var brandRows = applyFilters(fNoBrand).filter(function (r) { return !r.isTotal; });
       var msiRows = applyFilters(Object.assign({}, fNoBrand, { brand: 'MSI' })).filter(function (r) { return !r.isTotal; });
 
@@ -205,20 +209,17 @@ window.MsiData = (function () {
         selectedBrandVolume = sum(selRows, 'brandVol');
       }
 
-      // Last3Wk/Last2Wk/LastWk: lay tu cac dong brand, KHONG bi gioi han Year/Quarter,
-      // co w === lastWeek (tuan moi nhat tuyet doi - xem ghi chu o tren).
-      var fRecentBrand = Object.assign({}, filtersForRecent, { customer: cust });
-      var recentBrandRows = applyFilters(fRecentBrand).filter(function (r) { return !r.isTotal; });
-      var lastWeekBrandRows = recentBrandRows.filter(function (r) { return r.w === lastWeek; });
-      var last3 = sum(lastWeekBrandRows, 'last3Wk');
-      var last2 = sum(lastWeekBrandRows, 'last2Wk');
-      var last1 = sum(lastWeekBrandRows, 'lastWk');
+      // Last3Wk/Last2Wk/LastWk: TONG ttlVol (toan thi truong) cua dung 3 tuan,
+      // khong bi gioi han Year/Quarter.
+      var fRecentTotal = Object.assign({}, filtersForRecent, { customer: cust });
+      var recentTotalRows = applyFilters(fRecentTotal).filter(function (r) { return r.isTotal; });
+      var byWeek = {};
+      recentTotalRows.forEach(function (r) { byWeek[r.w] = (byWeek[r.w] || 0) + (r.ttlVol || 0); });
 
-      // WoW: tuan gan nhat so voi tuan truoc do (cung khong bi gioi han Year/Quarter)
-      var recentTotalRows = applyFilters(fRecentBrand).filter(function (r) { return r.isTotal; });
-      var curWeekVol = sum(recentTotalRows.filter(function (r) { return r.w === lastWeek; }), 'ttlVol');
-      var prevWeekVol = prevWeek ? sum(recentTotalRows.filter(function (r) { return r.w === prevWeek; }), 'ttlVol') : null;
-      var wow = (curWeekVol > 0 && prevWeekVol && prevWeekVol > 0) ? (curWeekVol - prevWeekVol) / prevWeekVol : null;
+      var last3 = wkN2 && byWeek[wkN2] !== undefined ? byWeek[wkN2] : null;
+      var last2 = wkN1 && byWeek[wkN1] !== undefined ? byWeek[wkN1] : null;
+      var last1 = wkN && byWeek[wkN] !== undefined ? byWeek[wkN] : null;
+      var wow = (last1 !== null && last2 !== null && last2 > 0) ? (last1 - last2) / last2 : null;
 
       return {
 
@@ -238,26 +239,32 @@ window.MsiData = (function () {
   }
 
   // Brands table: cho tat ca brands (toan thi truong hoac 1 dealer neu filter.customer set)
-  function brandsTable(filters) {
+  // recentWeeks (tuy chon): mang 3 nhan tuan [tuan-2, tuan-1, tuan-0] (cu -> moi,
+  // tuan-0 = gan nhat). Neu khong truyen, tu suy ra tu chinh data (brand-agnostic,
+  // khong gioi han Year/Quarter). LastWk/Last2Wk/Last3Wk gio TU TINH truc tiep tu
+  // brandVol cua dung 3 tuan do (KHONG dung cot rieng last3Wk/last2Wk/lastWk co san
+  // trong sheet nua - cot do chi dien o 1 dong duy nhat va da chung minh khong dang
+  // tin cay/de gay bug ve 0). Tra ve null (khong phai 0) khi tuan do chua co du lieu
+  // (vd tuan hien tai chua duoc cao xong) de phan biet "chua co" voi "that su bang 0".
+  function brandsTable(filters, recentWeeks) {
     var weeks = getWeeksForFilters(filters);
     if (!weeks.length) return [];
     var brands = filters.brand ? [filters.brand] : (meta.brands || []);
 
-    // QUAN TRONG: "Last Wk/2Wk/3Wk/WoW" la khai niem TUONG DOI VOI HIEN TAI
-    // (tuan gan day nhat tinh tu luc xem dashboard), KHONG PHAI "tuan gan nhat
-    // TRONG PHAM VI Year/Quarter dang loc". Cac cot last3Wk/last2Wk/lastWk trong
-    // sheet IHS CHI duoc dien o dong cua TUAN MOI NHAT TUYET DOI trong toan bo
-    // du lieu - neu Quarter dang chon khong con la quy hien tai (vd da sang
-    // quy moi nhung dropdown van dang ghim Q2), tuan "lastWeek" tinh theo pham
-    // vi loc se khong con trung voi tuan thuc su co du lieu o cac cot do nua ->
-    // ve 0 het (volume van dung vi no cong don ca quy, khong bi anh huong).
-    // Fix: bo Year/Quarter ra khoi filter rieng cho phan tinh Last Wk/WoW.
     var filtersForRecent = Object.assign({}, filters);
     delete filtersForRecent.year;
     delete filtersForRecent.quarter;
-    var globalWeeks = getWeeksForFilters(filtersForRecent);
-    var lastWeek = globalWeeks.length ? globalWeeks[globalWeeks.length - 1] : weeks[weeks.length - 1];
-    var prevWeek = globalWeeks.length > 1 ? globalWeeks[globalWeeks.length - 2] : null;
+    delete filtersForRecent.brand;
+
+    var rw = recentWeeks;
+    if (!rw || !rw.length) {
+      var globalWeeks = getWeeksForFilters(filtersForRecent);
+      rw = globalWeeks.slice(-3);
+      while (rw.length < 3) rw.unshift(null);
+    }
+    var wkN2 = rw[0] || null;
+    var wkN1 = rw[1] || null;
+    var wkN = rw[2] || null;
 
     var filtersNoBrandForTotal = Object.assign({}, filters);
     delete filtersNoBrandForTotal.brand;
@@ -273,17 +280,14 @@ window.MsiData = (function () {
       var yoy = lastYearVol > 0 ? (volume - lastYearVol) / lastYearVol : null;
       var shared = grandTotal > 0 ? volume / grandTotal : 0;
 
-      // Rieng Last Wk/2Wk/3Wk/WoW: dung rows KHONG bi gioi han Year/Quarter,
-      // chi giu brand/customer/seriesGroup, de luon bat dung tuan moi nhat thuc te.
       var rowsForRecent = applyFilters(Object.assign({}, filtersForRecent, { brand: brand })).filter(function (r) { return !r.isTotal; });
-      var lastWeekRows = rowsForRecent.filter(function (r) { return r.w === lastWeek; });
-      var last3 = sum(lastWeekRows, 'last3Wk');
-      var last2 = sum(lastWeekRows, 'last2Wk');
-      var last1 = sum(lastWeekRows, 'lastWk');
+      var byWeek = {};
+      rowsForRecent.forEach(function (r) { byWeek[r.w] = (byWeek[r.w] || 0) + (r.brandVol || 0); });
 
-      var curWeekVol = sum(rowsForRecent.filter(function (r) { return r.w === lastWeek; }), 'brandVol');
-      var prevWeekVol = prevWeek ? sum(rowsForRecent.filter(function (r) { return r.w === prevWeek; }), 'brandVol') : null;
-      var wow = (curWeekVol > 0 && prevWeekVol && prevWeekVol > 0) ? (curWeekVol - prevWeekVol) / prevWeekVol : null;
+      var last3 = wkN2 && byWeek[wkN2] !== undefined ? byWeek[wkN2] : null;
+      var last2 = wkN1 && byWeek[wkN1] !== undefined ? byWeek[wkN1] : null;
+      var last1 = wkN && byWeek[wkN] !== undefined ? byWeek[wkN] : null;
+      var wow = (last1 !== null && last2 !== null && last2 > 0) ? (last1 - last2) / last2 : null;
 
       return {
         brand: brand,

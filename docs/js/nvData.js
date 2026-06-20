@@ -182,46 +182,72 @@ window.MsiNvData = (function () {
   // (da xac nhan khi xay dung tinh nang nay) - nen phai TU TINH bang cach cong don
   // chinh du lieu brandRows theo tuan, khac voi cach IHS lam (IHS co san san cac
   // cot do, chi can doc truc tiep).
-  function brandSummaryTable(weekLabels) {
-    var weeks = (weekLabels || []).slice().sort();
+  // scopeWeeks: tuan trong pham vi hien thi (vd theo Year/Quarter dropdown) - dung
+  // cho Volume/Share/YoY. recentWeeks (tuy chon): mang 3 nhan tuan [tuan-2, tuan-1,
+  // tuan-0] DUNG CHUNG voi ben IHS (xem getRollingNWeekLabels_ trong app.js) de 2
+  // bang Key Dealers/Nvidia Report hien thi DUNG CUNG 1 BO TUAN - neu NV chua co du
+  // lieu cho 1 tuan nao do (thuong cham hon IHS vai tuan), tra ve null (de trong),
+  // KHONG phai 0.
+  //
+  // YoY: KHONG dung cot "Last Year" co san trong sheet nua (da chung minh khong dang
+  // tin cay, cung loai bug nhu Last Wk/2Wk/3Wk ben IHS). Thay vao do tu tinh bang
+  // cach so sanh THANG DUNG so thu tu tuan giua nam dang xem va nam truoc do truc
+  // tiep tu du lieu thuc (vd dang xem tuan 14-24 cua 2026 thi so voi tuan 14-24 cua
+  // 2025) - cach nay luon kiem chung duoc va chinh xac hon dua vao 1 cot co san.
+  function brandSummaryTable(scopeWeeks, recentWeeks) {
+    var weeks = (scopeWeeks || []).slice();
     if (!weeks.length) return [];
     var weekSet = {};
     weeks.forEach(function (w) { weekSet[w] = true; });
-    var lastWeek = weeks[weeks.length - 1];
-    var prevWeek = weeks.length > 1 ? weeks[weeks.length - 2] : null;
-    var last2Weeks = weeks.slice(-2);
-    var last3Weeks = weeks.slice(-3);
 
-    var byBrand = {};
+    // Tuan tuong ung NAM TRUOC (cung so thu tu tuan, year-1) de tinh YoY truc tiep.
+    var lastYearWeekSet = {};
+    weeks.forEach(function (w) {
+      var m = w.match(/^(\d{4})(W\d{2})$/);
+      if (m) lastYearWeekSet[String(parseInt(m[1], 10) - 1) + m[2]] = true;
+    });
+
+    var rw = recentWeeks || [];
+    var wkN2 = rw[0] || null;
+    var wkN1 = rw[1] || null;
+    var wkN = rw[2] || null;
+
+    var byBrandThis = {};
+    var byBrandLastYear = {};
+    var byBrandRecent = {}; // brand -> { week: vol }
+
     brandRows.forEach(function (r) {
-      if (!weekSet[r.w]) return;
-      if (!byBrand[r.brand]) {
-        byBrand[r.brand] = { vol: 0, lastYearAtLastWeek: 0, last3WkVol: 0, last2WkVol: 0, lastWkVol: 0, prevWeekVol: 0 };
+      if (weekSet[r.w]) byBrandThis[r.brand] = (byBrandThis[r.brand] || 0) + r.vol;
+      if (lastYearWeekSet[r.w]) byBrandLastYear[r.brand] = (byBrandLastYear[r.brand] || 0) + r.vol;
+      if (r.w === wkN2 || r.w === wkN1 || r.w === wkN) {
+        if (!byBrandRecent[r.brand]) byBrandRecent[r.brand] = {};
+        byBrandRecent[r.brand][r.w] = (byBrandRecent[r.brand][r.w] || 0) + r.vol;
       }
-      var b = byBrand[r.brand];
-      b.vol += r.vol;
-      if (r.w === lastWeek) { b.lastYearAtLastWeek += r.lastYear; b.lastWkVol += r.vol; }
-      if (last3Weeks.indexOf(r.w) !== -1) b.last3WkVol += r.vol;
-      if (last2Weeks.indexOf(r.w) !== -1) b.last2WkVol += r.vol;
-      if (r.w === prevWeek) b.prevWeekVol += r.vol;
     });
 
     var grandTotal = 0;
-    Object.keys(byBrand).forEach(function (brand) { grandTotal += byBrand[brand].vol; });
+    Object.keys(byBrandThis).forEach(function (brand) { grandTotal += byBrandThis[brand]; });
 
-    return Object.keys(byBrand).map(function (brand) {
-      var b = byBrand[brand];
-      var yoy = b.lastYearAtLastWeek > 0 ? (b.lastWkVol - b.lastYearAtLastWeek) / b.lastYearAtLastWeek : null;
-      var wow = (b.lastWkVol > 0 && b.prevWeekVol > 0) ? (b.lastWkVol - b.prevWeekVol) / b.prevWeekVol : null;
+    return Object.keys(byBrandThis).map(function (brand) {
+      var vol = byBrandThis[brand];
+      var lastYearVol = byBrandLastYear[brand] || 0;
+      var yoy = lastYearVol > 0 ? (vol - lastYearVol) / lastYearVol : null;
+
+      var recentMap = byBrandRecent[brand] || {};
+      var last3 = wkN2 && recentMap[wkN2] !== undefined ? recentMap[wkN2] : null;
+      var last2 = wkN1 && recentMap[wkN1] !== undefined ? recentMap[wkN1] : null;
+      var last1 = wkN && recentMap[wkN] !== undefined ? recentMap[wkN] : null;
+      var wow = (last1 !== null && last2 !== null && last2 > 0) ? (last1 - last2) / last2 : null;
+
       return {
         brand: brand,
-        volume: b.vol,
-        lastYearVol: b.lastYearAtLastWeek,
-        shared: grandTotal > 0 ? b.vol / grandTotal : 0,
+        volume: vol,
+        lastYearVol: lastYearVol,
+        shared: grandTotal > 0 ? vol / grandTotal : 0,
         yoy: yoy,
-        last3Wk: b.last3WkVol,
-        last2Wk: b.last2WkVol,
-        lastWk: b.lastWkVol,
+        last3Wk: last3,
+        last2Wk: last2,
+        lastWk: last1,
         wow: wow
       };
     }).filter(function (d) { return d.volume > 0; })

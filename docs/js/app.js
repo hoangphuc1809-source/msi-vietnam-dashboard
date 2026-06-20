@@ -315,11 +315,11 @@
   // vs Last Year) + bang brand breakdown + footer Last Week/WoW.
   function renderKeyDealersScorecardSection(state) {
     var filters = baseFilters(state);
-    var rows = D.brandsTable(filters);
+    var recentWeeks = getRollingNWeekLabels_(getRollingAnchorWeek_(state), 3);
+    var rows = D.brandsTable(filters, recentWeeks);
     var grandTotal = rows.reduce(function (a, r) { return a + r.volume; }, 0);
     var grandLastYear = rows.reduce(function (a, r) { return a + (r.lastYearVol || 0); }, 0);
     var yoy = grandLastYear > 0 ? (grandTotal - grandLastYear) / grandLastYear : null;
-    var trend = D.grandWeeklyTrend(filters);
 
     document.getElementById('kdScorecardNumber').textContent = fmt.number(grandTotal);
     var yoyEl = document.getElementById('kdScorecardYoy');
@@ -329,31 +329,26 @@
     var top = rows.slice().sort(function (a, b) { return b.volume - a.volume; }).slice(0, 6);
     Charts.renderDualMiniBar('kdMiniChart', top, 'volume', 'lastYearVol', 'brand', '#F97316');
 
-    Tables.renderBrandsTable('kdScorecardTable', rows, state.brand, function (brand) { F.setBrand(brand); });
+    Tables.renderBrandsTable('kdScorecardTable', rows, state.brand, function (brand) { F.setBrand(brand); }, recentWeeks);
+
+    var anyLastWkData = rows.some(function (r) { return r.lastWk !== null; });
+    var grandLastWk = rows.reduce(function (a, r) { return a + (r.lastWk || 0); }, 0);
+    var grandLast2Wk = rows.reduce(function (a, r) { return a + (r.last2Wk || 0); }, 0);
+    var grandWow = (anyLastWkData && grandLastWk > 0 && grandLast2Wk > 0) ? (grandLastWk - grandLast2Wk) / grandLast2Wk : null;
+    var lastWkLabel = recentWeeks[2] || 'Last week';
 
     document.getElementById('kdScorecardFooter').innerHTML =
-      'Last week: <b>' + fmt.number(trend.lastWeekVol) + '</b> &nbsp;\u00b7&nbsp; WoW: <b class="' +
-      (trend.wow === null ? '' : (trend.wow >= 0 ? 'val-up' : 'val-down')) + '">' + fmt.percentSigned(trend.wow, 1) + '</b>';
+      escapeHtml(lastWkLabel) + ': <b>' + (anyLastWkData ? fmt.number(grandLastWk) : '-') + '</b> &nbsp;\u00b7&nbsp; WoW: <b class="' +
+      (grandWow === null ? '' : (grandWow >= 0 ? 'val-up' : 'val-down')) + '">' + fmt.percentSigned(grandWow, 1) + '</b>';
   }
 
   function renderNvScorecardSection(state) {
-    var weeks = NV.getWeeksForYearQuarter(state.years, state.quarters);
-    var rows = NV.brandSummaryTable(weeks);
+    var scopeWeeks = NV.getWeeksForYearQuarter(state.years, state.quarters);
+    var recentWeeks = getRollingNWeekLabels_(getRollingAnchorWeek_(state), 3);
+    var rows = NV.brandSummaryTable(scopeWeeks, recentWeeks);
     var grandTotal = rows.reduce(function (a, r) { return a + r.volume; }, 0);
     var grandLastYear = rows.reduce(function (a, r) { return a + (r.lastYearVol || 0); }, 0);
     var yoy = grandLastYear > 0 ? (grandTotal - grandLastYear) / grandLastYear : null;
-
-    // WoW dung tuan lien ke THUC SU (khong dung last2Wk/last3Wk - xem ghi chu
-    // o grandWeeklyTrend trong data.js, cung 1 ly do ap dung cho ca NV).
-    var sortedWeeks = weeks.slice().sort();
-    var lastW = sortedWeeks.length ? sortedWeeks[sortedWeeks.length - 1] : null;
-    var prevW = sortedWeeks.length > 1 ? sortedWeeks[sortedWeeks.length - 2] : null;
-    var weeklyAll = NV.weeklyMsiShare();
-    var weeklyMap = {};
-    weeklyAll.forEach(function (d) { weeklyMap[d.week] = d.total; });
-    var lastWeekVol = lastW ? (weeklyMap[lastW] || 0) : 0;
-    var prevWeekVol = prevW ? (weeklyMap[prevW] || 0) : null;
-    var wow = (lastWeekVol > 0 && prevWeekVol && prevWeekVol > 0) ? (lastWeekVol - prevWeekVol) / prevWeekVol : null;
 
     document.getElementById('nvScorecardNumber').textContent = fmt.number(grandTotal);
     var yoyEl = document.getElementById('nvScorecardYoy');
@@ -363,11 +358,20 @@
     var top = rows.slice().sort(function (a, b) { return b.volume - a.volume; }).slice(0, 6);
     Charts.renderDualMiniBar('nvMiniChart', top, 'volume', 'lastYearVol', 'brand', '#2563EB');
 
-    Tables.renderBrandsTable('nvScorecardTable', rows, state.brand, function (brand) { F.setBrand(brand); });
+    Tables.renderBrandsTable('nvScorecardTable', rows, state.brand, function (brand) { F.setBrand(brand); }, recentWeeks);
+
+    // NV thuong cap nhat tre hon IHS - tuan gan nhat (recentWeeks[2]) co the chua
+    // co du lieu, luc do moi brand.lastWk se la null. Phan biet ro "chua co du
+    // lieu" (hien "-") voi "that su bang 0".
+    var anyLastWkData = rows.some(function (r) { return r.lastWk !== null; });
+    var grandLastWk = rows.reduce(function (a, r) { return a + (r.lastWk || 0); }, 0);
+    var grandLast2Wk = rows.reduce(function (a, r) { return a + (r.last2Wk || 0); }, 0);
+    var grandWow = (anyLastWkData && grandLastWk > 0 && grandLast2Wk > 0) ? (grandLastWk - grandLast2Wk) / grandLast2Wk : null;
+    var lastWkLabel = recentWeeks[2] || 'Last week';
 
     document.getElementById('nvScorecardFooter').innerHTML =
-      'Last week: <b>' + fmt.number(lastWeekVol) + '</b> &nbsp;\u00b7&nbsp; WoW: <b class="' +
-      (wow === null ? '' : (wow >= 0 ? 'val-up' : 'val-down')) + '">' + fmt.percentSigned(wow, 1) + '</b>';
+      escapeHtml(lastWkLabel) + ': <b>' + (anyLastWkData ? fmt.number(grandLastWk) : '-') + '</b> &nbsp;\u00b7&nbsp; WoW: <b class="' +
+      (grandWow === null ? '' : (grandWow >= 0 ? 'val-up' : 'val-down')) + '">' + fmt.percentSigned(grandWow, 1) + '</b>';
   }
 
 
@@ -501,19 +505,21 @@
 
   function renderCapacityTableSection(state) {
     var filters = Object.assign({}, baseFilters(state), { brand: state.brand, channel: state.channel });
-    var rows = D.dealersCapacityTable(filters);
+    var recentWeeks = getRollingNWeekLabels_(getRollingAnchorWeek_(state), 3);
+    var rows = D.dealersCapacityTable(filters, recentWeeks);
     var highlighted = state.customers.length === 1 ? state.customers[0] : null;
     Tables.renderDealersCapacityTable('dealersCapacityTable', rows, highlighted, function (cust) {
       F.setCustomer(cust);
-    });
+    }, recentWeeks);
   }
 
   function renderBrandsTableSection(state) {
     var filters = Object.assign({}, baseFilters(state), { channel: state.channel });
-    var rows = D.brandsTable(filters);
+    var recentWeeks = getRollingNWeekLabels_(getRollingAnchorWeek_(state), 3);
+    var rows = D.brandsTable(filters, recentWeeks);
     Tables.renderBrandsTable('brandsTable', rows, state.brand, function (brand) {
       F.setBrand(brand);
-    });
+    }, recentWeeks);
   }
 
   function renderChannelScorecardSection(state) {
