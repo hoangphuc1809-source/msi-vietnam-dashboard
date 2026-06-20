@@ -388,19 +388,29 @@ html, body {
 
 .dash-grid + .zone-label { margin-top: 26px; }
 
+/* auto-fit thay vi breakpoint co dinh theo px: tu dong xep so cot dua tren
+   KHONG GIAN THUC TE cua container, khong can doan device width (truoc day
+   dung @media max-width:1200px nhung mot so thiet bi/man hinh rong hon
+   nguong do van bi vo bo cuc - auto-fit tu giai quyet trien de). Voi 2 the
+   con trong 1 row, minmax(420px,1fr) dam bao: du cho thi 2 cot deu nhau full
+   chieu rong; khong du cho thi tu dong xep doc 1 cot. */
 .dash-grid {
   display: grid;
-  grid-template-columns: 1.1fr 1.1fr 0.9fr;
+  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
   gap: 14px;
   margin-bottom: 14px;
 }
 
-.dash-grid.row2 {
-  grid-template-columns: 1fr 1fr 1.3fr;
+/* Row co ty le khong deu (vd Key Dealers Volume hep hon, Brand Mix rong hon) -
+   dung class rieng thay vi inline style, de van duoc media query ben duoi
+   override dung cach (inline style se de bi "binh thuong" override mat tinh
+   nang responsive). */
+.dash-grid-wide-right {
+  grid-template-columns: 1fr 1.6fr;
 }
 
-@media (max-width: 1200px) {
-  .dash-grid, .dash-grid.row2 { grid-template-columns: 1fr; }
+@media (max-width: 1340px) {
+  .dash-grid-wide-right { grid-template-columns: 1fr; }
 }
 
 /* ===== Card ===== */
