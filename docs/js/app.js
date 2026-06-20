@@ -10,7 +10,7 @@
   var fmt = window.MsiFormat;
 
   var refreshTimer = null;
-  var ts = { year: null, quarter: null, seriesGroup: null, dealers: null };
+  var ts = { year: null, quarter: null, dealers: null };
   var selectsReady = false;
 
   var SG_LABEL = { 'Gaming': 'Gaming', 'Business& Productivity': 'B&P', 'Handheld': 'Handheld' };
@@ -31,7 +31,6 @@
       if (selectsReady) {
         ts.year.clear(true);
         ts.quarter.clear(true);
-        ts.seriesGroup.clear(true);
         ts.dealers.clear(true);
       }
     });
@@ -40,17 +39,15 @@
     });
   }
 
-  // ===== Filter dropdowns (Tom Select) =====
+  // ===== Filter dropdowns (Tom Select) + Series Group pill buttons =====
   function initSelects() {
     var meta = D.getMeta();
     var years = D.getYears();
     var quarters = D.getQuarters();
-    var seriesGroups = (meta.seriesGroups && meta.seriesGroups.length) ? meta.seriesGroups : ['Gaming', 'Business& Productivity', 'Handheld'];
     var customers = meta.customers || [];
 
     fillNativeOptions('yearSelect', years, function (y) { return y; });
     fillNativeOptions('quarterSelect', quarters, function (q) { return q; });
-    fillNativeOptions('seriesGroupSelect', seriesGroups, function (sg) { return SG_LABEL[sg] || sg; });
     fillNativeOptions('dealersSelect', customers, function (c) { return c; });
 
     function tsConfig(extra) {
@@ -69,16 +66,46 @@
       placeholder: 'All Quarters',
       onChange: function (vals) { F.setQuarters(vals); }
     }));
-    ts.seriesGroup = new TomSelect('#seriesGroupSelect', tsConfig({
-      placeholder: 'All Series',
-      onChange: function (vals) { F.setSeriesGroups(vals); }
-    }));
     ts.dealers = new TomSelect('#dealersSelect', tsConfig({
       placeholder: 'All Dealers',
       onChange: function (vals) { F.setCustomers(vals); }
     }));
 
+    renderSeriesGroupPills();
     selectsReady = true;
+  }
+
+  // Series Group la nut pill bam truc tiep (toggle), khong dung Tom Select -
+  // it option (2-3), nut bam de scan/cham hon dropdown, va khong gap rui ro
+  // reentrancy nhu Tom Select.
+  function renderSeriesGroupPills() {
+    var container = document.getElementById('seriesGroupPills');
+    if (!container) return;
+    var meta = D.getMeta();
+    var groups = (meta.seriesGroups && meta.seriesGroups.length) ? meta.seriesGroups : ['Gaming', 'Business& Productivity', 'Handheld'];
+
+    container.innerHTML = groups.map(function (sg) {
+      return '<button type="button" class="pill-btn" data-sg="' + escapeHtmlAttr(sg) + '">' + (SG_LABEL[sg] || sg) + '</button>';
+    }).join('');
+
+    container.querySelectorAll('.pill-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var sg = btn.getAttribute('data-sg');
+        var current = F.getState().seriesGroups;
+        var idx = current.indexOf(sg);
+        if (idx === -1) current.push(sg); else current.splice(idx, 1);
+        F.setSeriesGroups(current);
+      });
+    });
+  }
+
+  function syncSeriesGroupPills(state) {
+    var container = document.getElementById('seriesGroupPills');
+    if (!container) return;
+    container.querySelectorAll('.pill-btn').forEach(function (btn) {
+      var active = state.seriesGroups.indexOf(btn.getAttribute('data-sg')) !== -1;
+      btn.classList.toggle('active', active);
+    });
   }
 
   function fillNativeOptions(selectId, values, labelFn) {
@@ -92,12 +119,13 @@
     });
   }
 
-  // Dong bo lai UI cua 4 dropdown theo state hien tai (vd khi xoa 1 filter-tag)
+  // Dong bo lai UI cua Year/Quarter/Dealers (Tom Select) + Series Group (pills)
+  // theo state hien tai (vd khi xoa 1 filter-tag, hoac sau khi reset)
   function syncSelectsFromState(state) {
+    syncSeriesGroupPills(state);
     if (!selectsReady) return;
     ts.year.setValue(state.years, true);
     ts.quarter.setValue(state.quarters, true);
-    ts.seriesGroup.setValue(state.seriesGroups, true);
     ts.dealers.setValue(state.customers, true);
   }
 
