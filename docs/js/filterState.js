@@ -25,10 +25,16 @@ window.MsiFilterState = (function () {
     });
   }
 
-  function setYears(arr) { state.years = arr || []; notify(); }
-  function setQuarters(arr) { state.quarters = arr || []; notify(); }
-  function setSeriesGroups(arr) { state.seriesGroups = arr || []; notify(); }
-  function setCustomers(arr) { state.customers = arr || []; notify(); }
+  // QUAN TRONG: Tom Select goi onChange(vals) voi 'vals' la THAM CHIEU TRUC TIEP
+  // den mang 'items' noi bo cua no, khong phai ban copy. Neu luu thang tham chieu
+  // do vao state.years roi sau nay dua chinh no nguoc lai cho ts.setValue(state.years),
+  // setValue() se tu xoa items noi bo truoc khi gan lai - nhung vi la CUNG 1 mang,
+  // thao tac xoa do lam rong luon gia tri dau vao -> chon xong lai bien mat.
+  // Fix: luon .slice() de tao mang moi, cat dut moi tham chieu chia se.
+  function setYears(arr) { state.years = (arr || []).slice(); notify(); }
+  function setQuarters(arr) { state.quarters = (arr || []).slice(); notify(); }
+  function setSeriesGroups(arr) { state.seriesGroups = (arr || []).slice(); notify(); }
+  function setCustomers(arr) { state.customers = (arr || []).slice(); notify(); }
 
   // Click-to-filter tu bang/chart: chon dung 1 dealer (toggle)
   function setCustomer(cust) {
@@ -51,7 +57,16 @@ window.MsiFilterState = (function () {
   }
 
   function getState() {
-    return Object.assign({}, state);
+    // Clone mang de bat ky noi nao dung getState() cung khong the vo tinh
+    // giu tham chieu song toi mang noi bo (xem ghi chu o setYears/...)
+    return {
+      years: state.years.slice(),
+      quarters: state.quarters.slice(),
+      seriesGroups: state.seriesGroups.slice(),
+      customers: state.customers.slice(),
+      brand: state.brand,
+      weeksBack: state.weeksBack
+    };
   }
 
   function getActiveFilterTags() {
