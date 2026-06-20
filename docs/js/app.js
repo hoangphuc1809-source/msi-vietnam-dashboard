@@ -363,7 +363,7 @@
     var top = rows.slice().sort(function (a, b) { return b.volume - a.volume; }).slice(0, 6);
     Charts.renderDualMiniBar('nvMiniChart', top, 'volume', 'lastYearVol', 'brand', '#2563EB');
 
-    Tables.renderBrandsTable('nvScorecardTable', rows, null, function () {});
+    Tables.renderBrandsTable('nvScorecardTable', rows, state.brand, function (brand) { F.setBrand(brand); });
 
     document.getElementById('nvScorecardFooter').innerHTML =
       'Last week: <b>' + fmt.number(lastWeekVol) + '</b> &nbsp;\u00b7&nbsp; WoW: <b class="' +
