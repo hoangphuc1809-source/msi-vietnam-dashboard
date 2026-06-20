@@ -4,6 +4,7 @@
   'use strict';
 
   var D = window.MsiData;
+  var NV = window.MsiNvData;
   var F = window.MsiFilterState;
   var Charts = window.MsiCharts;
   var Tables = window.MsiTables;
@@ -12,6 +13,7 @@
   var refreshTimer = null;
   var ts = { year: null, quarter: null, dealers: null };
   var selectsReady = false;
+  var nvReady = false;
 
   var SG_LABEL = { 'Gaming': 'Gaming', 'Business& Productivity': 'B&P', 'Handheld': 'Handheld' };
 
@@ -19,9 +21,22 @@
     bindHeaderControls();
     F.onChange(renderAll);
     loadData(true);
+    loadNvData();
 
     if (window.MSI_CONFIG.REFRESH_INTERVAL_MS > 0) {
       refreshTimer = setInterval(function () { loadData(false); }, window.MSI_CONFIG.REFRESH_INTERVAL_MS);
+    }
+  }
+
+  // NV Report la static snapshot (xem ghi chu trong nv-report.json) - load 1 lan,
+  // khong can refresh dinh ky nhu IHS.
+  async function loadNvData() {
+    try {
+      await NV.fetchData();
+      nvReady = true;
+      renderAll();
+    } catch (err) {
+      console.error('Load NV Report failed', err);
     }
   }
 
@@ -186,6 +201,10 @@
     renderChannelScorecardSection(state);
     renderBrandYoySection(state);
     renderAlertsPanelSection(state);
+    if (nvReady) {
+      renderMarketRealityCheckSection(state);
+      renderGpuTierMixSection();
+    }
     renderCapacityTableSection(state);
     renderBrandsTableSection(state);
   }
@@ -432,6 +451,56 @@
       whitespace: whitespace,
       volatility: volatility
     });
+  }
+
+  // "Market Reality Check": so sanh MSI Share o Key Dealers (IHS) vs toan thi truong
+  // (NV Report). So sanh tren CUNG mot tap hop tuan (giao giua 2 nguon) de cong bang -
+  // NV Report la snapshot tinh nen co the cham hon IHS vai tuan.
+  function renderMarketRealityCheckSection() {
+    var ihsWeeks = D.getWeeksForFilters({ seriesGroup: ['Gaming'] });
+    var nvWeeks = NV.getWeeks();
+    var ihsWeekSet = {};
+    ihsWeeks.forEach(function (w) { ihsWeekSet[w] = true; });
+    var common = nvWeeks.filter(function (w) { return ihsWeekSet[w]; }).slice(-8);
+
+    var el = document.getElementById('realityCheckStats');
+    if (!common.length) {
+      el.innerHTML = '<div class="alert-empty">Khong co tuan trung giua IHS va NV Report de so sanh.</div>';
+      return;
+    }
+    var commonSet = {};
+    common.forEach(function (w) { commonSet[w] = true; });
+
+    var ihsTotalRows = D.applyFilters({ seriesGroup: ['Gaming'] }).filter(function (r) { return r.isTotal && commonSet[r.w]; });
+    var ihsMsiRows = D.applyFilters({ seriesGroup: ['Gaming'], brand: 'MSI' }).filter(function (r) { return !r.isTotal && commonSet[r.w]; });
+    var ihsTotal = ihsTotalRows.reduce(function (a, r) { return a + (r.ttlVol || 0); }, 0);
+    var ihsMsi = ihsMsiRows.reduce(function (a, r) { return a + (r.brandVol || 0); }, 0);
+    var ihsShare = ihsTotal > 0 ? ihsMsi / ihsTotal : null;
+
+    var nvAll = NV.weeklyMsiShare();
+    var nvFiltered = nvAll.filter(function (d) { return commonSet[d.week]; });
+    var nvTotal = nvFiltered.reduce(function (a, d) { return a + d.total; }, 0);
+    var nvMsi = nvFiltered.reduce(function (a, d) { return a + d.msi; }, 0);
+    var nvShare = nvTotal > 0 ? nvMsi / nvTotal : null;
+
+    var gap = nvTotal - ihsTotal;
+    var gapPct = nvTotal > 0 ? gap / nvTotal : null;
+
+    var weekRangeLabel = fmt.weekShort(common[0]) + '\u2013' + fmt.weekShort(common[common.length - 1]);
+
+    el.innerHTML =
+      '<div class="rc-stat"><div class="rc-label">MSI Share @ Key Dealers (IHS)</div><div class="rc-value">' + fmt.percent(ihsShare, 1) + '</div></div>' +
+      '<div class="rc-stat"><div class="rc-label">MSI Share @ Whole Market (NV)</div><div class="rc-value">' + fmt.percent(nvShare, 1) + '</div></div>' +
+      '<div class="rc-stat"><div class="rc-label">Coverage Gap</div><div class="rc-value">' + fmt.number(gap) + ' <span class="rc-sub">(' + fmt.percent(gapPct, 0) + ')</span></div></div>' +
+      '<div class="rc-stat"><div class="rc-label">Window</div><div class="rc-value rc-value-sm">' + weekRangeLabel + '</div></div>';
+
+    var trend = NV.quarterlyTrend();
+    Charts.renderQuarterlyTrendLine('quarterlyTrendChart', trend);
+  }
+
+  function renderGpuTierMixSection() {
+    var rows = NV.gpuTierComparison(8);
+    Charts.renderGpuTierGroupedBar('gpuTierChart', rows);
   }
 
   function escapeHtml(s) {

@@ -6,7 +6,7 @@
 <title>MSI Vietnam - Market Share Dashboard (IHS)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/dashboard.css?v=1781938993">
+<link rel="stylesheet" href="css/dashboard.css?v=1781940527">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
@@ -175,18 +175,46 @@
     </div>
   </div>
 
+  <!-- ROW 7: Market Reality Check (NV Report - market-wide Gaming data) -->
+  <div class="dash-grid" style="grid-template-columns: 1.4fr 1fr;">
+    <div class="card accent-red">
+      <h3 class="card-title">
+        <span class="dot" style="background:#CC0000"></span>
+        Market Reality Check
+        <span class="hint">Key Dealers (IHS) vs Whole Market (NV Report)</span>
+      </h3>
+      <div class="reality-check-grid" id="realityCheckStats"></div>
+      <div class="chart-wrap" style="margin-top:14px;">
+        <canvas id="quarterlyTrendChart"></canvas>
+      </div>
+      <div class="nv-source-note">Source: RAW - NV Report (static snapshot, not yet live-synced)</div>
+    </div>
+
+    <div class="card">
+      <h3 class="card-title">
+        <span class="dot" style="background:#94A3B8"></span>
+        GPU Tier Mix: MSI vs Market
+        <span class="hint">Last 8 weeks</span>
+      </h3>
+      <div class="chart-wrap tall">
+        <canvas id="gpuTierChart"></canvas>
+      </div>
+    </div>
+  </div>
+
   <footer class="app-footer">
     MSI Vietnam &middot; Market Overall Dashboard &middot; Source: RAW - IHS (Google Sheets, auto-sync)
   </footer>
 
 </div>
 
-<script src="js/config.js?v=1781938993"></script>
-<script src="js/format.js?v=1781938993"></script>
-<script src="js/filterState.js?v=1781938993"></script>
-<script src="js/data.js?v=1781938993"></script>
-<script src="js/charts.js?v=1781938993"></script>
-<script src="js/tables.js?v=1781938993"></script>
-<script src="js/app.js?v=1781938993"></script>
+<script src="js/config.js?v=1781940527"></script>
+<script src="js/format.js?v=1781940527"></script>
+<script src="js/filterState.js?v=1781940527"></script>
+<script src="js/data.js?v=1781940527"></script>
+<script src="js/nvData.js?v=1781940527"></script>
+<script src="js/charts.js?v=1781940527"></script>
+<script src="js/tables.js?v=1781940527"></script>
+<script src="js/app.js?v=1781940527"></script>
 </body>
 </html>

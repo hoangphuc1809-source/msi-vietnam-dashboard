@@ -703,6 +703,57 @@ html, body {
   padding: 8px 0;
 }
 
+/* ===== Market Reality Check (NV Report) ===== */
+.reality-check-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+
+@media (max-width: 700px) {
+  .reality-check-grid { grid-template-columns: 1fr 1fr; }
+}
+
+.rc-stat {
+  background: #FAFAFB;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+}
+
+.rc-label {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.rc-value {
+  font-family: var(--font-mono);
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.rc-value-sm { font-size: 13px; }
+
+.rc-sub {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.nv-source-note {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  color: #B0B7C3;
+  margin-top: 8px;
+  text-align: right;
+}
+
 /* ===== Responsive ===== */
 @media (max-width: 720px) {
   .app-shell { padding: 0 10px 32px; }

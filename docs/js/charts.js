@@ -328,11 +328,100 @@ window.MsiCharts = (function () {
     });
   }
 
+  // ===== 6. Quarterly trend line (NV Report - long-term MSI share) =====
+  function renderQuarterlyTrendLine(canvasId, rows) {
+    destroyIfExists(canvasId);
+    var ctx = document.getElementById(canvasId).getContext('2d');
+
+    charts[canvasId] = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: rows.map(function (d) { return d.label; }),
+        datasets: [{
+          label: 'MSI Share',
+          data: rows.map(function (d) { return d.msiShare === null ? null : d.msiShare * 100; }),
+          borderColor: C.red,
+          backgroundColor: 'rgba(204,0,0,0.08)',
+          borderWidth: 2.5,
+          pointRadius: 3,
+          pointHoverRadius: 6,
+          pointBackgroundColor: C.red,
+          tension: 0.25,
+          fill: true
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#0F172A', padding: 10, cornerRadius: 8,
+            callbacks: { label: function (ctx) { return 'MSI Share: ' + ctx.parsed.y.toFixed(1) + '%'; } }
+          }
+        },
+        scales: {
+          x: { grid: { display: false }, ticks: { color: C.textSecondary, font: { size: 9.5, weight: '600' }, maxRotation: 45, minRotation: 45 } },
+          y: { grid: { color: '#F1F5F9' }, ticks: { color: C.textSecondary, font: { size: 10 }, callback: function (v) { return v + '%'; } } }
+        }
+      }
+    });
+  }
+
+  // ===== 7. GPU tier grouped bar: MSI mix vs Market mix =====
+  function renderGpuTierGroupedBar(canvasId, rows) {
+    destroyIfExists(canvasId);
+    var ctx = document.getElementById(canvasId).getContext('2d');
+
+    charts[canvasId] = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: rows.map(function (d) { return d.gpu.replace('RTX ', ''); }),
+        datasets: [
+          {
+            label: 'Whole Market',
+            data: rows.map(function (d) { return d.marketShare * 100; }),
+            backgroundColor: '#94A3B8',
+            borderRadius: 3,
+            maxBarThickness: 16
+          },
+          {
+            label: 'MSI',
+            data: rows.map(function (d) { return d.msiShare * 100; }),
+            backgroundColor: C.red,
+            borderRadius: 3,
+            maxBarThickness: 16
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'top',
+            labels: { boxWidth: 10, boxHeight: 10, font: { size: 11, weight: '600' }, color: C.textSecondary, usePointStyle: true, pointStyle: 'rectRounded' }
+          },
+          tooltip: {
+            backgroundColor: '#0F172A', padding: 10, cornerRadius: 8,
+            callbacks: { label: function (ctx) { return ctx.dataset.label + ': ' + ctx.parsed.y.toFixed(1) + '%'; } }
+          }
+        },
+        scales: {
+          x: { grid: { display: false }, ticks: { color: C.textSecondary, font: { size: 10, weight: '600' } } },
+          y: { grid: { color: '#F1F5F9' }, ticks: { color: C.textSecondary, font: { size: 10 }, callback: function (v) { return v + '%'; } } }
+        }
+      }
+    });
+  }
+
   return {
     renderMsiWeeklyTrend: renderMsiWeeklyTrend,
     renderDealersWeeklyBar: renderDealersWeeklyBar,
     renderMultiLineShare: renderMultiLineShare,
     renderHBarShare: renderHBarShare,
-    renderStackedShareByDealer: renderStackedShareByDealer
+    renderStackedShareByDealer: renderStackedShareByDealer,
+    renderQuarterlyTrendLine: renderQuarterlyTrendLine,
+    renderGpuTierGroupedBar: renderGpuTierGroupedBar
   };
 })();
