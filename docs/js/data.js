@@ -65,6 +65,7 @@ window.MsiData = (function () {
       if (!matchesMulti(r.sg, filters.seriesGroup)) return false;
       if (!matchesMulti(r.cust, filters.customer)) return false;
       if (!matchesMulti(r.brand, filters.brand)) return false;
+      if (!matchesMulti(r.channel, filters.channel)) return false;
       if (!matchesMulti(yearOfWeek(r.w), filters.year)) return false;
       if (!matchesMulti(r.q, filters.quarter)) return false;
       if (filters.weekFrom && r.w < filters.weekFrom) return false;
@@ -267,6 +268,122 @@ window.MsiData = (function () {
       .sort(function (a, b) { return b.total - a.total; });
   }
 
+  // Danh sach Channel Type duy nhat (Telco, Retailer - Chain, CES, MD...)
+  function getChannelTypes() {
+    var set = {};
+    rawRows.forEach(function (r) { if (r.channel) set[r.channel] = true; });
+    return Object.keys(set).sort();
+  }
+
+  // MSI share / YoY / WoW theo tung Channel Type (field co san trong RAW-IHS
+  // nhung chua duoc dung o dau ca - vi du Telco vs Retailer-Chain vs CES...)
+  function channelTypeScorecard(filters) {
+    var channels = getChannelTypes();
+    var weeks = getWeeksForFilters(filters);
+    var lastWeek = weeks.length ? weeks[weeks.length - 1] : null;
+    var prevWeek = weeks.length > 1 ? weeks[weeks.length - 2] : null;
+
+    return channels.map(function (ch) {
+      var f = Object.assign({}, filters, { channel: ch });
+      var totalRows = applyFilters(f).filter(function (r) { return r.isTotal; });
+      var msiRows = applyFilters(Object.assign({}, f, { brand: 'MSI' })).filter(function (r) { return !r.isTotal; });
+
+      var capacity = sum(totalRows, 'ttlVol');
+      var msiCapacity = sum(msiRows, 'brandVol');
+
+      var curWeekTtl = lastWeek ? sum(totalRows.filter(function (r) { return r.w === lastWeek; }), 'ttlVol') : 0;
+      var curWeekMsi = lastWeek ? sum(msiRows.filter(function (r) { return r.w === lastWeek; }), 'brandVol') : 0;
+      var prevWeekTtl = prevWeek ? sum(totalRows.filter(function (r) { return r.w === prevWeek; }), 'ttlVol') : 0;
+      var prevWeekMsi = prevWeek ? sum(msiRows.filter(function (r) { return r.w === prevWeek; }), 'brandVol') : 0;
+      var lastYearMsi = lastWeek ? sum(msiRows.filter(function (r) { return r.w === lastWeek; }), 'lastYear') : 0;
+
+      var shareThisWeek = curWeekTtl > 0 ? curWeekMsi / curWeekTtl : null;
+      var sharePrevWeek = prevWeekTtl > 0 ? prevWeekMsi / prevWeekTtl : null;
+      var shareWow = (shareThisWeek !== null && sharePrevWeek !== null) ? (shareThisWeek - sharePrevWeek) : null;
+      var yoy = (curWeekMsi > 0 && lastYearMsi > 0) ? (curWeekMsi - lastYearMsi) / lastYearMsi : null;
+
+      return {
+        channel: ch,
+        capacity: capacity,
+        msiCapacity: msiCapacity,
+        msiShareOverall: capacity > 0 ? msiCapacity / capacity : null,
+        shareThisWeek: shareThisWeek,
+        shareWow: shareWow,
+        yoy: yoy
+      };
+    }).filter(function (r) { return r.capacity > 0; })
+      .sort(function (a, b) { return b.capacity - a.capacity; });
+  }
+
+  // Whitespace: dealer co thi truong (TTL Volume / capacity) lon (>= median toan
+  // thi truong) nhung MSI share lai duoi trung binh toan thi truong - tuc la
+  // "co hoi lon, MSI khai thac chua toi". Dung nguong TUONG DOI (median/average)
+  // thay vi 1 con so % co dinh, vi MSI share thuc te dao dong rat rong giua cac
+  // dealer (~4% o dealer lon nhat den ~33% o dealer nho) tuy theo pham vi filter.
+  function whitespaceList(filters) {
+    var customers = toArray(filters.customer).length ? toArray(filters.customer) : (meta.customers || []);
+
+    var list = customers.map(function (cust) {
+      var f = Object.assign({}, filters, { customer: cust });
+      var totalRows = applyFilters(f).filter(function (r) { return r.isTotal; });
+      var msiRows = applyFilters(Object.assign({}, f, { brand: 'MSI' })).filter(function (r) { return !r.isTotal; });
+      var capacity = sum(totalRows, 'ttlVol');
+      var msiVolume = sum(msiRows, 'brandVol');
+      return {
+        customer: cust,
+        capacity: capacity,
+        msiVolume: msiVolume,
+        share: capacity > 0 ? msiVolume / capacity : null
+      };
+    }).filter(function (r) { return r.capacity > 0 && r.share !== null; });
+
+    if (!list.length) return [];
+
+    var avgShare = list.reduce(function (acc, r) { return acc + r.share; }, 0) / list.length;
+    var sortedCap = list.map(function (r) { return r.capacity; }).sort(function (a, b) { return a - b; });
+    var medianCapacity = sortedCap[Math.floor(sortedCap.length / 2)];
+
+    return list.filter(function (r) { return r.capacity >= medianCapacity && r.share < avgShare; })
+      .map(function (r) { return Object.assign({}, r, { avgShare: avgShare }); })
+      .sort(function (a, b) { return b.capacity - a.capacity; });
+  }
+
+  // Volatility: dealer co MSI share dao dong manh tuan-qua-tuan trong N tuan gan nhat
+  // (dung do lech chuan cua chuoi share). Loai bo dealer share qua nho (< 0.5%) de
+  // tranh nhieu/false-positive tu so lieu gan bang 0.
+  function volatilityFlags(filters, n) {
+    n = n || 8;
+    var weeks = getLastNWeeksForFilters(filters, n);
+    if (weeks.length < 3) return [];
+    var customers = toArray(filters.customer).length ? toArray(filters.customer) : (meta.customers || []);
+
+    return customers.map(function (cust) {
+      var f = Object.assign({}, filters, { customer: cust });
+      var totalRows = applyFilters(f).filter(function (r) { return r.isTotal; });
+      var msiRows = applyFilters(Object.assign({}, f, { brand: 'MSI' })).filter(function (r) { return !r.isTotal; });
+
+      var byWeekTtl = {};
+      var byWeekMsi = {};
+      totalRows.forEach(function (r) { byWeekTtl[r.w] = (byWeekTtl[r.w] || 0) + (r.ttlVol || 0); });
+      msiRows.forEach(function (r) { byWeekMsi[r.w] = (byWeekMsi[r.w] || 0) + (r.brandVol || 0); });
+
+      var shares = [];
+      weeks.forEach(function (w) {
+        var ttl = byWeekTtl[w] || 0;
+        if (ttl > 0) shares.push((byWeekMsi[w] || 0) / ttl);
+      });
+      if (shares.length < 3) return null;
+
+      var meanShare = shares.reduce(function (a, b) { return a + b; }, 0) / shares.length;
+      var variance = shares.reduce(function (acc, s) { return acc + Math.pow(s - meanShare, 2); }, 0) / shares.length;
+      var stdev = Math.sqrt(variance);
+      var range = Math.max.apply(null, shares) - Math.min.apply(null, shares);
+
+      return { customer: cust, meanShare: meanShare, stdev: stdev, range: range, weeksCount: shares.length };
+    }).filter(function (r) { return r && r.meanShare >= 0.005; })
+      .sort(function (a, b) { return b.stdev - a.stdev; });
+  }
+
   function sum(rows, field) {
     return rows.reduce(function (acc, r) { return acc + (r[field] || 0); }, 0);
   }
@@ -287,6 +404,10 @@ window.MsiData = (function () {
     dealerWeeklyVolume: dealerWeeklyVolume,
     dealersCapacityTable: dealersCapacityTable,
     brandsTable: brandsTable,
-    dealerBrandShareMatrix: dealerBrandShareMatrix
+    dealerBrandShareMatrix: dealerBrandShareMatrix,
+    getChannelTypes: getChannelTypes,
+    channelTypeScorecard: channelTypeScorecard,
+    whitespaceList: whitespaceList,
+    volatilityFlags: volatilityFlags
   };
 })();

@@ -155,6 +155,9 @@
     renderBrandVolumeSection(state);
     renderDealersVolumeSection(state);
     renderStackedMixSection(state);
+    renderChannelScorecardSection(state);
+    renderBrandYoySection(state);
+    renderAlertsPanelSection(state);
     renderCapacityTableSection(state);
     renderBrandsTableSection(state);
   }
@@ -371,6 +374,34 @@
     var rows = D.brandsTable(filters);
     Tables.renderBrandsTable('brandsTable', rows, state.brand, function (brand) {
       F.setBrand(brand);
+    });
+  }
+
+  function renderChannelScorecardSection(state) {
+    var filters = baseFilters(state);
+    var rows = D.channelTypeScorecard(filters);
+    Tables.renderChannelScorecard('channelScorecardTable', rows);
+  }
+
+  function renderBrandYoySection(state) {
+    var filters = baseFilters(state);
+    var rows = D.brandsTable(filters);
+    Tables.renderBrandYoyLeaderboard('brandYoyChart', rows);
+  }
+
+  function renderAlertsPanelSection(state) {
+    var filters = Object.assign({}, baseFilters(state), { brand: state.brand });
+    var capRows = D.dealersCapacityTable(filters);
+    var topMovers = capRows.filter(function (r) { return r.wow !== null && isFinite(r.wow); })
+      .slice().sort(function (a, b) { return Math.abs(b.wow) - Math.abs(a.wow); }).slice(0, 5);
+
+    var whitespace = D.whitespaceList(baseFilters(state)).slice(0, 5);
+    var volatility = D.volatilityFlags(baseFilters(state), state.weeksBack).slice(0, 5);
+
+    Tables.renderAlertsPanel('alertsPanel', {
+      topMovers: topMovers,
+      whitespace: whitespace,
+      volatility: volatility
     });
   }
 

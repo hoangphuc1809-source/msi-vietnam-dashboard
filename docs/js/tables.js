@@ -110,12 +110,107 @@ window.MsiTables = (function () {
     }
   }
 
+  function renderChannelScorecard(containerId, rows) {
+    var el = document.getElementById(containerId);
+    var grandCap = rows.reduce(function (a, r) { return a + r.capacity; }, 0);
+    var grandMsi = rows.reduce(function (a, r) { return a + r.msiCapacity; }, 0);
+
+    var html = '<table class="data-table">';
+    html += '<thead><tr>' +
+      '<th>Channel Type</th><th>TTL Volume</th><th>MSI Share</th><th>This Wk</th><th>WoW</th><th>YoY</th>' +
+      '</tr></thead><tbody>';
+
+    rows.forEach(function (r) {
+      html += '<tr>' +
+        '<td title="' + escapeAttr(r.channel) + '">' + fmt.truncate(r.channel, 20) + '</td>' +
+        '<td>' + fmt.number(r.capacity) + '</td>' +
+        '<td>' + fmt.percent(r.msiShareOverall, 1) + '</td>' +
+        '<td>' + fmt.percent(r.shareThisWeek, 1) + '</td>' +
+        '<td class="' + yoyClass(r.shareWow) + '">' + (r.shareWow === null ? '-' : (r.shareWow >= 0 ? '+' : '') + (r.shareWow * 100).toFixed(1) + 'pp') + '</td>' +
+        '<td class="' + yoyClass(r.yoy) + '">' + fmt.percentSigned(r.yoy, 1) + '</td>' +
+        '</tr>';
+    });
+
+    html += '<tr class="total-row">' +
+      '<td>Grand total</td>' +
+      '<td>' + fmt.number(grandCap) + '</td>' +
+      '<td>' + fmt.percent(grandCap > 0 ? grandMsi / grandCap : null, 1) + '</td>' +
+      '<td>-</td><td>-</td><td>-</td>' +
+      '</tr>';
+
+    html += '</tbody></table>';
+    el.innerHTML = html;
+  }
+
+  function renderBrandYoyLeaderboard(containerId, rows) {
+    var el = document.getElementById(containerId);
+    var sorted = rows.filter(function (r) { return r.yoy !== null && r.yoy !== undefined; })
+      .slice().sort(function (a, b) { return b.yoy - a.yoy; });
+    var maxAbs = sorted.reduce(function (m, r) { return Math.max(m, Math.abs(r.yoy)); }, 0.01);
+    var C = window.MSI_CONFIG.COLORS.brand;
+
+    var html = '<div class="yoy-leaderboard">';
+    sorted.forEach(function (r) {
+      var pct = Math.min(100, (Math.abs(r.yoy) / maxAbs) * 100);
+      var isPos = r.yoy >= 0;
+      var color = C[r.brand] || '#94A3B8';
+      html += '<div class="yoy-row">' +
+        '<div class="yoy-label">' + r.brand + '</div>' +
+        '<div class="yoy-track">' +
+        '<div class="yoy-half-neg">' + (isPos ? '' : '<div class="yoy-bar" style="width:' + pct + '%;background:' + color + '"></div>') + '</div>' +
+        '<div class="yoy-half-pos">' + (isPos ? '<div class="yoy-bar" style="width:' + pct + '%;background:' + color + '"></div>' : '') + '</div>' +
+        '</div>' +
+        '<div class="yoy-value ' + (isPos ? 'val-up' : 'val-down') + '">' + fmt.percentSigned(r.yoy, 0) + '</div>' +
+        '</div>';
+    });
+    html += '</div>';
+    el.innerHTML = html;
+  }
+
+  function renderAlertsPanel(containerId, data) {
+    var el = document.getElementById(containerId);
+
+    function moverItem(r) {
+      var cls = r.wow >= 0 ? 'val-up' : 'val-down';
+      var icon = r.wow >= 0 ? '\u25b2' : '\u25bc';
+      return '<li><span class="alert-name">' + escapeAttr(r.customer) + '</span>' +
+        '<span class="alert-metric ' + cls + '">' + icon + ' ' + fmt.percentSigned(r.wow, 0) + ' WoW</span></li>';
+    }
+    function whitespaceItem(r) {
+      return '<li><span class="alert-name">' + escapeAttr(r.customer) + '</span>' +
+        '<span class="alert-metric val-flat">' + fmt.percent(r.share, 1) + ' <span class="alert-sub">(TB ' + fmt.percent(r.avgShare, 1) + ')</span></span></li>';
+    }
+    function volatilityItem(r) {
+      return '<li><span class="alert-name">' + escapeAttr(r.customer) + '</span>' +
+        '<span class="alert-metric val-flat">\u00b1' + (r.stdev * 100).toFixed(1) + 'pp</span></li>';
+    }
+
+    function section(title, hint, items, renderFn, emptyMsg) {
+      var body = items.length
+        ? '<ul class="alert-list">' + items.map(renderFn).join('') + '</ul>'
+        : '<div class="alert-empty">' + emptyMsg + '</div>';
+      return '<div class="alert-col">' +
+        '<h4>' + title + '<span class="alert-hint">' + hint + '</span></h4>' +
+        body + '</div>';
+    }
+
+    var html = '<div class="alerts-grid">' +
+      section('\ud83d\udcca Top Movers', 'WoW m\u1ea1nh nh\u1ea5t', data.topMovers, moverItem, 'Kh\u00f4ng c\u00f3 bi\u1ebfn \u0111\u1ed9ng \u0111\u00e1ng ch\u00fa \u00fd') +
+      section('\ud83c\udfaf Whitespace', 'Capacity cao, share d\u01b0\u1edbi TB', data.whitespace, whitespaceItem, 'Kh\u00f4ng c\u00f3 c\u01a1 h\u1ed9i n\u1ed5i b\u1eadt') +
+      section('\u26a1 Bi\u1ebfn \u0111\u1ed9ng b\u1ea5t th\u01b0\u1eddng', '\u0110\u1ed9 l\u1ec7ch chu\u1ea9n share 8 tu\u1ea7n', data.volatility, volatilityItem, 'Kh\u00f4ng c\u00f3 dealer b\u1ea5t \u1ed5n') +
+      '</div>';
+    el.innerHTML = html;
+  }
+
   function escapeAttr(s) {
     return String(s).replace(/"/g, '&quot;');
   }
 
   return {
     renderDealersCapacityTable: renderDealersCapacityTable,
-    renderBrandsTable: renderBrandsTable
+    renderBrandsTable: renderBrandsTable,
+    renderChannelScorecard: renderChannelScorecard,
+    renderBrandYoyLeaderboard: renderBrandYoyLeaderboard,
+    renderAlertsPanel: renderAlertsPanel
   };
 })();
