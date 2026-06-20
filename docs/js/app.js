@@ -203,7 +203,7 @@
     renderAlertsPanelSection(state);
     if (nvReady) {
       renderMarketRealityCheckSection(state);
-      renderGpuTierMixSection();
+      renderGpuTierMixSection(state);
     }
     renderCapacityTableSection(state);
     renderBrandsTableSection(state);
@@ -470,27 +470,81 @@
     return d.getUTCFullYear() + 'W' + (weekNum < 10 ? '0' + weekNum : weekNum);
   }
 
-  // 13 tuan rolling, neo o TUAN TRUOC (today - 1 tuan) chu khong phai tuan hien
-  // tai (co the chua du lieu day du) - tinh theo lich thuc te, KHONG phu thuoc
-  // vao tuan moi nhat dang co trong data (de tranh bi lech neu 1 nguon cap nhat
-  // cham hon nguon kia). Tra ve mang 13 nhan tuan, cu -> moi.
-  function getRolling13WeekLabels_() {
-    var today = new Date();
+  // 'YYYYWNN' -> Date cua ngay Thu Nam trong tuan ISO do (luon xac dinh duy nhat,
+  // dung de quy doi nguoc tu nhan tuan ve ngay thuc, tranh cong/tru truc tiep tren
+  // so thu tu tuan vi de loi khi vat qua ranh gioi nam).
+  function weekLabelToThursday_(weekLabel) {
+    var m = String(weekLabel || '').match(/^(\d{4})W(\d{2})$/);
+    if (!m) return new Date();
+    var year = parseInt(m[1], 10);
+    var week = parseInt(m[2], 10);
+    var jan4 = new Date(Date.UTC(year, 0, 4));
+    var jan4DayNum = (jan4.getUTCDay() + 6) % 7;
+    var week1Monday = new Date(jan4.getTime() - jan4DayNum * 24 * 3600 * 1000);
+    return new Date(week1Monday.getTime() + ((week - 1) * 7 + 3) * 24 * 3600 * 1000);
+  }
+
+  // N tuan rolling KET THUC tai anchorWeek (bao gom anchorWeek). Dung quy doi ve
+  // ngay thuc (Thu Nam cua tuan ISO) roi tru lui theo ngay, tranh loi cong/tru
+  // truc tiep tren so tuan khi vat qua ranh gioi nam.
+  function getRollingNWeekLabels_(anchorWeek, n) {
+    n = n || 13;
+    var anchorDate = weekLabelToThursday_(anchorWeek);
     var labels = [];
-    for (var i = 13; i >= 1; i--) {
-      var d = new Date(today.getTime() - i * 7 * 24 * 3600 * 1000);
+    for (var i = n - 1; i >= 0; i--) {
+      var d = new Date(anchorDate.getTime() - i * 7 * 24 * 3600 * 1000);
       labels.push(isoWeekLabel_(d));
     }
     return labels;
   }
 
+  function getCurrentYearQuarter_() {
+    var today = new Date();
+    var y = today.getFullYear();
+    var q = Math.floor(today.getMonth() / 3) + 1;
+    return { year: String(y), quarter: 'Q' + q };
+  }
+
+  // Tuan neo cho moi tinh toan "rolling": theo DUNG dropdown filter Year/Quarter
+  // dang chon - khong phai luon cung today-1.
+  // - Khong chon gi, hoac chon dung Year/Quarter HIEN TAI -> neo o tuan truoc
+  //   (today - 1 tuan), vi du hom nay dang trong Q2 nam nay thi van la today-1.
+  // - Chon Year/Quarter KHAC (qua khu) -> neo o tuan CUOI CUNG cua Quarter/Year
+  //   do (lay tu chinh data IHS, vi dropdown Year/Quarter von duoc sinh ra tu
+  //   data IHS nen luon co du lieu cho lua chon nguoi dung co the chon).
+  function getRollingAnchorWeek_(state) {
+    var current = getCurrentYearQuarter_();
+    var selYears = (state && state.years) || [];
+    var selQuarters = (state && state.quarters) || [];
+
+    var isCurrentPeriod = true;
+    if (selYears.length && selYears.indexOf(current.year) === -1) isCurrentPeriod = false;
+    if (selQuarters.length && selQuarters.indexOf(current.quarter) === -1) isCurrentPeriod = false;
+
+    if (isCurrentPeriod) {
+      return isoWeekLabel_(new Date(Date.now() - 7 * 24 * 3600 * 1000));
+    }
+
+    var refYear = selYears.length ? selYears[selYears.length - 1] : current.year;
+    var filterObj = { year: [refYear] };
+    if (selQuarters.length) filterObj.quarter = [selQuarters[selQuarters.length - 1]];
+
+    var weeks = D.getWeeksForFilters(filterObj);
+    if (!weeks.length) {
+      return isoWeekLabel_(new Date(Date.now() - 7 * 24 * 3600 * 1000));
+    }
+    return weeks[weeks.length - 1];
+  }
+
   // "Market Reality Check": so sanh MSI Share o Key Dealers (IHS, Gaming only)
   // vs toan thi truong (NV Report - ban than NV chi report Gaming, khong ap dung
   // cho cac dong san pham khac). Ca 2 phia deu gop tren CUNG 1 khung 13 tuan
-  // rolling co dinh (neo o tuan truoc theo lich thuc te), khong phai "giao nhau
-  // giua 2 nguon" nhu truoc - de khung thoi gian on dinh, khong troi theo data.
-  function renderMarketRealityCheckSection() {
-    var window13 = getRolling13WeekLabels_();
+  // rolling co dinh (neo theo dropdown Year/Quarter filter - xem getRollingAnchorWeek_),
+  // khong phai "giao nhau giua 2 nguon" nhu truoc - de khung thoi gian on dinh,
+  // khong troi theo data.
+  function renderMarketRealityCheckSection(state) {
+    var anchor = getRollingAnchorWeek_(state);
+    var window13 = getRollingNWeekLabels_(anchor, 13);
     var windowSet = {};
     window13.forEach(function (w) { windowSet[w] = true; });
 
@@ -537,15 +591,31 @@
     Charts.renderWeeklyShareDualLine('weeklyShareTrendChart', window13, ihsWeeklySeries, nvWeeklySeries);
   }
 
-  function renderGpuTierMixSection() {
+  function renderGpuTierMixSection(state) {
     var gpuWeeks = NV.getGpuWeeks();
     if (!gpuWeeks.length) return;
-    var latestWeek = gpuWeeks[gpuWeeks.length - 1];
-    var rows = NV.gpuTierComparison([latestWeek]);
+    var anchor = getRollingAnchorWeek_(state);
+
+    // NV report co the cham hon IHS vai tuan, nen tuan neo tinh theo dropdown
+    // filter chua chac da co san trong NV - fallback ve tuan gan nhat <= anchor
+    // ma NV thuc su co du lieu.
+    var targetWeek = gpuWeeks.indexOf(anchor) !== -1 ? anchor : null;
+    if (!targetWeek) {
+      for (var i = gpuWeeks.length - 1; i >= 0; i--) {
+        if (gpuWeeks[i] <= anchor) { targetWeek = gpuWeeks[i]; break; }
+      }
+      if (!targetWeek) targetWeek = gpuWeeks[gpuWeeks.length - 1];
+    }
+
+    var rows = NV.gpuTierComparison([targetWeek]);
     Charts.renderGpuTierGroupedBar('gpuTierChart', rows);
 
     var hintEl = document.getElementById('gpuTierHint');
-    if (hintEl) hintEl.textContent = fmt.weekShort(latestWeek) + ' (latest available)';
+    if (hintEl) {
+      hintEl.textContent = targetWeek === anchor
+        ? fmt.weekShort(targetWeek)
+        : fmt.weekShort(targetWeek) + ' (closest available to ' + fmt.weekShort(anchor) + ')';
+    }
   }
 
   function escapeHtml(s) {

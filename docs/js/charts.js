@@ -25,7 +25,7 @@ window.MsiCharts = (function () {
   function renderMsiWeeklyTrend(canvasId, weeks, series) {
     destroyIfExists(canvasId);
     var ctx = document.getElementById(canvasId).getContext('2d');
-    var labels = weeks.map(function (w) { return window.MsiFormat.weekShort(w); });
+    var labels = weeks.map(function (w) { return window.MsiFormat.weekAxisLabel(w); });
 
     charts[canvasId] = new Chart(ctx, {
       type: 'line',
@@ -101,7 +101,7 @@ window.MsiCharts = (function () {
   function renderDealersWeeklyBar(canvasId, weeks, series, wowSeries) {
     destroyIfExists(canvasId);
     var ctx = document.getElementById(canvasId).getContext('2d');
-    var labels = weeks.map(function (w) { return window.MsiFormat.weekShort(w); });
+    var labels = weeks.map(function (w) { return window.MsiFormat.weekAxisLabel(w); });
 
     charts[canvasId] = new Chart(ctx, {
       type: 'bar',
@@ -169,7 +169,7 @@ window.MsiCharts = (function () {
   function renderMultiLineShare(canvasId, weeks, brandSeriesMap) {
     destroyIfExists(canvasId);
     var ctx = document.getElementById(canvasId).getContext('2d');
-    var labels = weeks.map(function (w) { return window.MsiFormat.weekShort(w); });
+    var labels = weeks.map(function (w) { return window.MsiFormat.weekAxisLabel(w); });
 
     var datasets = Object.keys(brandSeriesMap).map(function (brand) {
       var color = C.brand[brand] || '#94A3B8';
@@ -332,7 +332,7 @@ window.MsiCharts = (function () {
   function renderWeeklyShareDualLine(canvasId, weekLabels, ihsSeries, nvSeries) {
     destroyIfExists(canvasId);
     var ctx = document.getElementById(canvasId).getContext('2d');
-    var labels = weekLabels.map(function (w) { return window.MsiFormat.weekShort(w); });
+    var labels = weekLabels.map(function (w) { return window.MsiFormat.weekAxisLabel(w); });
 
     charts[canvasId] = new Chart(ctx, {
       type: 'line',
