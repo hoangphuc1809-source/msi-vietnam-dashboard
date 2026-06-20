@@ -6,7 +6,7 @@
 <title>MSI Vietnam - Market Share Dashboard (IHS)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/dashboard.css?v=1781944908">
+<link rel="stylesheet" href="css/dashboard.css?v=1781958209">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
@@ -39,6 +39,10 @@
   </header>
 
   <div class="filter-bar">
+    <div class="filter-field filter-field-wide">
+      <label for="dealersSelect">Dealers</label>
+      <select id="dealersSelect" multiple></select>
+    </div>
     <div class="filter-field">
       <label for="yearSelect">Year</label>
       <select id="yearSelect" multiple></select>
@@ -51,17 +55,44 @@
       <label>Series Group</label>
       <div id="seriesGroupPills" class="pill-group"></div>
     </div>
-    <div class="filter-field filter-field-wide">
-      <label for="dealersSelect">Dealers</label>
-      <select id="dealersSelect" multiple></select>
-    </div>
     <button class="chip reset" id="resetFilterBtn">Reset Filter</button>
   </div>
 
   <div class="error-banner" id="errorBanner"></div>
   <div class="filter-tags" id="filterTags"></div>
 
-  <!-- ROW 1: MSI trend / Key dealers weekly bar / Multi-line market share -->
+  <!-- ===== ZONE 1: EXECUTIVE SUMMARY ===== -->
+  <div class="zone-label">Executive Summary</div>
+
+  <div class="dash-grid" style="grid-template-columns: 1fr;">
+    <div class="card accent-red">
+      <h3 class="card-title">
+        <span class="dot" style="background:#CC0000"></span>
+        Market Reality Check
+        <span class="hint">Key Dealers (IHS) vs Whole Market (NV Report)</span>
+      </h3>
+      <div class="reality-check-grid" id="realityCheckStats"></div>
+      <div class="chart-wrap" style="margin-top:14px;">
+        <canvas id="weeklyShareTrendChart"></canvas>
+      </div>
+      <div class="nv-source-note">Source: RAW - NV Report (static snapshot, not yet live-synced)</div>
+    </div>
+  </div>
+
+  <div class="dash-grid" style="grid-template-columns: 1fr;">
+    <div class="card accent-amber">
+      <h3 class="card-title">
+        <span class="dot" style="background:#D97706"></span>
+        Alerts &amp; Opportunities
+        <span class="hint">Top Movers · Whitespace · Volatility</span>
+      </h3>
+      <div id="alertsPanel"></div>
+    </div>
+  </div>
+
+  <!-- ===== ZONE 2: MARKET TREND ===== -->
+  <div class="zone-label">Market Trend</div>
+
   <div class="dash-grid">
     <div class="card accent-green">
       <h3 class="card-title" id="msiTrendTitle">
@@ -82,7 +113,9 @@
         <canvas id="dealersWeeklyChart"></canvas>
       </div>
     </div>
+  </div>
 
+  <div class="dash-grid">
     <div class="card">
       <h3 class="card-title">
         <span class="dot" style="background:#94A3B8"></span>
@@ -94,9 +127,22 @@
         <canvas id="multiLineChart"></canvas>
       </div>
     </div>
+
+    <div class="card">
+      <h3 class="card-title">
+        <span class="dot" style="background:#94A3B8"></span>
+        GPU Tier Mix: MSI vs Market
+        <span class="hint" id="gpuTierHint">Latest week</span>
+      </h3>
+      <div class="chart-wrap">
+        <canvas id="gpuTierChart"></canvas>
+      </div>
+    </div>
   </div>
 
-  <!-- ROW 2: Brand shared / Brand volume / Dealers volume (horizontal bars) -->
+  <!-- ===== ZONE 3: COMPETITIVE POSITION ===== -->
+  <div class="zone-label">Competitive Position</div>
+
   <div class="dash-grid">
     <div class="card">
       <h3 class="card-title">Key Dealers - Brand shared</h3>
@@ -111,17 +157,16 @@
         <canvas id="brandVolumeChart"></canvas>
       </div>
     </div>
+  </div>
 
+  <div class="dash-grid" style="grid-template-columns: 1fr 1.6fr;">
     <div class="card">
       <h3 class="card-title">Key Dealers - Volume</h3>
       <div class="chart-wrap">
         <canvas id="dealersVolumeChart"></canvas>
       </div>
     </div>
-  </div>
 
-  <!-- ROW 3: Stacked brand mix per dealer -->
-  <div class="dash-grid" style="grid-template-columns: 1fr;">
     <div class="card">
       <h3 class="card-title">Brand Mix by Dealer (Top 8)</h3>
       <div class="chart-wrap tall">
@@ -130,8 +175,10 @@
     </div>
   </div>
 
-  <!-- ROW 4: Tables -->
-  <div class="dash-grid" style="grid-template-columns: 1.4fr 1fr;">
+  <!-- ===== ZONE 4: DEALER & CHANNEL DETAIL ===== -->
+  <div class="zone-label">Dealer &amp; Channel Detail</div>
+
+  <div class="dash-grid">
     <div class="card">
       <h3 class="card-title">Dealers Capacity</h3>
       <div class="table-scroll" id="dealersCapacityTable"></div>
@@ -143,8 +190,7 @@
     </div>
   </div>
 
-  <!-- ROW 5: Channel Type Scorecard + Brand YoY Leaderboard -->
-  <div class="dash-grid" style="grid-template-columns: 1.3fr 1fr;">
+  <div class="dash-grid">
     <div class="card">
       <h3 class="card-title">
         <span class="dot" style="background:#0E4D99"></span>
@@ -163,58 +209,19 @@
     </div>
   </div>
 
-  <!-- ROW 6: Alerts & Opportunities panel -->
-  <div class="dash-grid" style="grid-template-columns: 1fr;">
-    <div class="card accent-amber">
-      <h3 class="card-title">
-        <span class="dot" style="background:#D97706"></span>
-        Alerts &amp; Opportunities
-        <span class="hint">Top Movers · Whitespace · Volatility</span>
-      </h3>
-      <div id="alertsPanel"></div>
-    </div>
-  </div>
-
-  <!-- ROW 7: Market Reality Check (NV Report - market-wide Gaming data) -->
-  <div class="dash-grid" style="grid-template-columns: 1.4fr 1fr;">
-    <div class="card accent-red">
-      <h3 class="card-title">
-        <span class="dot" style="background:#CC0000"></span>
-        Market Reality Check
-        <span class="hint">Key Dealers (IHS) vs Whole Market (NV Report)</span>
-      </h3>
-      <div class="reality-check-grid" id="realityCheckStats"></div>
-      <div class="chart-wrap" style="margin-top:14px;">
-        <canvas id="weeklyShareTrendChart"></canvas>
-      </div>
-      <div class="nv-source-note">Source: RAW - NV Report (static snapshot, not yet live-synced)</div>
-    </div>
-
-    <div class="card">
-      <h3 class="card-title">
-        <span class="dot" style="background:#94A3B8"></span>
-        GPU Tier Mix: MSI vs Market
-        <span class="hint" id="gpuTierHint">Latest week</span>
-      </h3>
-      <div class="chart-wrap tall">
-        <canvas id="gpuTierChart"></canvas>
-      </div>
-    </div>
-  </div>
-
   <footer class="app-footer">
     MSI Vietnam &middot; Market Overall Dashboard &middot; Source: RAW - IHS (Google Sheets, auto-sync)
   </footer>
 
 </div>
 
-<script src="js/config.js?v=1781944908"></script>
-<script src="js/format.js?v=1781944908"></script>
-<script src="js/filterState.js?v=1781944908"></script>
-<script src="js/data.js?v=1781944908"></script>
-<script src="js/nvData.js?v=1781944908"></script>
-<script src="js/charts.js?v=1781944908"></script>
-<script src="js/tables.js?v=1781944908"></script>
-<script src="js/app.js?v=1781944908"></script>
+<script src="js/config.js?v=1781958209"></script>
+<script src="js/format.js?v=1781958209"></script>
+<script src="js/filterState.js?v=1781958209"></script>
+<script src="js/data.js?v=1781958209"></script>
+<script src="js/nvData.js?v=1781958209"></script>
+<script src="js/charts.js?v=1781958209"></script>
+<script src="js/tables.js?v=1781958209"></script>
+<script src="js/app.js?v=1781958209"></script>
 </body>
 </html>
