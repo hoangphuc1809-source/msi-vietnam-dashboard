@@ -22,41 +22,67 @@ window.MsiCharts = (function () {
   }
 
   // ===== 1. MSI Weekly Sell-Out trend (line, area, value labels) =====
-  function renderMsiWeeklyTrend(canvasId, weeks, series) {
+  // series = Key Dealers (IHS, tracked dealers only). allCustomersSeries (optional)
+  // = TOTAL Sell Out tren toan bo mang luoi khach hang (Weekly Sales Data) - them
+  // duong thu 2 de so sanh, co tooltip gop ca 2.
+  function renderMsiWeeklyTrend(canvasId, weeks, series, allCustomersSeries) {
     destroyIfExists(canvasId);
     var ctx = document.getElementById(canvasId).getContext('2d');
     var labels = weeks.map(function (w) { return window.MsiFormat.weekAxisLabel(w); });
 
+    var datasets = [{
+      label: 'Key Dealers (IHS)',
+      data: series.map(function (d) { return d.value; }),
+      borderColor: C.green,
+      backgroundColor: hexToRgba(C.green, 0.08),
+      borderWidth: 2.5,
+      pointBackgroundColor: C.green,
+      pointRadius: 3,
+      pointHoverRadius: 5,
+      tension: 0.35,
+      fill: true
+    }];
+
+    if (allCustomersSeries) {
+      datasets.push({
+        label: 'All Customers (Weekly Sales Data)',
+        data: allCustomersSeries,
+        borderColor: '#7C3AED',
+        backgroundColor: 'transparent',
+        borderWidth: 2,
+        borderDash: [5, 4],
+        pointBackgroundColor: '#7C3AED',
+        pointRadius: 2.5,
+        pointHoverRadius: 5,
+        tension: 0.35,
+        fill: false
+      });
+    }
+
     charts[canvasId] = new Chart(ctx, {
       type: 'line',
-      data: {
-        labels: labels,
-        datasets: [{
-          data: series.map(function (d) { return d.value; }),
-          borderColor: C.green,
-          backgroundColor: hexToRgba(C.green, 0.08),
-          borderWidth: 2.5,
-          pointBackgroundColor: C.green,
-          pointRadius: 3,
-          pointHoverRadius: 5,
-          tension: 0.35,
-          fill: true
-        }]
-      },
+      data: { labels: labels, datasets: datasets },
       options: {
         responsive: true,
         maintainAspectRatio: false,
         layout: { padding: { top: 26 } },
         plugins: {
-          legend: { display: false },
+          legend: allCustomersSeries ? {
+            display: true,
+            position: 'top',
+            labels: { boxWidth: 10, boxHeight: 10, font: { size: 10.5, weight: '600' }, color: C.textSecondary, usePointStyle: true, pointStyle: 'rectRounded' }
+          } : { display: false },
           tooltip: {
             backgroundColor: '#0F172A',
             padding: 10,
             cornerRadius: 8,
-            titleFont: { weight: '700' }
+            titleFont: { weight: '700' },
+            mode: 'index',
+            intersect: false
           },
           datalabels: false
         },
+        interaction: { mode: 'index', intersect: false },
         scales: {
           x: {
             grid: { display: false },
@@ -79,19 +105,19 @@ window.MsiCharts = (function () {
       id: 'valueLabel-' + color,
       afterDatasetsDraw: function (chart) {
         var ctx = chart.ctx;
-        chart.data.datasets.forEach(function (dataset, i) {
-          var meta = chart.getDatasetMeta(i);
-          if (meta.hidden) return;
-          meta.data.forEach(function (point, idx) {
-            var value = dataset.data[idx];
-            if (value === null || value === undefined) return;
-            ctx.save();
-            ctx.fillStyle = color;
-            ctx.font = "700 11px 'IBM Plex Mono', monospace";
-            ctx.textAlign = 'center';
-            ctx.fillText(window.MsiFormat.number(value), point.x, point.y - 10);
-            ctx.restore();
-          });
+        var dataset = chart.data.datasets[0];
+        if (!dataset) return;
+        var meta = chart.getDatasetMeta(0);
+        if (meta.hidden) return;
+        meta.data.forEach(function (point, idx) {
+          var value = dataset.data[idx];
+          if (value === null || value === undefined) return;
+          ctx.save();
+          ctx.fillStyle = color;
+          ctx.font = "700 11px 'IBM Plex Mono', monospace";
+          ctx.textAlign = 'center';
+          ctx.fillText(window.MsiFormat.number(value), point.x, point.y - 10);
+          ctx.restore();
         });
       }
     };

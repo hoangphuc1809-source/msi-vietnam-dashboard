@@ -5,6 +5,7 @@
 
   var D = window.MsiData;
   var NV = window.MsiNvData;
+  var SD = window.MsiSalesData;
   var F = window.MsiFilterState;
   var Charts = window.MsiCharts;
   var Tables = window.MsiTables;
@@ -14,6 +15,7 @@
   var ts = { year: null, quarter: null, dealers: null };
   var selectsReady = false;
   var nvReady = false;
+  var sdReady = false;
 
   var SG_LABEL = { 'Gaming': 'Gaming', 'Business& Productivity': 'B&P', 'Handheld': 'Handheld' };
 
@@ -22,6 +24,7 @@
     F.onChange(renderAll);
     loadData(true);
     loadNvData();
+    loadSalesData();
 
     if (window.MSI_CONFIG.REFRESH_INTERVAL_MS > 0) {
       refreshTimer = setInterval(function () { loadData(false); }, window.MSI_CONFIG.REFRESH_INTERVAL_MS);
@@ -37,6 +40,18 @@
       renderAll();
     } catch (err) {
       console.error('Load NV Report failed', err);
+    }
+  }
+
+  // Weekly Sales Data (Sell Out toan bo khach hang) - cung la static snapshot
+  // (xem ghi chu trong weekly-sellout.json), load 1 lan.
+  async function loadSalesData() {
+    try {
+      await SD.fetchData();
+      sdReady = true;
+      renderAll();
+    } catch (err) {
+      console.error('Load Weekly Sales Data failed', err);
     }
   }
 
@@ -293,7 +308,16 @@
     var weeks = D.getLastNWeeksForFilters(baseFilters(state), state.weeksBack);
     var filters = baseFilters(state);
     var series = D.msiWeeklyVolume(filters, weeks);
-    Charts.renderMsiWeeklyTrend('msiTrendChart', weeks, series);
+
+    // Duong "All Customers" chi co y nghia khi dang xem TOAN BO mang luoi (khong
+    // loc theo 1 vai Dealers cu the, vi Weekly Sales Data khong co dimension
+    // "Key Dealers"). Van ton trong Series Group filter (Gaming/B&P/Handheld).
+    var allCustomersSeries = null;
+    if (sdReady && !state.customers.length) {
+      allCustomersSeries = SD.weeklyTotal(weeks, state.seriesGroups);
+    }
+
+    Charts.renderMsiWeeklyTrend('msiTrendChart', weeks, series, allCustomersSeries);
 
     var titleEl = document.getElementById('msiTrendTitle');
     var label = dealersLabel(state, null);

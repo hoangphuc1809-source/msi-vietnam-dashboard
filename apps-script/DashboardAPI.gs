@@ -18,6 +18,13 @@ var CACHE_SECONDS = 300;
 var SHEET_RAW_NV_CANDIDATES = ['RAW - NV Report 1', 'RAW - NV Report', 'RAW - NV Report1'];
 var CACHE_SECONDS_NV = 1800; // 30 phut
 
+// "Weekly Sales Data" KHONG nam trong spreadsheet nay (1tb7jA...) ma o 1
+// spreadsheet rieng (theo Links.csv) - phai mo cheo bang openById. Tai khoan
+// chay Apps Script ("Execute as: Me") can co quyen doc spreadsheet nay.
+var EXTERNAL_SALES_SS_ID = '18_tzWNt7-Y1fV6ak7-bnw7kWLskSKTDi5x0F90gZo-w';
+var SHEET_WEEKLY_SALES_CANDIDATES = ['Weekly Sales Data'];
+var CACHE_SECONDS_SELLOUT = 1800; // 30 phut
+
 function doGet(e) {
 try {
 var action = (e && e.parameter && e.parameter.action) || 'ihs';
@@ -26,6 +33,8 @@ if (action === 'ihs') {
 payload = getIhsData_();
 } else if (action === 'nv') {
 payload = getNvReportData_();
+} else if (action === 'sellout') {
+payload = getWeeklySelloutData_();
 } else if (action === 'ping') {
 payload = { ok: true, time: new Date().toISOString() };
 } else {
@@ -210,6 +219,65 @@ cache.put('nv_data_v1', json, CACHE_SECONDS_NV);
 return result;
 }
 
+// Doc tab "Weekly Sales Data" tu spreadsheet NGOAI (khac voi spreadsheet
+// chinh ma script nay dang bound vao) - day la Sell Out cua MSI tren TOAN BO
+// mang luoi khach hang/dealer (~109 customers trong snapshot test), khac voi
+// RAW - IHS chi co ~9 "Key Dealers" duoc track rieng.
+// Cot: A=Year B=Quarter C=Month D=Week E=marketing_sku F=Series Group
+// G=SEGMENT1 ... W=Customer Number X=Customer Y=Channel Type Z=Sell In
+// AA=Sell Out AB=On Hand ...
+// Gop san theo (Week, Series Group) de payload nho gon - khong gui tung dong
+// SKU/Customer ve client (tranh vuot gioi han 95KB cache va cham client).
+function getWeeklySelloutData_() {
+var cache = CacheService.getScriptCache();
+var cached = cache.get('sellout_data_v1');
+if (cached) {
+return JSON.parse(cached);
+}
+var extSs = SpreadsheetApp.openById(EXTERNAL_SALES_SS_ID);
+var sheet = null;
+for (var i = 0; i < SHEET_WEEKLY_SALES_CANDIDATES.length; i++) {
+sheet = extSs.getSheetByName(SHEET_WEEKLY_SALES_CANDIDATES[i]);
+if (sheet) break;
+}
+if (!sheet) throw new Error('Khong tim thay sheet Weekly Sales Data trong spreadsheet nguon. Da thu: ' + SHEET_WEEKLY_SALES_CANDIDATES.join(', '));
+var lastRow = sheet.getLastRow();
+var lastCol = sheet.getLastColumn();
+if (lastRow < 2) return { rows: [], meta: {} };
+var values = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+var agg = {}; // key 'week|sg' -> sum
+for (var i = 0; i < values.length; i++) {
+var r = values[i];
+var week = r[3];
+if (!week) continue;
+var sg = r[5] || 'Unknown';
+var sellOut = toNumber_(r[26]);
+var key = week + '|' + sg;
+agg[key] = (agg[key] || 0) + sellOut;
+}
+var rows = [];
+for (var key in agg) {
+var parts = key.split('|');
+rows.push({ w: parts[0], sg: parts[1], sellOut: Math.round(agg[key] * 100) / 100 });
+}
+var result = {
+rows: rows,
+meta: {
+generatedAt: new Date().toISOString(),
+source: sheet.getName() + ' (live, external spreadsheet)',
+rowCount: rows.length
+}
+};
+try {
+var json = JSON.stringify(result);
+if (json.length < 95000) {
+cache.put('sellout_data_v1', json, CACHE_SECONDS_SELLOUT);
+}
+} catch (e) {
+}
+return result;
+}
+
 function toNumber_(v) {
 if (v === '' || v === null || v === undefined) return 0;
 if (typeof v === 'number') return v;
@@ -245,4 +313,11 @@ Logger.log('GPU rows: ' + data.gpuRows.length);
 Logger.log('Meta: ' + JSON.stringify(data.meta));
 Logger.log('Sample brand row: ' + JSON.stringify(data.brandRows[0]));
 Logger.log('Sample gpu row: ' + JSON.stringify(data.gpuRows[0]));
+}
+
+function testGetWeeklySelloutData() {
+var data = getWeeklySelloutData_();
+Logger.log('Rows: ' + data.rows.length);
+Logger.log('Meta: ' + JSON.stringify(data.meta));
+Logger.log('Sample row: ' + JSON.stringify(data.rows[0]));
 }
