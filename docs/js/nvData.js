@@ -1,6 +1,7 @@
 // MSI Vietnam Dashboard - NV Report data module
 // NV Report = bao cao sell-out toan thi truong Gaming (tat ca brand, khong chia theo dealer),
-// tu 2023W26. Hien la STATIC SNAPSHOT (xem ghi chu trong nv-report.json), chua live-sync nhu IHS.
+// tu 2023W26. Uu tien fetch live tu Apps Script (action=nv); neu chua deploy/loi thi
+// tu dong fallback ve static snapshot (data/nv-report.json).
 
 window.MsiNvData = (function () {
   'use strict';
@@ -10,15 +11,33 @@ window.MsiNvData = (function () {
   var meta = {};
   var loaded = false;
 
+  // Uu tien goi action=nv tu Apps Script (live, neu da deploy DashboardAPI.gs ban
+  // moi). Neu chua deploy hoac loi, tu dong fallback ve static snapshot de dashboard
+  // khong vo - khong can sua gi them phia client khi Apps Script duoc cap nhat sau.
   async function fetchData() {
-    var res = await fetch('data/nv-report.json');
-    if (!res.ok) throw new Error('NV Report fetch failed: ' + res.status);
-    var json = await res.json();
+    var liveUrl = window.MSI_CONFIG.APPS_SCRIPT_URL + '?action=nv&_=' + Date.now();
+    try {
+      var res = await fetch(liveUrl, { method: 'GET' });
+      if (!res.ok) throw new Error('status ' + res.status);
+      var json = await res.json();
+      if (json.error) throw new Error(json.error);
+      applyData_(json);
+      return json;
+    } catch (liveErr) {
+      console.warn('[NV] Live fetch (action=nv) chua san sang, dung static snapshot:', liveErr.message);
+      var res2 = await fetch('data/nv-report.json');
+      if (!res2.ok) throw new Error('NV Report static fallback that bai: ' + res2.status);
+      var json2 = await res2.json();
+      applyData_(json2);
+      return json2;
+    }
+  }
+
+  function applyData_(json) {
     brandRows = json.brandRows || [];
     gpuRows = json.gpuRows || [];
     meta = json.meta || {};
     loaded = true;
-    return json;
   }
 
   function isLoaded() { return loaded; }

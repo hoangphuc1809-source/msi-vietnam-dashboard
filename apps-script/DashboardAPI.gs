@@ -12,12 +12,20 @@
 var SHEET_RAW_IHS = 'RAW - IHS';
 var CACHE_SECONDS = 300;
 
+// Ten tab co the la 'RAW - NV Report 1' (theo Links.csv) hoac 'RAW - NV Report'
+// (it sheet duoc dat ten khac nhau giua cac lan tao). Thu lan luot, neu khong
+// thay cai nao thi bao loi ro rang de de sua.
+var SHEET_RAW_NV_CANDIDATES = ['RAW - NV Report 1', 'RAW - NV Report', 'RAW - NV Report1'];
+var CACHE_SECONDS_NV = 1800; // 30 phut
+
 function doGet(e) {
 try {
 var action = (e && e.parameter && e.parameter.action) || 'ihs';
 var payload;
 if (action === 'ihs') {
 payload = getIhsData_();
+} else if (action === 'nv') {
+payload = getNvReportData_();
 } else if (action === 'ping') {
 payload = { ok: true, time: new Date().toISOString() };
 } else {
@@ -118,6 +126,90 @@ cache.put('ihs_data_v1', json, CACHE_SECONDS);
 return result;
 }
 
+function findNvSheet_(ss) {
+for (var i = 0; i < SHEET_RAW_NV_CANDIDATES.length; i++) {
+var sheet = ss.getSheetByName(SHEET_RAW_NV_CANDIDATES[i]);
+if (sheet) return sheet;
+}
+return null;
+}
+
+// Doc tab "RAW - NV Report 1": bao cao sell-out toan thi truong Gaming (tat ca
+// brand, khong chia theo dealer), gom 2 loai dong phan biet boi cot "Report by":
+// 'By Brands' (volume tung brand theo tuan) va 'by GPUs' (volume + share theo
+// tung tier GPU, cot UserBuy la volume rieng cua MSI cho tier do).
+// Cot: A=Year B=Quarter C=Week D=Item E=Reference# F=Brands G=GPU H=Volume
+// I=Report by J=Series Group K=Last Year L=Last Wk M=Last 2 Wk N=Last 3 Wk
+// O=Last 4 Wk P=MSI Volume Q=UserBuy
+function getNvReportData_() {
+var cache = CacheService.getScriptCache();
+var cached = cache.get('nv_data_v1');
+if (cached) {
+return JSON.parse(cached);
+}
+var ss = SpreadsheetApp.getActiveSpreadsheet();
+var sheet = findNvSheet_(ss);
+if (!sheet) throw new Error('Khong tim thay sheet NV Report. Da thu: ' + SHEET_RAW_NV_CANDIDATES.join(', ') + '. Kiem tra lai ten tab va sua bien SHEET_RAW_NV_CANDIDATES.');
+var lastRow = sheet.getLastRow();
+var lastCol = sheet.getLastColumn();
+if (lastRow < 2) return { brandRows: [], gpuRows: [], meta: {} };
+var values = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+var brandRows = [];
+var gpuRows = [];
+for (var i = 0; i < values.length; i++) {
+var r = values[i];
+var year = r[0];
+var quarter = r[1];
+var week = r[2];
+var item = r[3];
+var brand = r[5];
+var gpu = r[6];
+var volume = r[7];
+var reportBy = r[8];
+var lastYear = r[10];
+var userBuy = r[16];
+if (!year && !item) continue;
+if (reportBy === 'By Brands') {
+brandRows.push({
+y: String(year || ''),
+q: String(quarter || ''),
+w: String(week || ''),
+brand: String(brand || ''),
+vol: toNumber_(volume),
+lastYear: toNumber_(lastYear)
+});
+} else if (reportBy === 'by GPUs') {
+gpuRows.push({
+y: String(year || ''),
+q: String(quarter || ''),
+w: String(week || ''),
+gpu: String(gpu || ''),
+vol: toNumber_(volume),
+lastYear: toNumber_(lastYear),
+msiVol: toNumber_(userBuy)
+});
+}
+}
+var result = {
+brandRows: brandRows,
+gpuRows: gpuRows,
+meta: {
+generatedAt: new Date().toISOString(),
+source: sheet.getName() + ' (live)',
+brandRowCount: brandRows.length,
+gpuRowCount: gpuRows.length
+}
+};
+try {
+var json = JSON.stringify(result);
+if (json.length < 95000) {
+cache.put('nv_data_v1', json, CACHE_SECONDS_NV);
+}
+} catch (e) {
+}
+return result;
+}
+
 function toNumber_(v) {
 if (v === '' || v === null || v === undefined) return 0;
 if (typeof v === 'number') return v;
@@ -144,4 +236,13 @@ var data = getIhsData_();
 Logger.log('Row count: ' + data.rows.length);
 Logger.log('Meta: ' + JSON.stringify(data.meta));
 Logger.log('Sample row: ' + JSON.stringify(data.rows[0]));
+}
+
+function testGetNvReportData() {
+var data = getNvReportData_();
+Logger.log('Brand rows: ' + data.brandRows.length);
+Logger.log('GPU rows: ' + data.gpuRows.length);
+Logger.log('Meta: ' + JSON.stringify(data.meta));
+Logger.log('Sample brand row: ' + JSON.stringify(data.brandRows[0]));
+Logger.log('Sample gpu row: ' + JSON.stringify(data.gpuRows[0]));
 }
