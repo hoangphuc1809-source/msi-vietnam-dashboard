@@ -379,10 +379,20 @@ window.MsiData = (function () {
       var shareWow = (shareThisWeek !== null && sharePrevWeek !== null) ? (shareThisWeek - sharePrevWeek) : null;
       var yoy = (curWeekMsi > 0 && lastYearMsi > 0) ? (curWeekMsi - lastYearMsi) / lastYearMsi : null;
 
+      // Volume rieng cua brand dang duoc cross-filter tu noi khac (vd click "Asus"
+      // tren bang Brands) - de Channel Type Scorecard cung "theo" dung brand do,
+      // giong cach selectedBrandVolume da lam o dealersCapacityTable.
+      var selectedBrandVolume = null;
+      if (filters.brand) {
+        var selRows = applyFilters(f).filter(function (r) { return !r.isTotal; });
+        selectedBrandVolume = sum(selRows, 'brandVol');
+      }
+
       return {
         channel: ch,
         capacity: capacity,
         msiCapacity: msiCapacity,
+        selectedBrandVolume: selectedBrandVolume,
         msiShareOverall: capacity > 0 ? msiCapacity / capacity : null,
         shareThisWeek: shareThisWeek,
         shareWow: shareWow,

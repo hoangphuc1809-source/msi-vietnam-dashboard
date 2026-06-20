@@ -10,9 +10,15 @@ window.MsiTables = (function () {
     return v >= 0 ? 'val-up' : 'val-down';
   }
 
-  function renderDealersCapacityTable(containerId, rows, activeCustomer, onRowClick, weekLabels) {
+  function renderDealersCapacityTable(containerId, rows, activeCustomer, onRowClick, weekLabels, activeBrand) {
     var el = document.getElementById(containerId);
-    var grandTotal = rows.reduce(function (a, r) { return a + r.capacity; }, 0);
+    // Cross-filter: khi co brand dang duoc chon o noi khac (vd click "Asus" tren
+    // bang Brands), cot chinh doi sang hien volume RIENG cua brand do tai tung
+    // dealer (selectedBrandVolume) thay vi luon hien TTL capacity khong doi.
+    var showingBrand = !!activeBrand;
+    var capField = showingBrand ? 'selectedBrandVolume' : 'capacity';
+    var capHeader = showingBrand ? (activeBrand + ' Volume') : 'Capacity';
+    var grandTotal = rows.reduce(function (a, r) { return a + (r[capField] || 0); }, 0);
     var has3 = rows.some(function (r) { return r.last3Wk !== null && r.last3Wk !== undefined; });
     var has2 = rows.some(function (r) { return r.last2Wk !== null && r.last2Wk !== undefined; });
     var has1 = rows.some(function (r) { return r.lastWk !== null && r.lastWk !== undefined; });
@@ -24,7 +30,7 @@ window.MsiTables = (function () {
 
     var html = '<table class="data-table">';
     html += '<thead><tr>' +
-      '<th>Dealers Capacity</th><th>Capacity</th><th>YoY</th><th>MSI share</th>' +
+      '<th>Dealers Capacity</th><th>' + escapeAttr(capHeader) + '</th><th>YoY</th><th>MSI share</th>' +
       '<th>' + escapeAttr(h3) + '</th><th>' + escapeAttr(h2) + '</th><th>' + escapeAttr(h1) + '</th><th>WoW</th>' +
       '</tr></thead><tbody>';
 
@@ -32,7 +38,7 @@ window.MsiTables = (function () {
       var isActive = activeCustomer === r.customer;
       html += '<tr class="' + (isActive ? 'row-active' : '') + '" data-customer="' + escapeAttr(r.customer) + '">' +
         '<td title="' + escapeAttr(r.customer) + '">' + fmt.truncate(r.customer, 18) + '</td>' +
-        '<td>' + fmt.number(r.capacity) + '</td>' +
+        '<td>' + fmt.number(r[capField]) + '</td>' +
         '<td class="' + yoyClass(r.yoy) + '">' + fmt.percentSigned(r.yoy, 1) + '</td>' +
         '<td>' + fmt.percent(r.msiShare, 1) + '</td>' +
         '<td>' + fmt.number(r.last3Wk) + '</td>' +
@@ -120,21 +126,27 @@ window.MsiTables = (function () {
     }
   }
 
-  function renderChannelScorecard(containerId, rows, activeChannel, onRowClick) {
+  function renderChannelScorecard(containerId, rows, activeChannel, onRowClick, activeBrand) {
     var el = document.getElementById(containerId);
-    var grandCap = rows.reduce(function (a, r) { return a + r.capacity; }, 0);
+    // Cross-filter: khi co brand dang duoc chon o noi khac (vd click "Asus" tren
+    // bang Brands), cot chinh doi sang hien volume RIENG cua brand do theo tung
+    // channel, giong cach Dealers Capacity table da lam.
+    var showingBrand = !!activeBrand;
+    var capField = showingBrand ? 'selectedBrandVolume' : 'capacity';
+    var capHeader = showingBrand ? (activeBrand + ' Volume') : 'TTL Volume';
+    var grandCap = rows.reduce(function (a, r) { return a + (r[capField] || 0); }, 0);
     var grandMsi = rows.reduce(function (a, r) { return a + r.msiCapacity; }, 0);
 
     var html = '<table class="data-table">';
     html += '<thead><tr>' +
-      '<th>Channel Type</th><th>TTL Volume</th><th>MSI Share</th><th>This Wk</th><th>WoW</th><th>YoY</th>' +
+      '<th>Channel Type</th><th>' + escapeAttr(capHeader) + '</th><th>MSI Share</th><th>This Wk</th><th>WoW</th><th>YoY</th>' +
       '</tr></thead><tbody>';
 
     rows.forEach(function (r) {
       var isActive = activeChannel === r.channel;
       html += '<tr class="' + (isActive ? 'row-active' : '') + '" data-channel="' + escapeAttr(r.channel) + '">' +
         '<td title="' + escapeAttr(r.channel) + '">' + fmt.truncate(r.channel, 20) + '</td>' +
-        '<td>' + fmt.number(r.capacity) + '</td>' +
+        '<td>' + fmt.number(r[capField]) + '</td>' +
         '<td>' + fmt.percent(r.msiShareOverall, 1) + '</td>' +
         '<td>' + fmt.percent(r.shareThisWeek, 1) + '</td>' +
         '<td class="' + yoyClass(r.shareWow) + '">' + (r.shareWow === null ? '-' : (r.shareWow >= 0 ? '+' : '') + (r.shareWow * 100).toFixed(1) + 'pp') + '</td>' +

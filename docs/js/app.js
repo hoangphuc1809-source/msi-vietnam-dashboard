@@ -510,7 +510,7 @@
     var highlighted = state.customers.length === 1 ? state.customers[0] : null;
     Tables.renderDealersCapacityTable('dealersCapacityTable', rows, highlighted, function (cust) {
       F.setCustomer(cust);
-    }, recentWeeks);
+    }, recentWeeks, state.brand);
   }
 
   function renderBrandsTableSection(state) {
@@ -527,7 +527,7 @@
     var rows = D.channelTypeScorecard(filters);
     Tables.renderChannelScorecard('channelScorecardTable', rows, state.channel, function (channel) {
       F.setChannel(channel);
-    });
+    }, state.brand);
   }
 
   function renderBrandYoySection(state) {
