@@ -401,7 +401,7 @@
   }
 
   function renderBrandSharedSection(state) {
-    var filters = baseFilters(state);
+    var filters = Object.assign({}, baseFilters(state), { channel: state.channel });
     var rows = D.brandsTable(filters);
     var C = window.MSI_CONFIG.COLORS.brand;
     Charts.renderHBarShare('brandSharedChart', rows, 'shared', 'brand', function (d) {
@@ -410,7 +410,7 @@
   }
 
   function renderBrandVolumeSection(state) {
-    var filters = baseFilters(state);
+    var filters = Object.assign({}, baseFilters(state), { channel: state.channel });
     var rows = D.brandsTable(filters);
     var C = window.MSI_CONFIG.COLORS.brand;
     Charts.renderHBarShare('brandVolumeChart', rows, 'volume', 'brand', function (d) {
@@ -419,7 +419,7 @@
   }
 
   function renderDealersVolumeSection(state) {
-    var filters = Object.assign({}, baseFilters(state), { brand: state.brand });
+    var filters = Object.assign({}, baseFilters(state), { brand: state.brand, channel: state.channel });
     var rows = D.dealersCapacityTable(filters).slice(0, 8);
     var valueField = state.brand ? 'selectedBrandVolume' : 'capacity';
     Charts.renderHBarShare('dealersVolumeChart', rows, valueField, 'customer', function () {
@@ -428,14 +428,14 @@
   }
 
   function renderStackedMixSection(state) {
-    var filters = baseFilters(state);
+    var filters = Object.assign({}, baseFilters(state), { brand: state.brand, channel: state.channel });
     var dealerData = D.dealerBrandShareMatrix(filters).slice(0, 8);
     var brands = D.getMeta().brands || [];
     Charts.renderStackedShareByDealer('stackedMixChart', dealerData, brands, function (d) { F.setCustomer(d.customer); });
   }
 
   function renderCapacityTableSection(state) {
-    var filters = Object.assign({}, baseFilters(state), { brand: state.brand });
+    var filters = Object.assign({}, baseFilters(state), { brand: state.brand, channel: state.channel });
     var rows = D.dealersCapacityTable(filters);
     var highlighted = state.customers.length === 1 ? state.customers[0] : null;
     Tables.renderDealersCapacityTable('dealersCapacityTable', rows, highlighted, function (cust) {
@@ -444,7 +444,7 @@
   }
 
   function renderBrandsTableSection(state) {
-    var filters = baseFilters(state);
+    var filters = Object.assign({}, baseFilters(state), { channel: state.channel });
     var rows = D.brandsTable(filters);
     Tables.renderBrandsTable('brandsTable', rows, state.brand, function (brand) {
       F.setBrand(brand);
@@ -452,25 +452,28 @@
   }
 
   function renderChannelScorecardSection(state) {
-    var filters = baseFilters(state);
+    var filters = Object.assign({}, baseFilters(state), { brand: state.brand });
     var rows = D.channelTypeScorecard(filters);
-    Tables.renderChannelScorecard('channelScorecardTable', rows);
+    Tables.renderChannelScorecard('channelScorecardTable', rows, state.channel, function (channel) {
+      F.setChannel(channel);
+    });
   }
 
   function renderBrandYoySection(state) {
-    var filters = baseFilters(state);
+    var filters = Object.assign({}, baseFilters(state), { channel: state.channel });
     var rows = D.brandsTable(filters);
     Tables.renderBrandYoyLeaderboard('brandYoyChart', rows);
   }
 
   function renderAlertsPanelSection(state) {
-    var filters = Object.assign({}, baseFilters(state), { brand: state.brand });
+    var filters = Object.assign({}, baseFilters(state), { brand: state.brand, channel: state.channel });
     var capRows = D.dealersCapacityTable(filters);
     var topMovers = capRows.filter(function (r) { return r.wow !== null && isFinite(r.wow); })
       .slice().sort(function (a, b) { return Math.abs(b.wow) - Math.abs(a.wow); }).slice(0, 5);
 
-    var whitespace = D.whitespaceList(baseFilters(state)).slice(0, 5);
-    var volatility = D.volatilityFlags(baseFilters(state), state.weeksBack).slice(0, 5);
+    var alertFilters = Object.assign({}, baseFilters(state), { channel: state.channel });
+    var whitespace = D.whitespaceList(alertFilters).slice(0, 5);
+    var volatility = D.volatilityFlags(alertFilters, state.weeksBack).slice(0, 5);
 
     Tables.renderAlertsPanel('alertsPanel', {
       topMovers: topMovers,

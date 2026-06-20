@@ -21,6 +21,7 @@ window.MsiFilterState = (function () {
       seriesGroups: [],
       customers: [],
       brand: null,
+      channel: null,
       weeksBack: 11
     };
   }
@@ -65,6 +66,11 @@ window.MsiFilterState = (function () {
     notify();
   }
 
+  function setChannel(channel) {
+    state.channel = (state.channel === channel) ? null : channel;
+    notify();
+  }
+
   function reset() {
     state = defaultState_();
     notify();
@@ -79,6 +85,7 @@ window.MsiFilterState = (function () {
       seriesGroups: state.seriesGroups.slice(),
       customers: state.customers.slice(),
       brand: state.brand,
+      channel: state.channel,
       weeksBack: state.weeksBack
     };
   }
@@ -90,6 +97,7 @@ window.MsiFilterState = (function () {
     state.seriesGroups.forEach(function (sg) { tags.push({ type: 'seriesGroup', label: sg, value: sg }); });
     state.customers.forEach(function (c) { tags.push({ type: 'customer', label: c, value: c }); });
     if (state.brand) tags.push({ type: 'brand', label: state.brand, value: state.brand });
+    if (state.channel) tags.push({ type: 'channel', label: state.channel, value: state.channel });
     return tags;
   }
 
@@ -99,6 +107,7 @@ window.MsiFilterState = (function () {
     if (type === 'seriesGroup') state.seriesGroups = state.seriesGroups.filter(function (v) { return v !== value; });
     if (type === 'customer') state.customers = state.customers.filter(function (v) { return v !== value; });
     if (type === 'brand') state.brand = null;
+    if (type === 'channel') state.channel = null;
     notify();
   }
 
@@ -110,6 +119,7 @@ window.MsiFilterState = (function () {
     setCustomers: setCustomers,
     setCustomer: setCustomer,
     setBrand: setBrand,
+    setChannel: setChannel,
     reset: reset,
     getState: getState,
     getActiveFilterTags: getActiveFilterTags,

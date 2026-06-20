@@ -110,7 +110,7 @@ window.MsiTables = (function () {
     }
   }
 
-  function renderChannelScorecard(containerId, rows) {
+  function renderChannelScorecard(containerId, rows, activeChannel, onRowClick) {
     var el = document.getElementById(containerId);
     var grandCap = rows.reduce(function (a, r) { return a + r.capacity; }, 0);
     var grandMsi = rows.reduce(function (a, r) { return a + r.msiCapacity; }, 0);
@@ -121,7 +121,8 @@ window.MsiTables = (function () {
       '</tr></thead><tbody>';
 
     rows.forEach(function (r) {
-      html += '<tr>' +
+      var isActive = activeChannel === r.channel;
+      html += '<tr class="' + (isActive ? 'row-active' : '') + '" data-channel="' + escapeAttr(r.channel) + '">' +
         '<td title="' + escapeAttr(r.channel) + '">' + fmt.truncate(r.channel, 20) + '</td>' +
         '<td>' + fmt.number(r.capacity) + '</td>' +
         '<td>' + fmt.percent(r.msiShareOverall, 1) + '</td>' +
@@ -140,6 +141,14 @@ window.MsiTables = (function () {
 
     html += '</tbody></table>';
     el.innerHTML = html;
+
+    if (onRowClick) {
+      el.querySelectorAll('tbody tr[data-channel]').forEach(function (tr) {
+        tr.addEventListener('click', function () {
+          onRowClick(tr.getAttribute('data-channel'));
+        });
+      });
+    }
   }
 
   function renderBrandYoyLeaderboard(containerId, rows) {

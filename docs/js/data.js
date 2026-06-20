@@ -268,11 +268,17 @@ window.MsiData = (function () {
   }
 
   // Stacked share theo dealer (cho 100% stacked bar chart): cho moi dealer, % cua tung brand
+  // Khi co filters.brand: KHONG loc rows theo brand do (se pha vo bieu do stacked
+  // - moi dealer se chi con 1 mau, mat y nghia "mix"). Thay vao do, dung brand do
+  // de SAP XEP lai top-8 dealer (dealer nao co volume brand do cao nhat len dau),
+  // van hien thi day du % mix cua TAT CA brand cho cac dealer duoc chon - vua
+  // "theo dung" brand filter vua giu nguyen y nghia bieu do.
   function dealerBrandShareMatrix(filters) {
     var customers = toArray(filters.customer).length ? toArray(filters.customer) : (meta.customers || []);
     var brands = meta.brands || [];
+    var sortBrand = filters.brand || null;
 
-    return customers.map(function (cust) {
+    var results = customers.map(function (cust) {
       var f = Object.assign({}, filters, { customer: cust });
       var fNoBrand = Object.assign({}, f);
       delete fNoBrand.brand;
@@ -280,16 +286,24 @@ window.MsiData = (function () {
       var grandTotal = sum(totalRows, 'ttlVol');
 
       var brandVals = {};
+      var brandVolumes = {};
       brands.forEach(function (brand) {
-        var bf = Object.assign({}, f, { brand: brand });
+        var bf = Object.assign({}, fNoBrand, { brand: brand });
         var bRows = applyFilters(bf).filter(function (r) { return !r.isTotal; });
         var vol = sum(bRows, 'brandVol');
         brandVals[brand] = grandTotal > 0 ? vol / grandTotal : 0;
+        brandVolumes[brand] = vol;
       });
 
-      return { customer: cust, total: grandTotal, shares: brandVals };
-    }).filter(function (d) { return d.total > 0; })
-      .sort(function (a, b) { return b.total - a.total; });
+      return { customer: cust, total: grandTotal, shares: brandVals, brandVolumes: brandVolumes };
+    }).filter(function (d) { return d.total > 0; });
+
+    if (sortBrand) {
+      results.sort(function (a, b) { return (b.brandVolumes[sortBrand] || 0) - (a.brandVolumes[sortBrand] || 0); });
+    } else {
+      results.sort(function (a, b) { return b.total - a.total; });
+    }
+    return results;
   }
 
   // Danh sach Channel Type duy nhat (Telco, Retailer - Chain, CES, MD...)
