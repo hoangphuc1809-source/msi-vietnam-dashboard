@@ -58,9 +58,11 @@
   function bindHeaderControls() {
     document.getElementById('resetFilterBtn').addEventListener('click', function () {
       F.reset();
+      // Year/Quarter KHONG clear() vi sau reset chung se duoc set lai ve
+      // nam/quy hien tai (xem filterState.js defaultState_()) - clear() o day
+      // se xoa mat gia tri mac dinh do ngay sau khi vua duoc set.
+      // Dealers van clear binh thuong (mac dinh la rong/All).
       if (selectsReady) {
-        ts.year.clear(true);
-        ts.quarter.clear(true);
         ts.dealers.clear(true);
       }
     });

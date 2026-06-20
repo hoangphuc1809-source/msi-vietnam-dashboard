@@ -4,14 +4,28 @@
 window.MsiFilterState = (function () {
   'use strict';
 
-  var state = {
-    years: [],         // array of 'Y2026'... ; rong = All
-    quarters: [],       // array of 'Q1'... ; rong = All
-    seriesGroups: [],   // array of 'Gaming' | 'Business& Productivity' | 'Handheld' ; rong = All
-    customers: [],       // array ten dealer (Dealers dropdown, multi-select) ; rong = All
-    brand: null,          // single - click-to-filter tu legend/bar (giu nguyen UX cu)
-    weeksBack: 11           // so tuan hien thi tren trend chart
-  };
+  // Nam/Quy hien tai theo lich thuc te - dung lam mac dinh khi load trang
+  // hoac khi bam Reset Filter (thay vi "All Years"/"All Quarters").
+  function getCurrentYearQuarter_() {
+    var today = new Date();
+    var y = String(today.getFullYear());
+    var q = 'Q' + (Math.floor(today.getMonth() / 3) + 1);
+    return { year: y, quarter: q };
+  }
+
+  function defaultState_() {
+    var cur = getCurrentYearQuarter_();
+    return {
+      years: [cur.year],     // mac dinh = nam hien tai (thay vi rong = All)
+      quarters: [cur.quarter], // mac dinh = quy hien tai (thay vi rong = All)
+      seriesGroups: [],
+      customers: [],
+      brand: null,
+      weeksBack: 11
+    };
+  }
+
+  var state = defaultState_();
 
   var listeners = [];
 
@@ -52,7 +66,7 @@ window.MsiFilterState = (function () {
   }
 
   function reset() {
-    state = { years: [], quarters: [], seriesGroups: [], customers: [], brand: null, weeksBack: state.weeksBack };
+    state = defaultState_();
     notify();
   }
 
