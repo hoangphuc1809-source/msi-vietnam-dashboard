@@ -54,3 +54,15 @@ https://script.google.com/macros/s/AKfycbwA403Z2FAYM_qyq0sGNqTfWuRiJc9rhSrb7RoZR
 - Neu ban edit DashboardAPI.gs trong tuong lai, LUON phai tao NEW deployment version
   (Deploy > Manage deployments > Edit (pencil) > New version > Deploy)
   neu khong thay doi se khong len live tren URL /exec
+
+## action=sellout (NEW Jun 20 - chua co tren live URL, can deploy)
+- Doc tab "Weekly Sales Data" tu spreadsheet RIENG (18_tzWNt7-Y1fV6ak7-bnw7kWLskSKTDi5x0F90gZo-w),
+  KHONG phai spreadsheet chinh (1tb7jA...) - dung SpreadsheetApp.openById() de
+  mo cheo. Tai khoan chay Apps Script can co quyen doc spreadsheet nay.
+- Gop san theo (Week, Series Group), tra ve payload nho (vai chuc KB)
+- Dung cho duong "All Customers" tren chart "MSI - weekly S/O (Market)" -
+  so sanh Sell Out toan bo mang luoi dealer (~109 customers) vs chi Key Dealers (IHS)
+- Client (docs/js/salesData.js) cung uu tien live, fallback ve
+  docs/data/weekly-sellout.json neu chua deploy - giong nguyen tac voi action=nv
+- Cach deploy: GIONG HET cach deploy action=nv o tren (paste DashboardAPI.gs
+  moi, chay thu testGetWeeklySelloutData() de kiem tra, roi tao New version)
