@@ -113,7 +113,7 @@
       renderAll();
     } catch (err) {
       console.error('Load data failed', err);
-      errBanner.textContent = 'Khong the tai du lieu tu Google Sheet: ' + err.message + '. Dang hien thi du lieu cu (neu co).';
+      errBanner.textContent = 'Could not load data from Google Sheet: ' + err.message + '. Showing cached data (if available).';
       errBanner.classList.add('show');
       if (isFirstLoad) renderAll();
     } finally {
@@ -126,7 +126,7 @@
     var el = document.getElementById('lastUpdated');
     if (meta.generatedAt) {
       var d = new Date(meta.generatedAt);
-      el.textContent = 'Cap nhat: ' + d.toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' });
+      el.textContent = 'Updated: ' + d.toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' });
     }
   }
 
@@ -222,11 +222,11 @@
     var el = document.getElementById('filterTags');
     var tags = F.getActiveFilterTags();
     if (!tags.length) { el.innerHTML = ''; return; }
-    var html = '<span class="filter-tags-label">Dang loc:</span>';
+    var html = '<span class="filter-tags-label">Filters:</span>';
     tags.forEach(function (t) {
       var label = t.type === 'seriesGroup' ? (SG_LABEL[t.label] || t.label) : t.label;
       html += '<span class="filter-tag">' + escapeHtml(label) +
-        '<button data-clear-type="' + t.type + '" data-clear-value="' + escapeHtmlAttr(t.value) + '" aria-label="Bo loc">\u00d7</button></span>';
+        '<button data-clear-type="' + t.type + '" data-clear-value="' + escapeHtmlAttr(t.value) + '" aria-label="Remove filter">\u00d7</button></span>';
     });
     el.innerHTML = html;
     el.querySelectorAll('button[data-clear-type]').forEach(function (b) {

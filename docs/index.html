@@ -6,7 +6,7 @@
 <title>MSI Vietnam - Market Share Dashboard (IHS)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/dashboard.css?v=1781921215">
+<link rel="stylesheet" href="css/dashboard.css?v=1781922090">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
@@ -30,7 +30,7 @@
     </div>
 
     <div class="header-meta">
-      <span id="lastUpdated">Dang tai du lieu...</span>
+      <span id="lastUpdated">Loading data...</span>
       <button class="refresh-btn" id="refreshBtn">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
         Refresh
@@ -123,7 +123,7 @@
   <!-- ROW 3: Stacked brand mix per dealer -->
   <div class="dash-grid" style="grid-template-columns: 1fr;">
     <div class="card">
-      <h3 class="card-title">Brand mix theo Dealer (Top 8)</h3>
+      <h3 class="card-title">Brand Mix by Dealer (Top 8)</h3>
       <div class="chart-wrap tall">
         <canvas id="stackedMixChart"></canvas>
       </div>
@@ -168,7 +168,7 @@
     <div class="card accent-amber">
       <h3 class="card-title">
         <span class="dot" style="background:#D97706"></span>
-        Cảnh báo &amp; Cơ hội
+        Alerts &amp; Opportunities
         <span class="hint">Top Movers · Whitespace · Volatility</span>
       </h3>
       <div id="alertsPanel"></div>
@@ -176,17 +176,17 @@
   </div>
 
   <footer class="app-footer">
-    MSI Vietnam &middot; Market Overall Dashboard &middot; Nguon: RAW - IHS (Google Sheets, auto-sync)
+    MSI Vietnam &middot; Market Overall Dashboard &middot; Source: RAW - IHS (Google Sheets, auto-sync)
   </footer>
 
 </div>
 
-<script src="js/config.js?v=1781921215"></script>
-<script src="js/format.js?v=1781921215"></script>
-<script src="js/filterState.js?v=1781921215"></script>
-<script src="js/data.js?v=1781921215"></script>
-<script src="js/charts.js?v=1781921215"></script>
-<script src="js/tables.js?v=1781921215"></script>
-<script src="js/app.js?v=1781921215"></script>
+<script src="js/config.js?v=1781922090"></script>
+<script src="js/format.js?v=1781922090"></script>
+<script src="js/filterState.js?v=1781922090"></script>
+<script src="js/data.js?v=1781922090"></script>
+<script src="js/charts.js?v=1781922090"></script>
+<script src="js/tables.js?v=1781922090"></script>
+<script src="js/app.js?v=1781922090"></script>
 </body>
 </html>

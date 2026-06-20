@@ -178,7 +178,7 @@ window.MsiTables = (function () {
     }
     function whitespaceItem(r) {
       return '<li><span class="alert-name">' + escapeAttr(r.customer) + '</span>' +
-        '<span class="alert-metric val-flat">' + fmt.percent(r.share, 1) + ' <span class="alert-sub">(TB ' + fmt.percent(r.avgShare, 1) + ')</span></span></li>';
+        '<span class="alert-metric val-flat">' + fmt.percent(r.share, 1) + ' <span class="alert-sub">(avg ' + fmt.percent(r.avgShare, 1) + ')</span></span></li>';
     }
     function volatilityItem(r) {
       return '<li><span class="alert-name">' + escapeAttr(r.customer) + '</span>' +
@@ -195,9 +195,9 @@ window.MsiTables = (function () {
     }
 
     var html = '<div class="alerts-grid">' +
-      section('\ud83d\udcca Top Movers', 'WoW m\u1ea1nh nh\u1ea5t', data.topMovers, moverItem, 'Kh\u00f4ng c\u00f3 bi\u1ebfn \u0111\u1ed9ng \u0111\u00e1ng ch\u00fa \u00fd') +
-      section('\ud83c\udfaf Whitespace', 'Capacity cao, share d\u01b0\u1edbi TB', data.whitespace, whitespaceItem, 'Kh\u00f4ng c\u00f3 c\u01a1 h\u1ed9i n\u1ed5i b\u1eadt') +
-      section('\u26a1 Bi\u1ebfn \u0111\u1ed9ng b\u1ea5t th\u01b0\u1eddng', '\u0110\u1ed9 l\u1ec7ch chu\u1ea9n share 8 tu\u1ea7n', data.volatility, volatilityItem, 'Kh\u00f4ng c\u00f3 dealer b\u1ea5t \u1ed5n') +
+      section('\ud83d\udcca Top Movers', 'Strongest WoW moves', data.topMovers, moverItem, 'No notable movement') +
+      section('\ud83c\udfaf Whitespace', 'High capacity, below-avg share', data.whitespace, whitespaceItem, 'No notable opportunities') +
+      section('\u26a1 Unusual Volatility', '8-week share std. deviation', data.volatility, volatilityItem, 'No volatile dealers') +
       '</div>';
     el.innerHTML = html;
   }
