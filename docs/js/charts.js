@@ -329,6 +329,64 @@ window.MsiCharts = (function () {
   }
 
   // ===== 6. Quarterly trend line (NV Report - long-term MSI share) =====
+  function renderWeeklyShareDualLine(canvasId, weekLabels, ihsSeries, nvSeries) {
+    destroyIfExists(canvasId);
+    var ctx = document.getElementById(canvasId).getContext('2d');
+    var labels = weekLabels.map(function (w) { return window.MsiFormat.weekShort(w); });
+
+    charts[canvasId] = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: 'MSI Share @ Key Dealers (IHS)',
+            data: ihsSeries.map(function (v) { return v === null ? null : v * 100; }),
+            borderColor: C.red,
+            backgroundColor: 'rgba(204,0,0,0.06)',
+            borderWidth: 2.5,
+            pointRadius: 3,
+            pointHoverRadius: 6,
+            pointBackgroundColor: C.red,
+            tension: 0.25,
+            fill: false
+          },
+          {
+            label: 'MSI Share @ Whole Market (NV)',
+            data: nvSeries.map(function (v) { return v === null ? null : v * 100; }),
+            borderColor: '#2563EB',
+            backgroundColor: 'rgba(37,99,235,0.06)',
+            borderWidth: 2.5,
+            pointRadius: 3,
+            pointHoverRadius: 6,
+            pointBackgroundColor: '#2563EB',
+            tension: 0.25,
+            fill: false
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'top',
+            labels: { boxWidth: 10, boxHeight: 10, font: { size: 10.5, weight: '600' }, color: C.textSecondary, usePointStyle: true, pointStyle: 'rectRounded' }
+          },
+          tooltip: {
+            backgroundColor: '#0F172A', padding: 10, cornerRadius: 8, mode: 'index', intersect: false,
+            callbacks: { label: function (ctx) { return ctx.dataset.label + ': ' + (ctx.parsed.y === null ? '-' : ctx.parsed.y.toFixed(1) + '%'); } }
+          }
+        },
+        interaction: { mode: 'index', intersect: false },
+        scales: {
+          x: { grid: { display: false }, ticks: { color: C.textSecondary, font: { size: 9.5, weight: '600' } } },
+          y: { grid: { color: '#F1F5F9' }, ticks: { color: C.textSecondary, font: { size: 10 }, callback: function (v) { return v + '%'; } } }
+        }
+      }
+    });
+  }
+
   function renderQuarterlyTrendLine(canvasId, rows) {
     destroyIfExists(canvasId);
     var ctx = document.getElementById(canvasId).getContext('2d');
@@ -422,6 +480,7 @@ window.MsiCharts = (function () {
     renderHBarShare: renderHBarShare,
     renderStackedShareByDealer: renderStackedShareByDealer,
     renderQuarterlyTrendLine: renderQuarterlyTrendLine,
+    renderWeeklyShareDualLine: renderWeeklyShareDualLine,
     renderGpuTierGroupedBar: renderGpuTierGroupedBar
   };
 })();

@@ -519,8 +519,22 @@
       '<div class="rc-stat"><div class="rc-label">Coverage Gap</div><div class="rc-value">' + fmt.number(gap) + ' <span class="rc-sub">(' + fmt.percent(gapPct, 0) + ')</span></div></div>' +
       '<div class="rc-stat"><div class="rc-label">Window (13w rolling)</div><div class="rc-value rc-value-sm">' + weekRangeLabel + '</div></div>';
 
-    var trend = NV.quarterlyTrend();
-    Charts.renderQuarterlyTrendLine('quarterlyTrendChart', trend);
+    // 2 duong: MSI share @ Key Dealers (IHS) va MSI share @ Whole Market (NV),
+    // moi tuan 1 diem trong cung khung 13w rolling - thay cho chart quy dai han.
+    var ihsByWeekTotal = {}, ihsByWeekMsi = {};
+    ihsTotalRows.forEach(function (r) { ihsByWeekTotal[r.w] = (ihsByWeekTotal[r.w] || 0) + (r.ttlVol || 0); });
+    ihsMsiRows.forEach(function (r) { ihsByWeekMsi[r.w] = (ihsByWeekMsi[r.w] || 0) + (r.brandVol || 0); });
+    var ihsWeeklySeries = window13.map(function (w) {
+      var tot = ihsByWeekTotal[w] || 0;
+      var msi = ihsByWeekMsi[w] || 0;
+      return tot > 0 ? msi / tot : null;
+    });
+
+    var nvByWeek = {};
+    nvFiltered.forEach(function (d) { nvByWeek[d.week] = d.share; });
+    var nvWeeklySeries = window13.map(function (w) { return nvByWeek[w] !== undefined ? nvByWeek[w] : null; });
+
+    Charts.renderWeeklyShareDualLine('weeklyShareTrendChart', window13, ihsWeeklySeries, nvWeeklySeries);
   }
 
   function renderGpuTierMixSection() {
