@@ -214,7 +214,7 @@ window.MsiCharts = (function () {
   }
 
   // ===== 4. Horizontal bar: Brand share % (Key Dealers - Brand shared) =====
-  function renderHBarShare(canvasId, items, valueField, labelField, colorFn) {
+  function renderHBarShare(canvasId, items, valueField, labelField, colorFn, onClickItem) {
     destroyIfExists(canvasId);
     var ctx = document.getElementById(canvasId).getContext('2d');
 
@@ -234,6 +234,14 @@ window.MsiCharts = (function () {
         responsive: true,
         maintainAspectRatio: false,
         layout: { padding: { right: 50 } },
+        onClick: function (evt, elements) {
+          if (onClickItem && elements && elements.length) {
+            onClickItem(items[elements[0].index]);
+          }
+        },
+        onHover: function (evt, elements) {
+          evt.native.target.style.cursor = (onClickItem && elements && elements.length) ? 'pointer' : 'default';
+        },
         plugins: {
           legend: { display: false },
           tooltip: { backgroundColor: '#0F172A', padding: 10, cornerRadius: 8 }
@@ -269,7 +277,7 @@ window.MsiCharts = (function () {
   }
 
   // ===== 5. 100% Stacked bar: Brand mix per dealer =====
-  function renderStackedShareByDealer(canvasId, dealerData, brands) {
+  function renderStackedShareByDealer(canvasId, dealerData, brands, onClickDealer) {
     destroyIfExists(canvasId);
     var ctx = document.getElementById(canvasId).getContext('2d');
 
@@ -292,6 +300,15 @@ window.MsiCharts = (function () {
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        onClick: function (evt, elements) {
+          if (onClickDealer && elements && elements.length) {
+            onClickDealer(dealerData[elements[0].index]);
+          }
+        },
+        onHover: function (evt, elements) {
+          evt.native.target.style.cursor = (onClickDealer && elements && elements.length) ? 'pointer' : 'default';
+        },
+        interaction: { mode: 'index', intersect: false },
         plugins: {
           legend: {
             position: 'top',
@@ -299,6 +316,7 @@ window.MsiCharts = (function () {
           },
           tooltip: {
             backgroundColor: '#0F172A', padding: 10, cornerRadius: 8,
+            mode: 'index', intersect: false,
             callbacks: { label: function (ctx) { return ctx.dataset.label + ': ' + ctx.parsed.y.toFixed(1) + '%'; } }
           }
         },

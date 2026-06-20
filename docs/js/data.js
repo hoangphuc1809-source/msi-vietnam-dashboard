@@ -158,14 +158,23 @@ window.MsiData = (function () {
 
     var customers = toArray(filters.customer).length ? toArray(filters.customer) : (meta.customers || []);
 
+    // QUAN TRONG: Capacity/YoY/Last3-2-1Wk/WoW phai LUON brand-agnostic (toan thi truong),
+    // bat ke filters.brand co dang duoc chon hay khong (vd khi click 1 brand o chart khac
+    // de drill-in). Neu de filters.brand "tham" vao totalRows/brandRows, no se loc mat het
+    // cac dong TTL (vi dong TTL co brand = "TTL Gaming" chu khong phai ten brand cu the) ->
+    // capacity ve 0 -> ca bang/chart bien mat hoan toan. Fix: bo brand ra khoi filter dung
+    // cho cac so lieu "toan thi truong", giong cach msiRows da lam dung (luon ep brand=MSI).
+    var filtersNoBrand = Object.assign({}, filters);
+    delete filtersNoBrand.brand;
+
     return customers.map(function (cust) {
-      var f = Object.assign({}, filters, { customer: cust });
-      var totalRows = applyFilters(f).filter(function (r) { return r.isTotal; });
+      var fNoBrand = Object.assign({}, filtersNoBrand, { customer: cust });
+      var totalRows = applyFilters(fNoBrand).filter(function (r) { return r.isTotal; });
       // QUAN TRONG: lastYear/lastWk/last2Wk/last3Wk chi duoc dien o dong brand rieng le
       // (MSI, HP, Asus...) trong sheet RAW - IHS, KHONG BAO GIO o dong TTL (isTotal=true).
       // Phai cong don tu brandRows, giong cach brandsTable() da lam dung.
-      var brandRows = applyFilters(f).filter(function (r) { return !r.isTotal; });
-      var msiRows = applyFilters(Object.assign({}, f, { brand: 'MSI' })).filter(function (r) { return !r.isTotal; });
+      var brandRows = applyFilters(fNoBrand).filter(function (r) { return !r.isTotal; });
+      var msiRows = applyFilters(Object.assign({}, fNoBrand, { brand: 'MSI' })).filter(function (r) { return !r.isTotal; });
 
       var capacity = sum(totalRows, 'ttlVol');
       var lastYearCapacity = sum(brandRows, 'lastYear');
@@ -173,6 +182,16 @@ window.MsiData = (function () {
 
       var msiVolTotal = sum(msiRows, 'brandVol');
       var msiShare = capacity > 0 ? msiVolTotal / capacity : 0;
+
+      // Volume rieng cua brand dang duoc filter o noi khac (vd click "Asus" tren chart Brand
+      // shared) - dung cho "Key Dealers - Volume" chart de hien dung volume cua brand do
+      // theo tung dealer, thay vi luon hien TTL capacity khong doi du da chon brand nao.
+      var selectedBrandVolume = null;
+      if (filters.brand) {
+        var selFilters = Object.assign({}, filters, { customer: cust });
+        var selRows = applyFilters(selFilters).filter(function (r) { return !r.isTotal; });
+        selectedBrandVolume = sum(selRows, 'brandVol');
+      }
 
       // Last3Wk/Last2Wk/LastWk: lay tu cac dong brand co w === lastWeek (cac cot lastWk/last2Wk/last3Wk
       // da duoc tinh san trong sheet IHS cho tuan hien tai, chi o dong brand)
@@ -190,6 +209,7 @@ window.MsiData = (function () {
       return {
         customer: cust,
         capacity: capacity,
+        selectedBrandVolume: selectedBrandVolume,
         yoy: yoy,
         msiShare: msiShare,
         last3Wk: last3,
@@ -208,7 +228,9 @@ window.MsiData = (function () {
     var lastWeek = weeks[weeks.length - 1];
     var brands = filters.brand ? [filters.brand] : (meta.brands || []);
 
-    var totalRows = applyFilters(Object.assign({}, filters)).filter(function (r) { return r.isTotal; });
+    var filtersNoBrandForTotal = Object.assign({}, filters);
+    delete filtersNoBrandForTotal.brand;
+    var totalRows = applyFilters(filtersNoBrandForTotal).filter(function (r) { return r.isTotal; });
     var grandTotal = sum(totalRows, 'ttlVol');
 
     return brands.map(function (brand) {
@@ -252,7 +274,9 @@ window.MsiData = (function () {
 
     return customers.map(function (cust) {
       var f = Object.assign({}, filters, { customer: cust });
-      var totalRows = applyFilters(f).filter(function (r) { return r.isTotal; });
+      var fNoBrand = Object.assign({}, f);
+      delete fNoBrand.brand;
+      var totalRows = applyFilters(fNoBrand).filter(function (r) { return r.isTotal; });
       var grandTotal = sum(totalRows, 'ttlVol');
 
       var brandVals = {};
@@ -285,8 +309,10 @@ window.MsiData = (function () {
 
     return channels.map(function (ch) {
       var f = Object.assign({}, filters, { channel: ch });
-      var totalRows = applyFilters(f).filter(function (r) { return r.isTotal; });
-      var msiRows = applyFilters(Object.assign({}, f, { brand: 'MSI' })).filter(function (r) { return !r.isTotal; });
+      var fNoBrand = Object.assign({}, f);
+      delete fNoBrand.brand;
+      var totalRows = applyFilters(fNoBrand).filter(function (r) { return r.isTotal; });
+      var msiRows = applyFilters(Object.assign({}, fNoBrand, { brand: 'MSI' })).filter(function (r) { return !r.isTotal; });
 
       var capacity = sum(totalRows, 'ttlVol');
       var msiCapacity = sum(msiRows, 'brandVol');
@@ -325,8 +351,10 @@ window.MsiData = (function () {
 
     var list = customers.map(function (cust) {
       var f = Object.assign({}, filters, { customer: cust });
-      var totalRows = applyFilters(f).filter(function (r) { return r.isTotal; });
-      var msiRows = applyFilters(Object.assign({}, f, { brand: 'MSI' })).filter(function (r) { return !r.isTotal; });
+      var fNoBrand = Object.assign({}, f);
+      delete fNoBrand.brand;
+      var totalRows = applyFilters(fNoBrand).filter(function (r) { return r.isTotal; });
+      var msiRows = applyFilters(Object.assign({}, fNoBrand, { brand: 'MSI' })).filter(function (r) { return !r.isTotal; });
       var capacity = sum(totalRows, 'ttlVol');
       var msiVolume = sum(msiRows, 'brandVol');
       return {
@@ -359,8 +387,10 @@ window.MsiData = (function () {
 
     return customers.map(function (cust) {
       var f = Object.assign({}, filters, { customer: cust });
-      var totalRows = applyFilters(f).filter(function (r) { return r.isTotal; });
-      var msiRows = applyFilters(Object.assign({}, f, { brand: 'MSI' })).filter(function (r) { return !r.isTotal; });
+      var fNoBrand = Object.assign({}, f);
+      delete fNoBrand.brand;
+      var totalRows = applyFilters(fNoBrand).filter(function (r) { return r.isTotal; });
+      var msiRows = applyFilters(Object.assign({}, fNoBrand, { brand: 'MSI' })).filter(function (r) { return !r.isTotal; });
 
       var byWeekTtl = {};
       var byWeekMsi = {};

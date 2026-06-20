@@ -361,7 +361,7 @@
     var C = window.MSI_CONFIG.COLORS.brand;
     Charts.renderHBarShare('brandSharedChart', rows, 'shared', 'brand', function (d) {
       return C[d.brand] || '#94A3B8';
-    });
+    }, function (d) { F.setBrand(d.brand); });
   }
 
   function renderBrandVolumeSection(state) {
@@ -370,22 +370,23 @@
     var C = window.MSI_CONFIG.COLORS.brand;
     Charts.renderHBarShare('brandVolumeChart', rows, 'volume', 'brand', function (d) {
       return C[d.brand] || '#94A3B8';
-    });
+    }, function (d) { F.setBrand(d.brand); });
   }
 
   function renderDealersVolumeSection(state) {
     var filters = Object.assign({}, baseFilters(state), { brand: state.brand });
     var rows = D.dealersCapacityTable(filters).slice(0, 8);
-    Charts.renderHBarShare('dealersVolumeChart', rows, 'capacity', 'customer', function () {
+    var valueField = state.brand ? 'selectedBrandVolume' : 'capacity';
+    Charts.renderHBarShare('dealersVolumeChart', rows, valueField, 'customer', function () {
       return window.MSI_CONFIG.COLORS.dgw;
-    });
+    }, function (d) { F.setCustomer(d.customer); });
   }
 
   function renderStackedMixSection(state) {
     var filters = baseFilters(state);
     var dealerData = D.dealerBrandShareMatrix(filters).slice(0, 8);
     var brands = D.getMeta().brands || [];
-    Charts.renderStackedShareByDealer('stackedMixChart', dealerData, brands);
+    Charts.renderStackedShareByDealer('stackedMixChart', dealerData, brands, function (d) { F.setCustomer(d.customer); });
   }
 
   function renderCapacityTableSection(state) {
