@@ -12,7 +12,7 @@
   var TB = window.MsiUserbuyTables;
   var fmt = window.MsiFormat;
 
-  var yearTs, quarterTs, seriesGroupTs, modelTs;
+  var yearTs, quarterTs, seriesGroupTs;
 
   function init() {
     bindHeaderControls();
@@ -57,7 +57,6 @@
   function bindHeaderControls() {
     document.getElementById('resetFilterBtn').addEventListener('click', function () {
       FS.reset();
-      if (modelTs) modelTs.clear(true);
     });
     document.getElementById('refreshBtn').addEventListener('click', function () {
       loadData(false);
@@ -93,7 +92,7 @@
     var results = [];
 
     UB.searchModels(query, 8).forEach(function (s) {
-      results.push({ type: 'Model', label: s.sku, sub: s.seg1 + ' &middot; ' + s.gpu, action: function () { FS.setModel(s.sku); if (modelTs) modelTs.setValue(s.sku, true); } });
+      results.push({ type: 'Model', label: s.sku, sub: s.seg1 + ' &middot; ' + s.gpu, action: function () { FS.setModel(s.sku); } });
     });
     UB.getSegments().forEach(function (s) {
       if (s.toLowerCase().indexOf(ql) !== -1 && results.length < 14) results.push({ type: 'Segment', label: s, sub: '', action: function () { FS.setSegment(s); } });
@@ -127,7 +126,6 @@
   function initSelects() {
     var years = UB.getYears();
     var quarters = ['Q1', 'Q2', 'Q3', 'Q4'];
-    var models = UB.getSkus().slice().sort(function (a, b) { return a.sku.localeCompare(b.sku); });
 
     yearTs = new TomSelect('#yearSelect', {
       options: years.map(function (y) { return { value: y, text: y }; }),
@@ -147,12 +145,6 @@
       plugins: ['remove_button'],
       placeholder: 'All Series Group',
       onChange: function (vals) { FS.setSeriesGroups(vals.slice()); }
-    });
-    modelTs = new TomSelect('#modelSelect', {
-      options: models.map(function (m) { return { value: m.sku, text: m.sku + ' (' + m.seg1 + ')' }; }),
-      maxOptions: 800,
-      placeholder: 'Search model...',
-      onChange: function (val) { FS.setModel(val || null); }
     });
   }
 
@@ -243,15 +235,95 @@
       return UB.getWeeksForState({ years: filterObj.year, quarters: filterObj.quarter || [] });
     });
 
+    renderSnapshotZone_(state, ubFilters, periodWeeks, snapshotWeek, snap);
     renderWeeklyTrend_(state, ubFilters);
     renderSeriesGroupChart_(state, ubFilters, periodWeeks);
-    renderDimensionCharts_(state, ubFilters);
+    renderDimensionCharts_(state, ubFilters, periodWeeks);
     renderSegmentTable_(state, ubFilters, periodWeeks, last3, snap);
     renderGpuTable_(state, ubFilters, periodWeeks, last3, snap);
     renderDealersTable_(state, periodWeeks, last3, snap);
     renderDistyTable_(state, ubFilters, periodWeeks, last3, snap);
     renderModelDetailTable_(state, ubFilters, snap);
     renderEarlyWarning_(state, ubFilters, snap);
+  }
+
+  // Tong + YoY cho 1 bo dim filter rieng (de chong len ubFilters), tinh tren
+  // dung danh sach 'weeks' truyen vao (khong phu thuoc Year/Quarter dropdown)
+  function sumAndYoy_(baseFilters, overrides, weeks) {
+    var f = cloneState_(baseFilters);
+    Object.keys(overrides || {}).forEach(function (k) { f[k] = overrides[k]; });
+    f.years = []; f.quarters = [];
+    var thisQty = 0;
+    UB.weeklySeries(f, weeks).forEach(function (s) { thisQty += (s.qty || 0); });
+    var priorWeeks = weeks.map(function (w) { return (parseInt(w.slice(0, 4), 10) - 1) + w.slice(4); });
+    var lastQty = 0;
+    UB.weeklySeries(f, priorWeeks).forEach(function (s) { lastQty += (s.qty || 0); });
+    var yoy = lastQty > 0 ? (thisQty - lastQty) / lastQty : null;
+    return { qty: round2_(thisQty), lastQty: round2_(lastQty), yoy: yoy };
+  }
+
+  function yoyHtml_(yoy) {
+    if (yoy === null || yoy === undefined) return '<span class="val-flat">YoY -</span>';
+    var cls = yoy >= 0 ? 'val-up' : 'val-down';
+    return '<span class="' + cls + '">YoY ' + fmt.percentSigned(yoy, 0) + '</span>';
+  }
+
+  function renderSnapshotZone_(state, ubFilters, periodWeeks, snapshotWeek, snap) {
+    var w13 = periodWeeks.length > 13 ? periodWeeks.slice(periodWeeks.length - 13) : periodWeeks;
+
+    // --- Total Userbuy hero + accumulate chart ---
+    var total = sumAndYoy_(ubFilters, {}, w13);
+    document.getElementById('kpiTotalNumber').textContent = fmt.number(total.qty);
+    document.getElementById('kpiTotalYoy').innerHTML = yoyHtml_(total.yoy);
+
+    var thisYearSeries = UB.weeklySeries(ubFilters, w13).map(function (s) { return s.qty || 0; });
+    var priorWeeks = w13.map(function (w) { return (parseInt(w.slice(0, 4), 10) - 1) + w.slice(4); });
+    var priorFilters = cloneState_(ubFilters); priorFilters.years = []; priorFilters.quarters = [];
+    var lastYearSeries = UB.weeklySeries(priorFilters, priorWeeks).map(function (s) { return s.qty || 0; });
+    CH.renderAccumulateBarChart('accumulateChart', w13, thisYearSeries, lastYearSeries);
+
+    // --- Donut: ty trong theo Series Group ---
+    var sgGroups = UB.groupBy(ubFilters, 'sg');
+    var donutItems = Object.keys(sgGroups).map(function (k) { return { label: k, value: round2_(sgGroups[k].qty) }; })
+      .sort(function (a, b) { return b.value - a.value; });
+    CH.renderDonutChart('seriesGroupDonutChart', donutItems, function (label) {
+      var s = FS.getState();
+      var idx = s.seriesGroups.indexOf(label);
+      var next = s.seriesGroups.slice();
+      if (idx === -1) next.push(label); else next.splice(idx, 1);
+      FS.setSeriesGroups(next);
+    });
+
+    // --- KPI tiles: Gaming / B&P / Handheld / Series50 / HighEnd / Disty SOH / Dealers SOH / WOI ---
+    var gaming = sumAndYoy_(ubFilters, { seriesGroups: ['Gaming'] }, w13);
+    var bnp = sumAndYoy_(ubFilters, { seriesGroups: ['Business& Productivity'] }, w13);
+    var handheld = sumAndYoy_(ubFilters, { seriesGroups: ['Handheld'] }, w13);
+    var series50 = sumAndYoy_(ubFilters, { series50Only: true }, w13);
+    var highEnd = sumAndYoy_(ubFilters, { highEndOnly: true }, w13);
+
+    var distySoh = snap.month ? DI.onHandAtMonth(snap.year, snap.month, ubFilters) : 0;
+    var dealersSoh = snapshotWeek ? DS.totalDealerOnHandAtWeek(snapshotWeek) : 0;
+    var avgDemand = avgUserbuy4wk_(ubFilters, snapshotWeek);
+    var overallWoi = computeWoi_(distySoh + dealersSoh, avgDemand);
+
+    var tiles = [
+      { label: 'Gaming', value: gaming.qty, yoy: gaming.yoy },
+      { label: 'Business & Productivity', value: bnp.qty, yoy: bnp.yoy },
+      { label: 'Handheld', value: handheld.qty, yoy: handheld.yoy },
+      { label: 'Series 50 GPU', value: series50.qty, yoy: series50.yoy },
+      { label: 'High-End', value: highEnd.qty, yoy: highEnd.yoy },
+      { label: 'Disty SOH', value: distySoh, yoy: null, isStock: true },
+      { label: 'Dealers SOH', value: dealersSoh, yoy: null, isStock: true },
+      { label: 'WOI (blended)', value: overallWoi, yoy: null, isWoi: true }
+    ];
+    var gridEl = document.getElementById('kpiTileGrid');
+    gridEl.innerHTML = tiles.map(function (t) {
+      var valueText = t.isWoi ? (t.value === null ? '-' : t.value.toFixed(1) + 'w') : fmt.number(t.value);
+      var sub = t.isStock || t.isWoi ? '<span class="val-flat">snapshot</span>' : yoyHtml_(t.yoy);
+      return '<div class="kpi-tile"><div class="kpi-tile-label">' + escapeHtml(t.label) + '</div>' +
+        '<div class="kpi-tile-value">' + valueText + '</div>' +
+        '<div class="kpi-tile-yoy">' + sub + '</div></div>';
+    }).join('');
   }
 
   function renderWeeklyTrend_(state, ubFilters) {
@@ -265,7 +337,8 @@
     var priorFilters = cloneState_(ubFilters); priorFilters.years = []; priorFilters.quarters = [];
     var lastYearSeries = UB.weeklySeries(priorFilters, priorWeeks).map(function (s) { return s.qty; });
 
-    CH.renderWeeklyTotalChart('weeklyTotalChart', weeks13, thisYearSeries, lastYearSeries);
+    var forecastWeeks = WU.getNextNWeekLabels(weeks13[weeks13.length - 1], 3);
+    CH.renderWeeklyTotalChart('weeklyTotalChart', weeks13, thisYearSeries, lastYearSeries, forecastWeeks);
   }
 
   function renderSeriesGroupChart_(state, ubFilters, weeks) {
@@ -275,19 +348,29 @@
       var f = cloneState_(ubFilters); f.seriesGroups = [sg];
       sgMap[sg] = UB.groupBy(f, 'sg')[sg] || { qty: 0, rev: 0, byWeek: {} };
     });
-    CH.renderSeriesGroupStackedChart('seriesGroupChart', w13, sgMap);
+    CH.renderMultiLineForecastChart('seriesGroupChart', w13, sgMap, {
+      topN: 6, forecastN: 0, activeLabel: state.seriesGroups.length === 1 ? state.seriesGroups[0] : null,
+      onLegendClick: function (sg) {
+        var s = FS.getState();
+        var idx = s.seriesGroups.indexOf(sg);
+        var next = s.seriesGroups.slice();
+        if (idx === -1) next.push(sg); else next.splice(idx, 1);
+        FS.setSeriesGroups(next);
+      }
+    });
   }
 
-  function renderDimensionCharts_(state, ubFilters) {
-    function topItems(field, limit) {
-      var groups = UB.groupBy(ubFilters, field);
-      var items = Object.keys(groups).map(function (k) { return { label: k, value: round2_(groups[k].qty) }; });
-      items.sort(function (a, b) { return b.value - a.value; });
-      return items.slice(0, limit || 10);
-    }
-    CH.renderDimensionBar('segmentBarChart', topItems('seg1', 12), function (label) { FS.setSegment(label); }, state.segment);
-    CH.renderDimensionBar('gpuBarChart', topItems('gpu', 12), function (label) { FS.setGpu(label); }, state.gpu);
-    CH.renderDimensionBar('cpuBarChart', topItems('cpuSeg', 10), function (label) { FS.setCpu(label); }, state.cpu);
+  function renderDimensionCharts_(state, ubFilters, weeks) {
+    var w13 = weeks.length > 13 ? weeks.slice(weeks.length - 13) : weeks;
+    CH.renderMultiLineForecastChart('segmentBarChart', w13, UB.groupBy(ubFilters, 'seg1'), {
+      topN: 6, forecastN: 3, activeLabel: state.segment, onLegendClick: function (v) { FS.setSegment(v); }
+    });
+    CH.renderMultiLineForecastChart('gpuBarChart', w13, UB.groupBy(ubFilters, 'gpu'), {
+      topN: 6, forecastN: 3, activeLabel: state.gpu, onLegendClick: function (v) { FS.setGpu(v); }
+    });
+    CH.renderMultiLineForecastChart('cpuBarChart', w13, UB.groupBy(ubFilters, 'cpuSeg'), {
+      topN: 6, forecastN: 3, activeLabel: state.cpu, onLegendClick: function (v) { FS.setCpu(v); }
+    });
   }
 
   function buildMetricRows_(groups, last3Weeks, dimFilterBuilder, onHandFn, distyOnHandFn) {
@@ -364,7 +447,9 @@
     });
     TB.renderMetricTable('dealersTable', {
       rows: rows, dimLabel: 'Dealers', metricLabel: 'Sell Out', weekLabels: last3.map(weekLabelOrFallback_),
-      activeValue: state.dealer, onRowClick: function (key) { FS.setDealer(key); }
+      activeValue: state.dealer, onRowClick: function (key) { FS.setDealer(key); },
+      emptyMessage: 'Chưa có dữ liệu Weekly Sales Data cho giai đoạn đang chọn. ' +
+        'Bản static hiện tại chỉ có 2025W01-W07 (giới hạn tải file). Bảng sẽ tự đầy đủ ngay khi Apps Script được deploy (xem DEPLOYMENT_INFO.md) - không cần sửa filter.'
     });
   }
 
@@ -386,7 +471,9 @@
     );
     TB.renderMetricTable('distyTable', {
       rows: rows, dimLabel: 'Disty', metricLabel: 'Sell Out', weekLabels: last3.map(weekLabelOrFallback_),
-      activeValue: state.disty, onRowClick: function (key) { FS.setDisty(key); }, showDistyOnHand: true
+      activeValue: state.disty, onRowClick: function (key) { FS.setDisty(key); }, showDistyOnHand: true,
+      emptyMessage: 'Chưa có dữ liệu Weekly Sales Data cho giai đoạn đang chọn. ' +
+        'Bản static hiện tại chỉ có 2025W01-W07 (giới hạn tải file). Bảng sẽ tự đầy đủ ngay khi Apps Script được deploy (xem DEPLOYMENT_INFO.md) - không cần sửa filter.'
     });
   }
 

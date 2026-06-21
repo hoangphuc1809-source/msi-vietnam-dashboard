@@ -31,6 +31,15 @@ window.MsiUserbuyTables = (function () {
   function renderMetricTable(containerId, opts) {
     var rows = opts.rows || [];
     var el = document.getElementById(containerId);
+
+    if (!rows.length && opts.emptyMessage) {
+      el.innerHTML = '<div class="table-empty-state">' +
+        '<div class="table-empty-icon">&#9888;</div>' +
+        '<div class="table-empty-text">' + opts.emptyMessage + '</div>' +
+        '</div>';
+      return;
+    }
+
     var grandQty = rows.reduce(function (a, r) { return a + (r.qty || 0); }, 0);
     var wl = opts.weekLabels || [];
     var h3 = wl[0] || '3wk ago', h2 = wl[1] || '2wk ago', h1 = wl[2] || 'Last Wk';
@@ -78,17 +87,18 @@ window.MsiUserbuyTables = (function () {
   }
 
   // rows: [{sku, segment, last13:[...13 gia tri...], total13, onHand, distyOnHand, woi, isEOL}]
+  // weekLabels13: 13 nhan tuan ('2026W22', '2026W23', ...) lam header cot
   function renderModelDetailTable(containerId, rows, weekLabels13) {
     var el = document.getElementById(containerId);
     var html = '<table class="data-table model-detail-table">';
-    html += '<thead><tr><th>Model</th><th>13w Userbuy rolling</th><th>Total (13w)</th>' +
-      '<th>Onhand</th><th>Disty Onhand</th><th>WOI</th></tr></thead><tbody>';
+    html += '<thead><tr><th class="model-col-sticky">Model</th>';
+    weekLabels13.forEach(function (w) { html += '<th>' + escapeAttr(w) + '</th>'; });
+    html += '<th>Total (13w)</th><th>Onhand</th><th>Disty Onhand</th><th>WOI</th></tr></thead><tbody>';
     rows.forEach(function (r) {
-      var sparkline = renderSparkline_(r.last13);
       html += '<tr>' +
-        '<td title="' + escapeAttr(r.sku) + '">' + fmt.truncate(r.sku, 26) + '<div class="model-sub">' + escapeAttr(r.segment) + '</div></td>' +
-        '<td>' + sparkline + '</td>' +
-        '<td>' + fmt.number(r.total13) + '</td>' +
+        '<td class="model-col-sticky" title="' + escapeAttr(r.sku) + '"><div class="model-name-full">' + escapeAttr(r.sku) + '</div><div class="model-sub">' + escapeAttr(r.segment) + '</div></td>';
+      r.last13.forEach(function (v) { html += '<td>' + fmt.number(v) + '</td>'; });
+      html += '<td><b>' + fmt.number(r.total13) + '</b></td>' +
         '<td>' + fmt.number(r.onHand) + '</td>' +
         '<td>' + fmt.number(r.distyOnHand) + '</td>' +
         '<td>' + woiBadge(r.woi, r.isEOL) + '</td>' +
@@ -96,24 +106,6 @@ window.MsiUserbuyTables = (function () {
     });
     html += '</tbody></table>';
     el.innerHTML = html;
-  }
-
-  // Sparkline don gian bang inline SVG (khong can them thu vien)
-  function renderSparkline_(values) {
-    var w = 130, h = 28, pad = 2;
-    var vals = (values || []).map(function (v) { return v || 0; });
-    var max = Math.max.apply(null, vals.concat([1]));
-    var n = vals.length || 1;
-    var stepX = (w - pad * 2) / Math.max(1, n - 1);
-    var points = vals.map(function (v, i) {
-      var x = pad + i * stepX;
-      var y = h - pad - (max > 0 ? (v / max) * (h - pad * 2) : 0);
-      return x.toFixed(1) + ',' + y.toFixed(1);
-    }).join(' ');
-    var lastVal = vals.length ? vals[vals.length - 1] : 0;
-    return '<svg width="' + w + '" height="' + h + '" class="sparkline" viewBox="0 0 ' + w + ' ' + h + '">' +
-      '<polyline points="' + points + '" fill="none" stroke="#CC0000" stroke-width="1.6"/>' +
-      '</svg><span class="spark-last">' + Math.round(lastVal) + '</span>';
   }
 
   // Alerts: OOS (Out of Stock) + Slow Moving / Overstock - y tuong tu draft cu cua Phuc

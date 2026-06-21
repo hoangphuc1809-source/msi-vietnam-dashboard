@@ -131,10 +131,24 @@ window.MsiWeekUtils = (function () {
     return { year: refYear, month: 'M12', week: weekY };
   }
 
+  // N tuan TIEP THEO sau anchorWeek (khong bao gom anchorWeek) - dung cho truc
+  // thoi gian cua phan forecast
+  function getNextNWeekLabels(anchorWeek, n) {
+    n = n || 3;
+    var anchorDate = weekLabelToThursday(anchorWeek);
+    var labels = [];
+    for (var i = 1; i <= n; i++) {
+      var d = new Date(anchorDate.getTime() + i * 7 * 24 * 3600 * 1000);
+      labels.push(isoWeekLabel(d));
+    }
+    return labels;
+  }
+
   return {
     isoWeekLabel: isoWeekLabel,
     weekLabelToThursday: weekLabelToThursday,
     getRollingNWeekLabels: getRollingNWeekLabels,
+    getNextNWeekLabels: getNextNWeekLabels,
     getCurrentYearQuarter: getCurrentYearQuarter,
     isCurrentPeriod: isCurrentPeriod,
     getRollingAnchorWeek: getRollingAnchorWeek,

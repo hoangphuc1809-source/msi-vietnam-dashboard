@@ -15,7 +15,7 @@
 
 <div class="app-shell">
 
-  <header class="app-header">
+  <header class="app-header app-header-compact">
     <div class="app-logo">
       <img src="assets/msi-logo.png" alt="MSI">
       <span>
@@ -39,14 +39,7 @@
   </nav>
 
   <div class="filter-bar filter-bar-stacked">
-    <div class="filter-row">
-      <div class="filter-field filter-field-wide">
-        <label for="globalSearchInput">Search anything</label>
-        <input type="text" id="globalSearchInput" class="global-search-input" placeholder="Model, Segment, GPU, CPU, Disty, Dealer...">
-        <div id="globalSearchResults" class="global-search-results"></div>
-      </div>
-    </div>
-    <div class="filter-row">
+    <div class="filter-row filter-row-even">
       <div class="filter-field">
         <label for="yearSelect">Year</label>
         <select id="yearSelect" multiple></select>
@@ -55,22 +48,24 @@
         <label for="quarterSelect">Quarter</label>
         <select id="quarterSelect" multiple></select>
       </div>
-      <div class="filter-field filter-field-wide">
+      <div class="filter-field">
         <label for="seriesGroupSelect">Series Group</label>
         <select id="seriesGroupSelect" multiple></select>
       </div>
-    </div>
-    <div class="filter-row">
-      <div class="filter-field filter-field-wide">
-        <label for="modelSelect">Search Model (marketing_sku)</label>
-        <select id="modelSelect"></select>
+      <div class="filter-field">
+        <label>&nbsp;</label>
+        <button class="pill-btn-dropdown-style" id="highEndPillBtn" type="button">High-End</button>
       </div>
-      <div class="filter-field filter-field-pills">
-        <label>Quick Filter</label>
-        <div class="pill-group">
-          <button class="pill-btn" id="highEndPillBtn" type="button">High-End</button>
-          <button class="pill-btn" id="series50PillBtn" type="button">Series 50 GPU</button>
-        </div>
+      <div class="filter-field">
+        <label>&nbsp;</label>
+        <button class="pill-btn-dropdown-style" id="series50PillBtn" type="button">Series 50 GPU</button>
+      </div>
+    </div>
+    <div class="filter-row filter-row-search">
+      <div class="filter-field filter-field-wide">
+        <label for="globalSearchInput">Search anything</label>
+        <input type="text" id="globalSearchInput" class="global-search-input" placeholder="Model, Segment, GPU, CPU, Disty, Dealer...">
+        <div id="globalSearchResults" class="global-search-results"></div>
       </div>
       <button class="chip reset" id="resetFilterBtn">Reset Filter</button>
     </div>
@@ -79,6 +74,29 @@
   <div class="error-banner" id="errorBanner"></div>
   <div class="filter-tags" id="filterTags"></div>
 
+  <!-- ===== ZONE SNAPSHOT (NEW) ===== -->
+  <div class="zone-label">Snapshot</div>
+  <div class="dash-grid">
+    <div class="card accent-red kpi-hero-card">
+      <div class="kpi-hero-left">
+        <h3 class="card-title" style="margin-bottom:0;">Total Userbuy</h3>
+        <div class="kpi-hero-number" id="kpiTotalNumber">-</div>
+        <div class="kpi-hero-yoy" id="kpiTotalYoy">-</div>
+      </div>
+      <div class="kpi-hero-right">
+        <canvas id="accumulateChart"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <h3 class="card-title">Userbuy Share by Series Group</h3>
+      <div class="donut-card-wrap"><canvas id="seriesGroupDonutChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="dash-grid" style="grid-template-columns: 1fr;">
+    <div class="kpi-tile-grid" id="kpiTileGrid"></div>
+  </div>
+
   <!-- ===== ZONE 0: WEEKLY TREND ===== -->
   <div class="zone-label">Weekly Trend</div>
   <div class="dash-grid" style="grid-template-columns: 1fr;">
@@ -86,7 +104,7 @@
       <h3 class="card-title">
         <span class="dot" style="background:#CC0000"></span>
         Total Userbuy - weekly
-        <span class="hint">This period vs Last Year</span>
+        <span class="hint">This period vs Last Year &middot; +3w forecast (linear)</span>
       </h3>
       <div class="chart-wrap"><canvas id="weeklyTotalChart"></canvas></div>
     </div>
@@ -98,18 +116,18 @@
       <div class="chart-wrap"><canvas id="seriesGroupChart"></canvas></div>
     </div>
     <div class="card">
-      <h3 class="card-title">Userbuy by Segment</h3>
+      <h3 class="card-title">Userbuy by Segment <span class="hint">13w + 3w forecast (linear)</span></h3>
       <div class="chart-wrap tall"><canvas id="segmentBarChart"></canvas></div>
     </div>
   </div>
 
   <div class="dash-grid">
     <div class="card">
-      <h3 class="card-title">Userbuy by GPU</h3>
+      <h3 class="card-title">Userbuy by GPU <span class="hint">13w + 3w forecast (linear)</span></h3>
       <div class="chart-wrap tall"><canvas id="gpuBarChart"></canvas></div>
     </div>
     <div class="card">
-      <h3 class="card-title">Userbuy by CPU Segment</h3>
+      <h3 class="card-title">Userbuy by CPU Segment <span class="hint">13w + 3w forecast (linear)</span></h3>
       <div class="chart-wrap tall"><canvas id="cpuBarChart"></canvas></div>
     </div>
   </div>
