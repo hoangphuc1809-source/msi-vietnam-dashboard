@@ -103,14 +103,18 @@ window.MsiUserbuyTables = (function () {
 
   // rows: [{sku, segment, last13:[...13 gia tri...], total13, onHand, distyOnHand, woi, isEOL}]
   // weekLabels13: 13 nhan tuan ('2026W22', '2026W23', ...) lam header cot
-  function renderModelDetailTable(containerId, rows, weekLabels13) {
+  // opts: { activeValue, onRowClick } - cho phep click vao 1 dong de cross-filter
+  // theo Model (giong cach cac bang Segment/GPU/Dealers/Disty da lam)
+  function renderModelDetailTable(containerId, rows, weekLabels13, opts) {
+    opts = opts || {};
     var el = document.getElementById(containerId);
     var html = '<table class="data-table model-detail-table">';
     html += '<thead><tr><th class="model-col-sticky">Model</th>';
     weekLabels13.forEach(function (w) { html += '<th>' + escapeAttr(w) + '</th>'; });
     html += '<th>Total (13w)</th><th>Onhand</th><th>Disty Onhand</th><th>WOI</th></tr></thead><tbody>';
     rows.forEach(function (r) {
-      html += '<tr>' +
+      var isActive = opts.activeValue === r.sku;
+      html += '<tr class="' + (isActive ? 'row-active' : '') + '" data-sku="' + escapeAttr(r.sku) + '">' +
         '<td class="model-col-sticky" title="' + escapeAttr(r.sku) + '"><div class="model-name-full">' + escapeAttr(r.sku) + '</div><div class="model-sub">' + escapeAttr(r.segment) + '</div></td>';
       r.last13.forEach(function (v, i) {
         var cls = weekTrendClass_(v, i > 0 ? r.last13[i - 1] : null);
@@ -151,6 +155,12 @@ window.MsiUserbuyTables = (function () {
 
     html += '</table>';
     el.innerHTML = html;
+
+    if (opts.onRowClick) {
+      el.querySelectorAll('tbody tr[data-sku]').forEach(function (tr) {
+        tr.addEventListener('click', function () { opts.onRowClick(tr.getAttribute('data-sku')); });
+      });
+    }
   }
 
   // Alerts: OOS (Out of Stock) + Slow Moving / Overstock - y tuong tu draft cu cua Phuc

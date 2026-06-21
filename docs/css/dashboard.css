@@ -1165,6 +1165,8 @@ html, body {
 .model-detail-table { min-width: 1400px; }
 .model-detail-table tbody td.wk-up { background: var(--signal-green-bg); }
 .model-detail-table tbody td.wk-down { background: var(--signal-red-bg); }
+.model-detail-table tbody tr.row-active .model-col-sticky { background: var(--msi-red-bg); }
+.model-detail-table tbody tr:hover .model-col-sticky { background: #FAFAFA; }
 
 @media (max-width: 900px) {
   .filter-row-even { grid-template-columns: repeat(2, 1fr); }

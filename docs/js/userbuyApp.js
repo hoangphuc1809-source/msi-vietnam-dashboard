@@ -508,7 +508,13 @@
     }).filter(function (r) { return r.total13 > 0; })
       .sort(function (a, b) { return b.total13 - a.total13; }).slice(0, 60);
 
-    TB.renderModelDetailTable('modelDetailTable', rows, weeks13);
+    TB.renderModelDetailTable('modelDetailTable', rows, weeks13, {
+      activeValue: state.model,
+      onRowClick: function (sku) {
+        var s = FS.getState();
+        FS.setModel(s.model === sku ? null : sku);
+      }
+    });
   }
 
   function renderEarlyWarning_(state, ubFilters, snap) {
