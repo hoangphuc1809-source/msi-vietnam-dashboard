@@ -122,7 +122,34 @@ window.MsiUserbuyTables = (function () {
         '<td>' + woiBadge(r.woi, r.isEOL) + '</td>' +
         '</tr>';
     });
-    html += '</tbody></table>';
+
+    // ===== Hang Total - cong don tat ca model dang hien thi trong bang =====
+    html += '</tbody>';
+    var n = weekLabels13.length;
+    var weekSums = new Array(n).fill(0);
+    var totalSum = 0, onHandSum = 0, distyOnHandSum = 0;
+    rows.forEach(function (r) {
+      r.last13.forEach(function (v, i) { weekSums[i] += (v || 0); });
+      totalSum += (r.total13 || 0);
+      onHandSum += (r.onHand || 0);
+      distyOnHandSum += (r.distyOnHand || 0);
+    });
+    var last4Avg = weekSums.slice(Math.max(0, n - 4)).reduce(function (a, v) { return a + v; }, 0) / Math.min(4, n);
+    var totalWoi = last4Avg > 0 ? (onHandSum + distyOnHandSum) / last4Avg : null;
+
+    html += '<tfoot><tr class="total-row">' +
+      '<td class="model-col-sticky">Total (' + rows.length + ' models)</td>';
+    weekSums.forEach(function (v, i) {
+      var cls = weekTrendClass_(v, i > 0 ? weekSums[i - 1] : null);
+      html += '<td class="' + cls + '"><b>' + numOrBlank_(v) + '</b></td>';
+    });
+    html += '<td><b>' + numOrBlank_(totalSum) + '</b></td>' +
+      '<td><b>' + numOrBlank_(onHandSum) + '</b></td>' +
+      '<td><b>' + numOrBlank_(distyOnHandSum) + '</b></td>' +
+      '<td>' + woiBadge(totalWoi, false) + '</td>' +
+      '</tr></tfoot>';
+
+    html += '</table>';
     el.innerHTML = html;
   }
 
