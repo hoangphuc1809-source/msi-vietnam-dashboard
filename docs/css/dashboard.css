@@ -1040,16 +1040,19 @@ html, body {
 }
 
 /* KPI snapshot tiles */
+.snapshot-card {
+  height: 300px;
+}
+
 .kpi-hero-card {
   display: flex;
-  flex-direction: row;
-  gap: 20px;
-  align-items: center;
-  flex-wrap: wrap;
-  align-self: start; /* khong de Grid keo gian theo card ben canh (donut) */
+  flex-direction: column;
+  gap: 4px;
+  align-self: start;
 }
-.kpi-hero-left { flex: 0 0 190px; }
-.kpi-hero-right { position: relative; flex: 1; min-width: 200px; height: 64px; }
+.kpi-hero-number { font-family: var(--font-mono); font-size: 52px; font-weight: 700; color: var(--text-primary); line-height: 1; margin-top: 8px; }
+.kpi-hero-yoy { margin-top: 10px; }
+.kpi-hero-chart-wrap { flex: 1; position: relative; margin-top: 14px; min-height: 0; }
 .kpi-hero-label {
   font-family: var(--font-mono);
   font-size: 11px;
@@ -1128,7 +1131,7 @@ html, body {
 .kpi-tile-yoy .yoy-badge { font-size: 10.5px; padding: 2px 8px; }
 .kpi-tile-yoy .val-flat { font-family: var(--font-mono); font-size: 10.5px; color: #94A3B8; }
 
-.donut-card-wrap { height: 200px; }
+.donut-card-wrap { flex: 1; min-height: 0; }
 
 /* Empty state for tables awaiting live data */
 .table-empty-state {

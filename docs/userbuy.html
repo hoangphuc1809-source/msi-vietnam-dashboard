@@ -77,13 +77,11 @@
   <!-- ===== ZONE SNAPSHOT (NEW) ===== -->
   <div class="zone-label">Snapshot</div>
   <div class="dash-grid dash-grid-top-align">
-    <div class="card accent-red kpi-hero-card">
-      <div class="kpi-hero-left">
-        <h3 class="card-title" style="margin-bottom:0;">Total Userbuy</h3>
-        <div class="kpi-hero-number" id="kpiTotalNumber">-</div>
-        <div class="kpi-hero-yoy" id="kpiTotalYoy">-</div>
-      </div>
-      <div class="kpi-hero-right">
+    <div class="card accent-red kpi-hero-card snapshot-card">
+      <h3 class="card-title" style="margin-bottom:0;">Total Userbuy</h3>
+      <div class="kpi-hero-number" id="kpiTotalNumber">-</div>
+      <div class="kpi-hero-yoy" id="kpiTotalYoy">-</div>
+      <div class="kpi-hero-chart-wrap">
         <div class="kpi-hero-chart-legend">
           <span><i style="background:#CC0000"></i>This period</span>
           <span><i style="background:#CBD5E1"></i>Last Year</span>
@@ -91,7 +89,7 @@
         <canvas id="accumulateChart"></canvas>
       </div>
     </div>
-    <div class="card">
+    <div class="card snapshot-card">
       <h3 class="card-title">Userbuy Share by Series Group</h3>
       <div class="donut-card-wrap"><canvas id="seriesGroupDonutChart"></canvas></div>
     </div>
