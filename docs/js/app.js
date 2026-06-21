@@ -317,11 +317,31 @@
     var filters = baseFilters(state);
     var recentWeeks = getRollingNWeekLabels_(getRollingAnchorWeek_(state), 3);
     var rows = D.brandsTable(filters, recentWeeks);
-    var grandTotal = rows.reduce(function (a, r) { return a + r.volume; }, 0);
-    var grandLastYear = rows.reduce(function (a, r) { return a + (r.lastYearVol || 0); }, 0);
-    var yoy = grandLastYear > 0 ? (grandTotal - grandLastYear) / grandLastYear : null;
 
-    document.getElementById('kdScorecardNumber').textContent = fmt.number(grandTotal);
+    // Cross-filter: khi co brand dang duoc chon (vd click "Asus" o bat ky bang nao),
+    // so to/YoY/footer cua CHINH card nay cung phai "theo" dung brand do - giong
+    // nguyen tac da ap dung cho Dealers Capacity/Channel Scorecard. Khong chon gi
+    // thi fallback ve grand total nhu cu.
+    var selected = state.brand ? rows.filter(function (r) { return r.brand === state.brand; })[0] : null;
+    var headlineVol, headlineLastYear, headlineLastWk, headlineLast2Wk, headlineHasLastWk;
+
+    if (selected) {
+      headlineVol = selected.volume;
+      headlineLastYear = selected.lastYearVol || 0;
+      headlineLastWk = selected.lastWk;
+      headlineLast2Wk = selected.last2Wk;
+      headlineHasLastWk = selected.lastWk !== null;
+    } else {
+      headlineVol = rows.reduce(function (a, r) { return a + r.volume; }, 0);
+      headlineLastYear = rows.reduce(function (a, r) { return a + (r.lastYearVol || 0); }, 0);
+      headlineHasLastWk = rows.some(function (r) { return r.lastWk !== null; });
+      headlineLastWk = rows.reduce(function (a, r) { return a + (r.lastWk || 0); }, 0);
+      headlineLast2Wk = rows.reduce(function (a, r) { return a + (r.last2Wk || 0); }, 0);
+    }
+    var yoy = headlineLastYear > 0 ? (headlineVol - headlineLastYear) / headlineLastYear : null;
+
+    document.getElementById('kdScorecardTitleSuffix').textContent = state.brand ? ('(' + state.brand + ')') : '';
+    document.getElementById('kdScorecardNumber').textContent = fmt.number(headlineVol);
     var yoyEl = document.getElementById('kdScorecardYoy');
     yoyEl.textContent = (yoy === null ? '-' : (yoy >= 0 ? '\u25b2 ' : '\u25bc ') + Math.abs(yoy * 100).toFixed(1) + '% YoY');
     yoyEl.className = 'scorecard-yoy ' + (yoy === null ? '' : (yoy >= 0 ? 'val-up' : 'val-down'));
@@ -331,14 +351,11 @@
 
     Tables.renderBrandsTable('kdScorecardTable', rows, state.brand, function (brand) { F.setBrand(brand); }, recentWeeks);
 
-    var anyLastWkData = rows.some(function (r) { return r.lastWk !== null; });
-    var grandLastWk = rows.reduce(function (a, r) { return a + (r.lastWk || 0); }, 0);
-    var grandLast2Wk = rows.reduce(function (a, r) { return a + (r.last2Wk || 0); }, 0);
-    var grandWow = (anyLastWkData && grandLastWk > 0 && grandLast2Wk > 0) ? (grandLastWk - grandLast2Wk) / grandLast2Wk : null;
+    var grandWow = (headlineHasLastWk && headlineLastWk > 0 && headlineLast2Wk > 0) ? (headlineLastWk - headlineLast2Wk) / headlineLast2Wk : null;
     var lastWkLabel = recentWeeks[2] || 'Last week';
 
     document.getElementById('kdScorecardFooter').innerHTML =
-      escapeHtml(lastWkLabel) + ': <b>' + (anyLastWkData ? fmt.number(grandLastWk) : '-') + '</b> &nbsp;\u00b7&nbsp; WoW: <b class="' +
+      escapeHtml(lastWkLabel) + ': <b>' + (headlineHasLastWk ? fmt.number(headlineLastWk) : '-') + '</b> &nbsp;\u00b7&nbsp; WoW: <b class="' +
       (grandWow === null ? '' : (grandWow >= 0 ? 'val-up' : 'val-down')) + '">' + fmt.percentSigned(grandWow, 1) + '</b>';
   }
 
@@ -346,11 +363,28 @@
     var scopeWeeks = NV.getWeeksForYearQuarter(state.years, state.quarters);
     var recentWeeks = getRollingNWeekLabels_(getRollingAnchorWeek_(state), 3);
     var rows = NV.brandSummaryTable(scopeWeeks, recentWeeks);
-    var grandTotal = rows.reduce(function (a, r) { return a + r.volume; }, 0);
-    var grandLastYear = rows.reduce(function (a, r) { return a + (r.lastYearVol || 0); }, 0);
-    var yoy = grandLastYear > 0 ? (grandTotal - grandLastYear) / grandLastYear : null;
 
-    document.getElementById('nvScorecardNumber').textContent = fmt.number(grandTotal);
+    // Cross-filter (xem ghi chu o renderKeyDealersScorecardSection)
+    var selected = state.brand ? rows.filter(function (r) { return r.brand === state.brand; })[0] : null;
+    var headlineVol, headlineLastYear, headlineLastWk, headlineLast2Wk, headlineHasLastWk;
+
+    if (selected) {
+      headlineVol = selected.volume;
+      headlineLastYear = selected.lastYearVol || 0;
+      headlineLastWk = selected.lastWk;
+      headlineLast2Wk = selected.last2Wk;
+      headlineHasLastWk = selected.lastWk !== null;
+    } else {
+      headlineVol = rows.reduce(function (a, r) { return a + r.volume; }, 0);
+      headlineLastYear = rows.reduce(function (a, r) { return a + (r.lastYearVol || 0); }, 0);
+      headlineHasLastWk = rows.some(function (r) { return r.lastWk !== null; });
+      headlineLastWk = rows.reduce(function (a, r) { return a + (r.lastWk || 0); }, 0);
+      headlineLast2Wk = rows.reduce(function (a, r) { return a + (r.last2Wk || 0); }, 0);
+    }
+    var yoy = headlineLastYear > 0 ? (headlineVol - headlineLastYear) / headlineLastYear : null;
+
+    document.getElementById('nvScorecardTitleSuffix').textContent = state.brand ? ('(' + state.brand + ')') : '';
+    document.getElementById('nvScorecardNumber').textContent = fmt.number(headlineVol);
     var yoyEl = document.getElementById('nvScorecardYoy');
     yoyEl.textContent = (yoy === null ? '-' : (yoy >= 0 ? '\u25b2 ' : '\u25bc ') + Math.abs(yoy * 100).toFixed(1) + '% YoY');
     yoyEl.className = 'scorecard-yoy ' + (yoy === null ? '' : (yoy >= 0 ? 'val-up' : 'val-down'));
@@ -363,14 +397,11 @@
     // NV thuong cap nhat tre hon IHS - tuan gan nhat (recentWeeks[2]) co the chua
     // co du lieu, luc do moi brand.lastWk se la null. Phan biet ro "chua co du
     // lieu" (hien "-") voi "that su bang 0".
-    var anyLastWkData = rows.some(function (r) { return r.lastWk !== null; });
-    var grandLastWk = rows.reduce(function (a, r) { return a + (r.lastWk || 0); }, 0);
-    var grandLast2Wk = rows.reduce(function (a, r) { return a + (r.last2Wk || 0); }, 0);
-    var grandWow = (anyLastWkData && grandLastWk > 0 && grandLast2Wk > 0) ? (grandLastWk - grandLast2Wk) / grandLast2Wk : null;
+    var grandWow = (headlineHasLastWk && headlineLastWk > 0 && headlineLast2Wk > 0) ? (headlineLastWk - headlineLast2Wk) / headlineLast2Wk : null;
     var lastWkLabel = recentWeeks[2] || 'Last week';
 
     document.getElementById('nvScorecardFooter').innerHTML =
-      escapeHtml(lastWkLabel) + ': <b>' + (anyLastWkData ? fmt.number(grandLastWk) : '-') + '</b> &nbsp;\u00b7&nbsp; WoW: <b class="' +
+      escapeHtml(lastWkLabel) + ': <b>' + (headlineHasLastWk ? fmt.number(headlineLastWk) : '-') + '</b> &nbsp;\u00b7&nbsp; WoW: <b class="' +
       (grandWow === null ? '' : (grandWow >= 0 ? 'val-up' : 'val-down')) + '">' + fmt.percentSigned(grandWow, 1) + '</b>';
   }
 

@@ -468,6 +468,14 @@ html, body {
   margin-bottom: 6px;
 }
 
+.scorecard-title-suffix {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--msi-red);
+  margin-left: 6px;
+}
+
 .scorecard-title .hint {
   font-family: var(--font-mono);
   font-size: 10px;
