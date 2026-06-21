@@ -961,3 +961,27 @@ html, body {
   .tab-nav { padding: 6px 12px 0; }
   .tab-nav-item { padding: 8px 12px; font-size: 12px; }
 }
+
+/* ===== Userbuy Tracking - filter bar sap xep lai theo hang (NEW) ===== */
+.filter-bar-stacked {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+}
+.filter-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.filter-row + .filter-row {
+  padding-top: 10px;
+  border-top: 1px solid var(--border, #E2E8F0);
+}
+.filter-row .filter-field { flex: 1; min-width: 160px; }
+.filter-row .filter-field-wide { flex: 2; min-width: 220px; }
+
+@media (max-width: 720px) {
+  .filter-row { gap: 10px; }
+  .filter-row .filter-field { min-width: 130px; }
+}

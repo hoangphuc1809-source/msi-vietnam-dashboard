@@ -12,7 +12,7 @@
   var TB = window.MsiUserbuyTables;
   var fmt = window.MsiFormat;
 
-  var yearTs, quarterTs, modelTs;
+  var yearTs, quarterTs, seriesGroupTs, modelTs;
 
   function init() {
     bindHeaderControls();
@@ -141,40 +141,25 @@
       plugins: ['remove_button'],
       onChange: function (vals) { FS.setQuarters(vals.slice()); }
     });
+    seriesGroupTs = new TomSelect('#seriesGroupSelect', {
+      options: UB.getSeriesGroups().map(function (sg) { return { value: sg, text: sg }; }),
+      items: FS.getState().seriesGroups,
+      plugins: ['remove_button'],
+      placeholder: 'All Series Group',
+      onChange: function (vals) { FS.setSeriesGroups(vals.slice()); }
+    });
     modelTs = new TomSelect('#modelSelect', {
       options: models.map(function (m) { return { value: m.sku, text: m.sku + ' (' + m.seg1 + ')' }; }),
       maxOptions: 800,
       placeholder: 'Search model...',
       onChange: function (val) { FS.setModel(val || null); }
     });
-
-    renderSeriesGroupPills_();
-  }
-
-  function renderSeriesGroupPills_() {
-    var sgs = UB.getSeriesGroups();
-    var el = document.getElementById('seriesGroupPills');
-    el.innerHTML = sgs.map(function (sg) {
-      return '<button class="pill-btn" data-sg="' + escapeHtmlAttr(sg) + '">' + escapeHtml(sg) + '</button>';
-    }).join('');
-    el.querySelectorAll('[data-sg]').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        var sg = btn.getAttribute('data-sg');
-        var s = FS.getState();
-        var idx = s.seriesGroups.indexOf(sg);
-        var next = s.seriesGroups.slice();
-        if (idx === -1) next.push(sg); else next.splice(idx, 1);
-        FS.setSeriesGroups(next);
-      });
-    });
   }
 
   function syncControlsFromState(state) {
     if (yearTs) { yearTs.clear(true); state.years.forEach(function (y) { yearTs.addItem(y, true); }); }
     if (quarterTs) { quarterTs.clear(true); state.quarters.forEach(function (q) { quarterTs.addItem(q, true); }); }
-    document.querySelectorAll('#seriesGroupPills [data-sg]').forEach(function (btn) {
-      btn.classList.toggle('active', state.seriesGroups.indexOf(btn.getAttribute('data-sg')) !== -1);
-    });
+    if (seriesGroupTs) { seriesGroupTs.clear(true); state.seriesGroups.forEach(function (sg) { seriesGroupTs.addItem(sg, true); }); }
     document.getElementById('highEndPillBtn').classList.toggle('active', !!state.highEndOnly);
     document.getElementById('series50PillBtn').classList.toggle('active', !!state.series50Only);
     renderFilterTags_(state);

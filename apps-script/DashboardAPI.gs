@@ -421,7 +421,7 @@ var week = r[3];
 var sku = r[5];
 if (!week || !sku) continue;
 var dateVal = r[4];
-var sg = r[6] || '';
+var sg = normSeriesGroup_(r[6] || '');
 var seg1 = r[7] || '';
 var cpuSeg = r[8] || '';
 var cpuSeries = r[9] || '';
@@ -511,7 +511,7 @@ var sku = r[3];
 if (!month || !sku) continue;
 rows.push({
 y: String(r[0] || ''), q: String(r[1] || ''), m: String(month),
-sku: String(sku), sg: String(r[4] || ''), seg1: String(r[5] || ''),
+sku: String(sku), sg: normSeriesGroup_(r[4] || ''), seg1: String(r[5] || ''),
 highEnd: String(r[6] || '').toLowerCase() === 'yes',
 gen: String(r[7] || ''), cpuSeg: String(r[8] || ''), gpu: String(r[9] || ''),
 disty: String(r[10] || ''), srp: toNumber_(r[11]), priceSeg: String(r[12] || ''),
@@ -539,6 +539,16 @@ return result;
 
 function round2_(n) {
 return Math.round(n * 100) / 100;
+}
+
+// Chuan hoa Series Group - sua loi cooking data khien "Business & Productivity"
+// (co cach truoc &) va "Business& Productivity" (khong cach) bi tach thanh 2
+// gia tri khac nhau trong khi thuc chat la 1. Canonical = "Business& Productivity"
+// (khop voi quy uoc da dung san trong config.js/userbuyCharts.js).
+function normSeriesGroup_(sg) {
+var s = String(sg || '').trim();
+if (/^Business\s*&\s*Productivity$/i.test(s)) return 'Business& Productivity';
+return s;
 }
 
 function toNumber_(v) {

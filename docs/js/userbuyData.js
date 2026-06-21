@@ -17,6 +17,18 @@ window.MsiUserbuyData = (function () {
 
   var SERIES_50_RE = /RTX\s*50(50|60|70|70\s*Ti|80|90)/i;
 
+  // Loai bo "Content Creation" khoi tab nay theo yeu cau cua Phuc (21/06)
+  var EXCLUDED_SERIES_GROUPS = { 'Content Creation': true };
+
+  // Sua loi cooking data: "Business & Productivity" (co cach truoc &) va
+  // "Business& Productivity" (khong cach) thuc chat la 1 gia tri, gop ve 1
+  // chuan duy nhat de khong bi tach thanh 2 dong rieng tren chart/bang.
+  function normSeriesGroup_(sg) {
+    var s = String(sg || '').trim();
+    if (/^Business\s*&\s*Productivity$/i.test(s)) return 'Business& Productivity';
+    return s;
+  }
+
   async function fetchData() {
     var liveUrl = window.MSI_CONFIG.APPS_SCRIPT_URL + '?action=userbuy&_=' + Date.now();
     try {
@@ -40,6 +52,7 @@ window.MsiUserbuyData = (function () {
     skus = json.skus || [];
     facts = json.facts || [];
     meta = json.meta || {};
+    skus.forEach(function (s) { s.sg = normSeriesGroup_(s.sg); });
     skuIndex = {};
     skus.forEach(function (s) { skuIndex[s.sku] = s; });
     loaded = true;
@@ -47,7 +60,7 @@ window.MsiUserbuyData = (function () {
 
   function isLoaded() { return loaded; }
   function getMeta() { return meta; }
-  function getSkus() { return skus; }
+  function getSkus() { return skus.filter(function (s) { return !EXCLUDED_SERIES_GROUPS[s.sg]; }); }
   function getSkuMeta(sku) { return skuIndex[sku] || null; }
 
   function yearOfWeek(w) { return (w && w.length >= 4) ? w.slice(0, 4) : ''; }
@@ -73,22 +86,22 @@ window.MsiUserbuyData = (function () {
   }
   function getSeriesGroups() {
     var set = {};
-    skus.forEach(function (s) { if (s.sg) set[s.sg] = true; });
+    skus.forEach(function (s) { if (s.sg && !EXCLUDED_SERIES_GROUPS[s.sg]) set[s.sg] = true; });
     return Object.keys(set).sort();
   }
   function getSegments() {
     var set = {};
-    skus.forEach(function (s) { if (s.seg1) set[s.seg1] = true; });
+    skus.forEach(function (s) { if (s.seg1 && !EXCLUDED_SERIES_GROUPS[s.sg]) set[s.seg1] = true; });
     return Object.keys(set).sort();
   }
   function getGpus() {
     var set = {};
-    skus.forEach(function (s) { if (s.gpu) set[s.gpu] = true; });
+    skus.forEach(function (s) { if (s.gpu && !EXCLUDED_SERIES_GROUPS[s.sg]) set[s.gpu] = true; });
     return Object.keys(set).sort();
   }
   function getCpuSegments() {
     var set = {};
-    skus.forEach(function (s) { if (s.cpuSeg) set[s.cpuSeg] = true; });
+    skus.forEach(function (s) { if (s.cpuSeg && !EXCLUDED_SERIES_GROUPS[s.sg]) set[s.cpuSeg] = true; });
     return Object.keys(set).sort();
   }
   function getDistys() {
@@ -101,6 +114,7 @@ window.MsiUserbuyData = (function () {
   //          segment, gpu, cpu, disty, weekFrom, weekTo }
   function matchesFact_(f, sk, state) {
     if (!sk) return false;
+    if (EXCLUDED_SERIES_GROUPS[sk.sg]) return false;
     if (state.years && state.years.length && state.years.indexOf(yearOfWeek(f.w)) === -1) return false;
     if (state.quarters && state.quarters.length && state.quarters.indexOf(quarterOfWeek(f.w)) === -1) return false;
     if (state.seriesGroups && state.seriesGroups.length && state.seriesGroups.indexOf(sk.sg) === -1) return false;
@@ -172,6 +186,7 @@ window.MsiUserbuyData = (function () {
     var out = [];
     for (var i = 0; i < skus.length && out.length < limit; i++) {
       var s = skus[i];
+      if (EXCLUDED_SERIES_GROUPS[s.sg]) continue;
       if (s.sku.toLowerCase().indexOf(query) !== -1) out.push(s);
     }
     return out;

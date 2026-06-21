@@ -10,6 +10,13 @@ window.MsiDistyInvData = (function () {
   var meta = {};
   var loaded = false;
 
+  var EXCLUDED_SERIES_GROUPS = { 'Content Creation': true };
+  function normSeriesGroup_(sg) {
+    var s = String(sg || '').trim();
+    if (/^Business\s*&\s*Productivity$/i.test(s)) return 'Business& Productivity';
+    return s;
+  }
+
   async function fetchData() {
     var liveUrl = window.MSI_CONFIG.APPS_SCRIPT_URL + '?action=distyinv&_=' + Date.now();
     try {
@@ -30,7 +37,8 @@ window.MsiDistyInvData = (function () {
   }
 
   function applyData_(json) {
-    rows = json.rows || [];
+    rows = (json.rows || []).filter(function (r) { return !EXCLUDED_SERIES_GROUPS[normSeriesGroup_(r.sg)]; });
+    rows.forEach(function (r) { r.sg = normSeriesGroup_(r.sg); });
     meta = json.meta || {};
     loaded = true;
   }
