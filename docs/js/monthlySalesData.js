@@ -1,0 +1,84 @@
+// MSI Vietnam Dashboard - Userbuy Tracking tab - Monthly Sales Data module
+// "Monthly Sales data": ban MONTHLY (khac Weekly Sales Data la theo TUAN) cua
+// Sell In/Sell Out/On Hand theo tung Dealer. Dung RIENG cho "Dealers SOH" (KPI
+// scorecard) - On hand (cot X) cong don tren TOAN BO mang luoi dealer.
+
+window.MsiMonthlySalesData = (function () {
+  'use strict';
+
+  var skus = [];   // [{sku, sg, seg1, cpuSeg, gpu, disty, status, highEnd}]
+  var facts = [];    // [{y, m, sku, onHand}]
+  var skuIndex = {};
+  var meta = {};
+  var loaded = false;
+
+  var EXCLUDED_SERIES_GROUPS = { 'Content Creation': true };
+  function normSeriesGroup_(sg) {
+    var s = String(sg || '').trim();
+    if (/^Business\s*&\s*Productivity$/i.test(s)) return 'Business& Productivity';
+    return s;
+  }
+
+  async function fetchData() {
+    var liveUrl = window.MSI_CONFIG.APPS_SCRIPT_URL + '?action=monthlysales&_=' + Date.now();
+    try {
+      var res = await fetch(liveUrl, { method: 'GET' });
+      if (!res.ok) throw new Error('status ' + res.status);
+      var json = await res.json();
+      if (json.error) throw new Error(json.error);
+      applyData_(json);
+      return json;
+    } catch (liveErr) {
+      console.warn('[MonthlySales] Live fetch (action=monthlysales) chua san sang, dung static snapshot:', liveErr.message);
+      var res2 = await fetch('data/monthly-sales.json');
+      if (!res2.ok) throw new Error('Monthly Sales static fallback that bai: ' + res2.status);
+      var json2 = await res2.json();
+      applyData_(json2);
+      return json2;
+    }
+  }
+
+  function applyData_(json) {
+    skus = (json.skus || []).filter(function (s) { return !EXCLUDED_SERIES_GROUPS[normSeriesGroup_(s.sg)]; });
+    skus.forEach(function (s) { s.sg = normSeriesGroup_(s.sg); });
+    facts = json.facts || [];
+    meta = json.meta || {};
+    skuIndex = {};
+    skus.forEach(function (s) { skuIndex[s.sku] = s; });
+    loaded = true;
+  }
+
+  function isLoaded() { return loaded; }
+  function getMeta() { return meta; }
+
+  function normYear_(y) { return String(y || '').replace(/^Y/, ''); }
+
+  // Tong On Hand (Dealers SOH) tai 1 THANG cu the, loc theo cac dim filter neu co
+  function onHandAtMonth(year, month, filters) {
+    filters = filters || {};
+    if (!year || !month) return 0;
+    var y = normYear_(year);
+    var total = 0;
+    facts.forEach(function (f) {
+      if (normYear_(f.y) !== y || f.m !== month) return;
+      var sk = skuIndex[f.sku];
+      if (!sk) return;
+      if (filters.segment && sk.seg1 !== filters.segment) return;
+      if (filters.gpu && sk.gpu !== filters.gpu) return;
+      if (filters.cpu && sk.cpuSeg !== filters.cpu) return;
+      if (filters.disty && sk.disty !== filters.disty) return;
+      if (filters.model && f.sku !== filters.model) return;
+      if (filters.seriesGroups && filters.seriesGroups.length && filters.seriesGroups.indexOf(sk.sg) === -1) return;
+      if (filters.highEndOnly && !sk.highEnd) return;
+      total += (f.onHand || 0);
+    });
+    return Math.round(total * 100) / 100;
+  }
+
+  return {
+    fetchData: fetchData,
+    isLoaded: isLoaded,
+    getMeta: getMeta,
+    onHandAtMonth: onHandAtMonth
+  };
+})();

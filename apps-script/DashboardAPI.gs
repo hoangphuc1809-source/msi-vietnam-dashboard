@@ -31,8 +31,10 @@ var CACHE_SECONDS_SELLOUT = 1800; // 30 phut
 // dau cach co the khac nhau giua cac lan tao/sua sheet.
 var SHEET_USERBUY_CANDIDATES = ['Userbuy data', 'UserBuy Data', 'Userbuy Data', 'UserBuy data'];
 var SHEET_DISTY_INV_CANDIDATES = ['Disty Monthly INV', 'Disty Monthly INV.csv'];
+var SHEET_MONTHLY_SALES_CANDIDATES = ['Monthly Sales data', 'Monthly Sales Data', 'Monthly Sales data.csv'];
 var CACHE_SECONDS_USERBUY = 1800; // 30 phut
 var CACHE_SECONDS_DISTY_INV = 1800; // 30 phut
+var CACHE_SECONDS_MONTHLY_SALES = 1800; // 30 phut
 
 // SEGMENT1 duoc coi la High-End (theo MSI dashboard project - final ver)
 var HIGH_END_SEGMENTS = { 'Titan': true, 'Raider': true, 'Vector': true, 'Stealth': true };
@@ -51,6 +53,8 @@ payload = getWeeklySelloutData_();
 payload = getUserbuyData_();
 } else if (action === 'distyinv') {
 payload = getDistyInvData_();
+} else if (action === 'monthlysales') {
+payload = getMonthlySalesData_();
 } else if (action === 'ping') {
 payload = { ok: true, time: new Date().toISOString() };
 } else {
@@ -537,6 +541,83 @@ cache.put('disty_inv_data_v1', json, CACHE_SECONDS_DISTY_INV);
 return result;
 }
 
+// Doc tab "Monthly Sales data" (CUNG spreadsheet voi RAW - IHS) - day la ban
+// MONTHLY (khac Weekly Sales Data la theo TUAN) cua Sell In/Sell Out/On Hand
+// THEO TUNG DEALER. Dung de tinh "Dealers SOH" (KPI scorecard) - On Hand cong
+// don TREN TOAN BO mang luoi dealer, theo Year/Quarter/Month.
+// Cot: A=Year B=Quarter C=Month D=Customer Number E=Customer F=Sales Rep
+// G=Channel Type H=marketing_sku I=Series Group J=SEGMENT1 K=Gen L=CPU Segment
+// M=CPU Series N=CPU O=GPU P=Mem Q=Disty R=SRP S=Price Segment T=Status
+// U=Quarter Sales Rep V=Sell In W=Sell Out X=On hand (...con nhieu cot khac,
+// khong can cho muc dich nay)
+// Gop theo (Year, Month, marketing_sku) - cong don On Hand tren TAT CA Customer
+// (dealer) tai thoi diem do la dung vi On Hand la ton kho snapshot, khong phai
+// dong chay. Tach skuMeta + facts giong Userbuy data de payload gon.
+function getMonthlySalesData_() {
+var cache = CacheService.getScriptCache();
+var cached = cache.get('monthly_sales_data_v1');
+if (cached) {
+return JSON.parse(cached);
+}
+var ss = SpreadsheetApp.getActiveSpreadsheet();
+var sheet = findSheetByCandidates_(ss, SHEET_MONTHLY_SALES_CANDIDATES);
+if (!sheet) throw new Error('Khong tim thay sheet Monthly Sales data. Da thu: ' + SHEET_MONTHLY_SALES_CANDIDATES.join(', ') + '. Kiem tra lai ten tab va sua bien SHEET_MONTHLY_SALES_CANDIDATES.');
+var lastRow = sheet.getLastRow();
+var lastCol = sheet.getLastColumn();
+if (lastRow < 2) return { skus: [], facts: [], meta: {} };
+var values = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+var skuMap = {};
+var factMap = {}; // 'year|month|sku' -> onHand (cong don tat ca Customer)
+for (var i = 0; i < values.length; i++) {
+var r = values[i];
+var year = r[0];
+var month = r[2];
+var sku = r[7];
+if (!year || !month || !sku) continue;
+var sg = normSeriesGroup_(r[8] || '');
+var seg1 = r[9] || '';
+var cpuSeg = r[11] || '';
+var gpu = r[14] || '';
+var disty = r[16] || '';
+var status = r[19] || '';
+var onHand = toNumber_(r[23]);
+
+skuMap[sku] = {
+sku: sku, sg: String(sg), seg1: String(seg1), cpuSeg: String(cpuSeg),
+gpu: String(gpu), disty: String(disty), status: String(status),
+highEnd: !!HIGH_END_SEGMENTS[String(seg1)]
+};
+
+var key = String(year).replace(/^Y/, '') + '|' + String(month) + '|' + sku;
+factMap[key] = (factMap[key] || 0) + onHand;
+}
+var skus = [];
+for (var s in skuMap) skus.push(skuMap[s]);
+var facts = [];
+for (var fk in factMap) {
+var parts = fk.split('|');
+facts.push({ y: parts[0], m: parts[1], sku: parts[2], onHand: round2_(factMap[fk]) });
+}
+var result = {
+skus: skus,
+facts: facts,
+meta: {
+generatedAt: new Date().toISOString(),
+source: sheet.getName() + ' (live)',
+skuCount: skus.length,
+factCount: facts.length
+}
+};
+try {
+var json = JSON.stringify(result);
+if (json.length < 950000) {
+cache.put('monthly_sales_data_v1', json, CACHE_SECONDS_MONTHLY_SALES);
+}
+} catch (e) {
+}
+return result;
+}
+
 function round2_(n) {
 return Math.round(n * 100) / 100;
 }
@@ -617,4 +698,13 @@ var data = getDistyInvData_();
 Logger.log('Row count: ' + data.rows.length);
 Logger.log('Meta: ' + JSON.stringify(data.meta));
 Logger.log('Sample row: ' + JSON.stringify(data.rows[0]));
+}
+
+function testGetMonthlySalesData() {
+var data = getMonthlySalesData_();
+Logger.log('SKU count: ' + data.skus.length);
+Logger.log('Fact count: ' + data.facts.length);
+Logger.log('Meta: ' + JSON.stringify(data.meta));
+Logger.log('Sample sku: ' + JSON.stringify(data.skus[0]));
+Logger.log('Sample fact: ' + JSON.stringify(data.facts[0]));
 }

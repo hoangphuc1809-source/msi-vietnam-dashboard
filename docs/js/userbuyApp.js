@@ -7,6 +7,7 @@
   var UB = window.MsiUserbuyData;
   var DI = window.MsiDistyInvData;
   var DS = window.MsiDealerSelloutData;
+  var MS = window.MsiMonthlySalesData;
   var WU = window.MsiWeekUtils;
   var CH = window.MsiUserbuyCharts;
   var TB = window.MsiUserbuyTables;
@@ -26,7 +27,7 @@
   async function loadData(isFirstLoad) {
     try {
       document.getElementById('refreshBtn').classList.add('loading');
-      await Promise.all([UB.fetchData(), DI.fetchData(), DS.fetchData()]);
+      await Promise.all([UB.fetchData(), DI.fetchData(), DS.fetchData(), MS.fetchData()]);
       hideError();
       updateMetaInfo();
       if (isFirstLoad) initSelects();
@@ -223,7 +224,7 @@
   // ===== Render orchestration =====
 
   function renderAll(state) {
-    if (!UB.isLoaded() || !DI.isLoaded() || !DS.isLoaded()) return;
+    if (!UB.isLoaded() || !DI.isLoaded() || !DS.isLoaded() || !MS.isLoaded()) return;
 
     var ubFilters = ubBaseFilters_(state);
     var periodWeeks = UB.getWeeksForState(ubFilters);
@@ -302,7 +303,7 @@
     var highEnd = sumAndYoy_(ubFilters, { highEndOnly: true }, w13);
 
     var distySoh = snap.month ? DI.onHandAtMonth(snap.year, snap.month, ubFilters) : 0;
-    var dealersSoh = snapshotWeek ? DS.totalDealerOnHandAtWeek(snapshotWeek) : 0;
+    var dealersSoh = snap.month ? MS.onHandAtMonth(snap.year, snap.month, ubFilters) : 0;
     var avgDemand = avgUserbuy4wk_(ubFilters, snapshotWeek);
     var overallWoi = computeWoi_(distySoh + dealersSoh, avgDemand);
 

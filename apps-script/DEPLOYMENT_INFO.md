@@ -116,3 +116,19 @@ editor de kiem tra ten tab dung:
 - WOI cua bang Dealers dung trung binh SELL OUT 4 tuan (khong phai Userbuy,
   vi Userbuy khong gan duoc vao Dealer) - co the can dieu chinh neu Phuc muon
   logic khac.
+
+## action=monthlysales (NEW Jun 21) - cho KPI "Dealers SOH"
+- Doc tab "Monthly Sales data" (CUNG spreadsheet voi RAW - IHS / Userbuy data /
+  Disty Monthly INV - khong can openById rieng).
+- Cot quan trong: H=marketing_sku, X=On hand (cot 24, dung de tinh Dealers SOH).
+  Day la ban MONTHLY cua Sell In/Sell Out/On Hand THEO TUNG DEALER (khac Weekly
+  Sales Data la theo TUAN va theo TOAN BO mang luoi ~109 dealer).
+- Gop theo (Year, Month, marketing_sku), cong don On Hand tren TAT CA Customer/
+  Dealer (vi On Hand la snapshot ton kho tai 1 thoi diem, cong don nhieu dealer
+  la dung).
+- Dung CUNG "Inventory Snapshot Rule" (thang nao) voi Disty SOH de 2 con so
+  cong lai (WOI blended) duoc dong nhat ve mat thoi gian.
+- Test: `testGetMonthlySalesData()`. Neu loi "Khong tim thay sheet Monthly Sales
+  data", sua bien `SHEET_MONTHLY_SALES_CANDIDATES`.
+- Client: `docs/js/monthlySalesData.js`. Fallback: `docs/data/monthly-sales.json`
+  (CHI co Y2024 Q1 M01-M02, gioi han tai file goc >10MB - se tu day du khi deploy).
