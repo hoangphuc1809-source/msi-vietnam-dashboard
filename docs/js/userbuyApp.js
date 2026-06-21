@@ -505,7 +505,8 @@
         onHand: round2_(onHand), distyOnHand: round2_(distyOnHand),
         woi: computeWoi_(onHand + distyOnHand, avgDemand), isEOL: String(sk.status).toUpperCase() === 'EOL'
       };
-    }).sort(function (a, b) { return b.total13 - a.total13; }).slice(0, 60);
+    }).filter(function (r) { return r.total13 > 0; })
+      .sort(function (a, b) { return b.total13 - a.total13; }).slice(0, 60);
 
     TB.renderModelDetailTable('modelDetailTable', rows, weeks13);
   }

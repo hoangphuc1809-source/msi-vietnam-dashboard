@@ -86,6 +86,11 @@ window.MsiUserbuyTables = (function () {
     }
   }
 
+  function numOrBlank_(v) {
+    if (v === null || v === undefined || v === 0) return '';
+    return fmt.number(v);
+  }
+
   // rows: [{sku, segment, last13:[...13 gia tri...], total13, onHand, distyOnHand, woi, isEOL}]
   // weekLabels13: 13 nhan tuan ('2026W22', '2026W23', ...) lam header cot
   function renderModelDetailTable(containerId, rows, weekLabels13) {
@@ -97,10 +102,10 @@ window.MsiUserbuyTables = (function () {
     rows.forEach(function (r) {
       html += '<tr>' +
         '<td class="model-col-sticky" title="' + escapeAttr(r.sku) + '"><div class="model-name-full">' + escapeAttr(r.sku) + '</div><div class="model-sub">' + escapeAttr(r.segment) + '</div></td>';
-      r.last13.forEach(function (v) { html += '<td>' + fmt.number(v) + '</td>'; });
-      html += '<td><b>' + fmt.number(r.total13) + '</b></td>' +
-        '<td>' + fmt.number(r.onHand) + '</td>' +
-        '<td>' + fmt.number(r.distyOnHand) + '</td>' +
+      r.last13.forEach(function (v) { html += '<td>' + numOrBlank_(v) + '</td>'; });
+      html += '<td><b>' + numOrBlank_(r.total13) + '</b></td>' +
+        '<td>' + numOrBlank_(r.onHand) + '</td>' +
+        '<td>' + numOrBlank_(r.distyOnHand) + '</td>' +
         '<td>' + woiBadge(r.woi, r.isEOL) + '</td>' +
         '</tr>';
     });
