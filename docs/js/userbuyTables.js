@@ -28,6 +28,16 @@ window.MsiUserbuyTables = (function () {
 
   // rows: [{label, qty, rev, share, last3:[v,v,v], wow, onHand, woi, isEOL, isActive}]
   // qtyLabel/lastLabel cho tieu de cot dau ('Userbuy' hoac 'Sell Out')
+  // So voi tuan truoc TRONG CUNG 1 hang (so thuc) - tang: chu xanh, giam: chu
+  // do, bang nhau/khong co tuan truoc de so: trung lap
+  function cellTrendClass_(curr, prev) {
+    if (prev === null || prev === undefined) return '';
+    var c = curr || 0, p = prev || 0;
+    if (c > p) return 'val-up';
+    if (c < p) return 'val-down';
+    return '';
+  }
+
   function renderMetricTable(containerId, opts) {
     var rows = opts.rows || [];
     var el = document.getElementById(containerId);
@@ -41,28 +51,32 @@ window.MsiUserbuyTables = (function () {
     }
 
     var grandQty = rows.reduce(function (a, r) { return a + (r.qty || 0); }, 0);
+    var grandWeek = [0, 0, 0];
+    rows.forEach(function (r) {
+      grandWeek[0] += (r.last3[0] || 0);
+      grandWeek[1] += (r.last3[1] || 0);
+      grandWeek[2] += (r.last3[2] || 0);
+    });
     var wl = opts.weekLabels || [];
     var h3 = wl[0] || '3wk ago', h2 = wl[1] || '2wk ago', h1 = wl[2] || 'Last Wk';
 
     var html = '<table class="data-table">';
     html += '<thead><tr>' +
       '<th>' + escapeAttr(opts.dimLabel) + '</th><th>Share</th>' +
-      '<th>Total ' + escapeAttr(opts.metricLabel) + '</th><th>ASP</th>' +
+      '<th>Total ' + escapeAttr(opts.metricLabel) + '</th>' +
       '<th>' + escapeAttr(h3) + '</th><th>' + escapeAttr(h2) + '</th><th>' + escapeAttr(h1) + '</th>' +
       '<th>WoW</th><th>Onhand</th>' + (opts.showDistyOnHand ? '<th>Disty Onhand</th>' : '') + '<th>WOI</th>' +
       '</tr></thead><tbody>';
 
     rows.forEach(function (r) {
       var isActive = opts.activeValue === r.key;
-      var asp = (r.qty > 0) ? (r.rev / r.qty) : null;
       html += '<tr class="' + (isActive ? 'row-active' : '') + '" data-key="' + escapeAttr(r.key) + '">' +
         '<td title="' + escapeAttr(r.label) + '">' + fmt.truncate(r.label, 20) + '</td>' +
         '<td>' + fmt.percent(r.share, 1) + '</td>' +
         '<td>' + fmt.number(r.qty) + '</td>' +
-        '<td>' + (asp === null ? '-' : fmt.compactVnd(asp)) + '</td>' +
-        '<td>' + fmt.number(r.last3[0]) + '</td>' +
-        '<td>' + fmt.number(r.last3[1]) + '</td>' +
-        '<td>' + fmt.number(r.last3[2]) + '</td>' +
+        '<td class="' + cellTrendClass_(r.last3[0], null) + '">' + fmt.number(r.last3[0]) + '</td>' +
+        '<td class="' + cellTrendClass_(r.last3[1], r.last3[0]) + '">' + fmt.number(r.last3[1]) + '</td>' +
+        '<td class="' + cellTrendClass_(r.last3[2], r.last3[1]) + '">' + fmt.number(r.last3[2]) + '</td>' +
         '<td class="' + yoyClass(r.wow) + '">' + fmt.percentSigned(r.wow, 0) + '</td>' +
         '<td>' + fmt.number(r.onHand) + '</td>' +
         (opts.showDistyOnHand ? '<td>' + fmt.number(r.distyOnHand) + '</td>' : '') +
@@ -72,8 +86,11 @@ window.MsiUserbuyTables = (function () {
 
     html += '<tr class="total-row">' +
       '<td>Grand total</td><td>100%</td>' +
-      '<td>' + fmt.number(grandQty) + '</td><td>-</td>' +
-      '<td>-</td><td>-</td><td>-</td><td>-</td><td>-</td>' +
+      '<td>' + fmt.number(grandQty) + '</td>' +
+      '<td class="' + cellTrendClass_(grandWeek[0], null) + '">' + fmt.number(grandWeek[0]) + '</td>' +
+      '<td class="' + cellTrendClass_(grandWeek[1], grandWeek[0]) + '">' + fmt.number(grandWeek[1]) + '</td>' +
+      '<td class="' + cellTrendClass_(grandWeek[2], grandWeek[1]) + '">' + fmt.number(grandWeek[2]) + '</td>' +
+      '<td>-</td><td>-</td>' +
       (opts.showDistyOnHand ? '<td>-</td>' : '') + '<td>-</td>' +
       '</tr>';
     html += '</tbody></table>';
