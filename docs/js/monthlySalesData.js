@@ -8,6 +8,7 @@ window.MsiMonthlySalesData = (function () {
 
   var skus = [];   // [{sku, sg, seg1, cpuSeg, gpu, disty, status, highEnd}]
   var facts = [];    // [{y, m, sku, onHand}]
+  var byDealer = [];  // [{y, m, cust, onHand}]
   var skuIndex = {};
   var meta = {};
   var loaded = false;
@@ -42,6 +43,7 @@ window.MsiMonthlySalesData = (function () {
     skus = (json.skus || []).filter(function (s) { return !EXCLUDED_SERIES_GROUPS[normSeriesGroup_(s.sg)]; });
     skus.forEach(function (s) { s.sg = normSeriesGroup_(s.sg); });
     facts = json.facts || [];
+    byDealer = json.byDealer || [];
     meta = json.meta || {};
     skuIndex = {};
     skus.forEach(function (s) { skuIndex[s.sku] = s; });
@@ -75,10 +77,22 @@ window.MsiMonthlySalesData = (function () {
     return Math.round(total * 100) / 100;
   }
 
+  // Onhand cua 1 Dealer (Customer) tai 1 thang cu the (cong don tat ca SKU)
+  function dealerOnHandAtMonth(customer, year, month) {
+    if (!year || !month || !customer) return 0;
+    var y = normYear_(year);
+    var total = 0;
+    byDealer.forEach(function (r) {
+      if (normYear_(r.y) === y && r.m === month && r.cust === customer) total += (r.onHand || 0);
+    });
+    return Math.round(total * 100) / 100;
+  }
+
   return {
     fetchData: fetchData,
     isLoaded: isLoaded,
     getMeta: getMeta,
-    onHandAtMonth: onHandAtMonth
+    onHandAtMonth: onHandAtMonth,
+    dealerOnHandAtMonth: dealerOnHandAtMonth
   };
 })();

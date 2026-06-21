@@ -564,14 +564,16 @@ var sheet = findSheetByCandidates_(ss, SHEET_MONTHLY_SALES_CANDIDATES);
 if (!sheet) throw new Error('Khong tim thay sheet Monthly Sales data. Da thu: ' + SHEET_MONTHLY_SALES_CANDIDATES.join(', ') + '. Kiem tra lai ten tab va sua bien SHEET_MONTHLY_SALES_CANDIDATES.');
 var lastRow = sheet.getLastRow();
 var lastCol = sheet.getLastColumn();
-if (lastRow < 2) return { skus: [], facts: [], meta: {} };
+if (lastRow < 2) return { skus: [], facts: [], byDealer: [], meta: {} };
 var values = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
 var skuMap = {};
 var factMap = {}; // 'year|month|sku' -> onHand (cong don tat ca Customer)
+var dealerMap = {}; // 'year|month|customer' -> onHand (cong don tat ca SKU)
 for (var i = 0; i < values.length; i++) {
 var r = values[i];
 var year = r[0];
 var month = r[2];
+var customer = r[4];
 var sku = r[7];
 if (!year || !month || !sku) continue;
 var sg = normSeriesGroup_(r[8] || '');
@@ -590,6 +592,11 @@ highEnd: !!HIGH_END_SEGMENTS[String(seg1)]
 
 var key = String(year).replace(/^Y/, '') + '|' + String(month) + '|' + sku;
 factMap[key] = (factMap[key] || 0) + onHand;
+
+if (customer) {
+var dKey = String(year).replace(/^Y/, '') + '|' + String(month) + '|' + customer;
+dealerMap[dKey] = (dealerMap[dKey] || 0) + onHand;
+}
 }
 var skus = [];
 for (var s in skuMap) skus.push(skuMap[s]);
@@ -598,14 +605,21 @@ for (var fk in factMap) {
 var parts = fk.split('|');
 facts.push({ y: parts[0], m: parts[1], sku: parts[2], onHand: round2_(factMap[fk]) });
 }
+var byDealer = [];
+for (var dk in dealerMap) {
+var dParts = dk.split('|');
+byDealer.push({ y: dParts[0], m: dParts[1], cust: dParts[2], onHand: round2_(dealerMap[dk]) });
+}
 var result = {
 skus: skus,
 facts: facts,
+byDealer: byDealer,
 meta: {
 generatedAt: new Date().toISOString(),
 source: sheet.getName() + ' (live)',
 skuCount: skus.length,
-factCount: facts.length
+factCount: facts.length,
+dealerCount: byDealer.length
 }
 };
 try {
@@ -704,7 +718,9 @@ function testGetMonthlySalesData() {
 var data = getMonthlySalesData_();
 Logger.log('SKU count: ' + data.skus.length);
 Logger.log('Fact count: ' + data.facts.length);
+Logger.log('Dealer count: ' + data.byDealer.length);
 Logger.log('Meta: ' + JSON.stringify(data.meta));
 Logger.log('Sample sku: ' + JSON.stringify(data.skus[0]));
 Logger.log('Sample fact: ' + JSON.stringify(data.facts[0]));
+Logger.log('Sample dealer: ' + JSON.stringify(data.byDealer[0]));
 }

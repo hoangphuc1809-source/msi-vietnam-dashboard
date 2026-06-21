@@ -405,7 +405,7 @@
     var groups = UB.groupBy(ubFilters, 'seg1');
     var rows = buildMetricRows_(groups, last3,
       function (seg) { var f = cloneState_(ubFilters); f.segment = seg; return f; },
-      function (seg, w) { return DS.segmentOnHandAtWeek(seg, w); },
+      function (seg) { return snap.month ? MS.onHandAtMonth(snap.year, snap.month, { segment: seg }) : 0; },
       null
     );
     TB.renderMetricTable('segmentTable', {
@@ -418,7 +418,7 @@
     var groups = UB.groupBy(ubFilters, 'gpu');
     var rows = buildMetricRows_(groups, last3,
       function (gpu) { var f = cloneState_(ubFilters); f.gpu = gpu; return f; },
-      function (gpu, w) { return DS.gpuOnHandAtWeek(gpu, w); },
+      function (gpu) { return snap.month ? MS.onHandAtMonth(snap.year, snap.month, { gpu: gpu }) : 0; },
       null
     );
     TB.renderMetricTable('gpuTable', {
@@ -439,7 +439,7 @@
     });
     var rows = buildMetricRows_(groups, last3,
       function () { return null; }, // demand cho dealer dung rieng avgSellOut4wk_ ben duoi, khong dung avgUserbuy4wk_
-      function (dealer, w) { return DS.dealerOnHandAtWeek(dealer, w); },
+      function (dealer) { return snap.month ? MS.dealerOnHandAtMonth(dealer, snap.year, snap.month) : 0; },
       null
     );
     // Ghi de WOI: dung avg Sell Out 4 tuan rieng cho Dealer (xem ghi chu avgSellOut4wkForDealer_)
@@ -468,7 +468,7 @@
     var distyOnHandMap = snap.month ? DI.onHandByDistyAtMonth(snap.year, snap.month, ubFilters) : {};
     var rows = buildMetricRows_(groups, last3,
       function (disty) { var f = cloneState_(ubFilters); f.disty = disty; return f; },
-      function (disty, w) { return DS.distyOnHandAtWeek(disty, w); },
+      function (disty) { return snap.month ? MS.onHandAtMonth(snap.year, snap.month, { disty: disty }) : 0; },
       function (disty) { return distyOnHandMap[disty] || 0; }
     );
     TB.renderMetricTable('distyTable', {
@@ -497,7 +497,7 @@
     var rows = skus.map(function (sk) {
       var series = UB.weeklySeries({ model: sk.sku, years: [], quarters: [] }, weeks13).map(function (s) { return s.qty || 0; });
       var total13 = series.reduce(function (a, v) { return a + v; }, 0);
-      var onHand = DS.modelOnHandAtWeek(sk.sku, anchor);
+      var onHand = snap.month ? MS.onHandAtMonth(snap.year, snap.month, { model: sk.sku }) : 0;
       var distyOnHand = DI.onHandAtMonth(snap.year, snap.month, { model: sk.sku });
       var avgDemand = total13 / 13 >= 0 ? (series.slice(-4).reduce(function (a, v) { return a + v; }, 0) / 4) : 0;
       return {
@@ -528,7 +528,7 @@
       var series = UB.weeklySeries({ model: sk.sku, years: [], quarters: [] }, weeks4).map(function (s) { return s.qty || 0; });
       var avg4 = series.reduce(function (a, v) { return a + v; }, 0) / 4;
       if (avg4 < 1) return; // bo qua model qua it nhu cau, khong co y nghia canh bao
-      var onHand = DS.modelOnHandAtWeek(sk.sku, anchor);
+      var onHand = snap.month ? MS.onHandAtMonth(snap.year, snap.month, { model: sk.sku }) : 0;
       var distyOnHand = DI.onHandAtMonth(snap.year, snap.month, { model: sk.sku });
 
       if (distyOnHand <= 0 && onHand < avg4 * 0.5) {
