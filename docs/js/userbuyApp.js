@@ -394,7 +394,7 @@
         share: grandQty > 0 ? g.qty / grandQty : 0,
         last3: l3, wow: wow, onHand: round2_(onHand),
         distyOnHand: distyOnHand !== null ? round2_(distyOnHand) : null,
-        woi: computeWoi_(totalOnHand, avgDemand), isEOL: false
+        woi: computeWoi_(totalOnHand, avgDemand), avgDemand: avgDemand, isEOL: false
       });
     });
     rows.sort(function (a, b) { return b.qty - a.qty; });
@@ -445,6 +445,7 @@
     // Ghi de WOI: dung avg Sell Out 4 tuan rieng cho Dealer (xem ghi chu avgSellOut4wkForDealer_)
     rows.forEach(function (r) {
       var avgDemand = avgSellOut4wkForDealer_(r.key, last3[2]);
+      r.avgDemand = avgDemand;
       r.woi = computeWoi_(r.onHand, avgDemand);
     });
     TB.renderMetricTable('dealersTable', {

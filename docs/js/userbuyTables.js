@@ -52,11 +52,18 @@ window.MsiUserbuyTables = (function () {
 
     var grandQty = rows.reduce(function (a, r) { return a + (r.qty || 0); }, 0);
     var grandWeek = [0, 0, 0];
+    var grandOnHand = 0, grandDistyOnHand = 0, grandAvgDemand = 0;
     rows.forEach(function (r) {
       grandWeek[0] += (r.last3[0] || 0);
       grandWeek[1] += (r.last3[1] || 0);
       grandWeek[2] += (r.last3[2] || 0);
+      grandOnHand += (r.onHand || 0);
+      grandDistyOnHand += (r.distyOnHand || 0);
+      grandAvgDemand += (r.avgDemand || 0);
     });
+    var grandWow = (grandWeek[2] !== null && grandWeek[1]) ? (grandWeek[2] - grandWeek[1]) / grandWeek[1] : null;
+    var grandTotalOnHand = grandOnHand + (opts.showDistyOnHand ? grandDistyOnHand : 0);
+    var grandWoi = grandAvgDemand > 0 ? grandTotalOnHand / grandAvgDemand : null;
     var wl = opts.weekLabels || [];
     var h3 = wl[0] || '3wk ago', h2 = wl[1] || '2wk ago', h1 = wl[2] || 'Last Wk';
 
@@ -90,8 +97,10 @@ window.MsiUserbuyTables = (function () {
       '<td class="' + cellTrendClass_(grandWeek[0], null) + '">' + fmt.number(grandWeek[0]) + '</td>' +
       '<td class="' + cellTrendClass_(grandWeek[1], grandWeek[0]) + '">' + fmt.number(grandWeek[1]) + '</td>' +
       '<td class="' + cellTrendClass_(grandWeek[2], grandWeek[1]) + '">' + fmt.number(grandWeek[2]) + '</td>' +
-      '<td>-</td><td>-</td>' +
-      (opts.showDistyOnHand ? '<td>-</td>' : '') + '<td>-</td>' +
+      '<td class="' + yoyClass(grandWow) + '">' + fmt.percentSigned(grandWow, 0) + '</td>' +
+      '<td>' + fmt.number(grandOnHand) + '</td>' +
+      (opts.showDistyOnHand ? '<td>' + fmt.number(grandDistyOnHand) + '</td>' : '') +
+      '<td>' + woiBadge(grandWoi, false) + '</td>' +
       '</tr>';
     html += '</tbody></table>';
     el.innerHTML = html;
