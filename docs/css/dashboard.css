@@ -878,3 +878,86 @@ html, body {
   .mp-inner { padding: 0 12px; }
   .tk-item { padding: 8px 12px; }
 }
+
+/* ===== Userbuy Tracking tab (NEW) - tab nav, WOI badges, search, sparkline ===== */
+
+.tab-nav {
+  display: flex;
+  gap: 4px;
+  padding: 8px 24px 0;
+  background: var(--card, #fff);
+  border-bottom: 1px solid var(--border, #E2E8F0);
+}
+.tab-nav-item {
+  display: inline-block;
+  padding: 9px 16px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-decoration: none;
+  border-bottom: 2.5px solid transparent;
+  border-radius: 6px 6px 0 0;
+  transition: color 0.15s, background 0.15s;
+}
+.tab-nav-item:hover { color: var(--msi-red); background: var(--msi-red-bg); }
+.tab-nav-item.active { color: var(--msi-red); border-bottom-color: var(--msi-red); }
+
+.woi-badge {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-family: var(--font-mono, 'IBM Plex Mono', monospace);
+  font-size: 10.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.woi-optimal { background: var(--signal-green-bg); color: var(--signal-green); }
+.woi-monitor { background: var(--signal-amber-bg); color: var(--signal-amber); }
+.woi-overstock { background: var(--signal-red-bg); color: var(--signal-red); }
+.woi-skip { background: #EEF0F3; color: #94A3B8; }
+.woi-flat { background: #F1F5F9; color: #94A3B8; }
+
+.global-search-input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border, #E2E8F0);
+  border-radius: 8px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--text-primary);
+  background: #fff;
+}
+.global-search-input:focus { outline: none; border-color: var(--msi-red); }
+.global-search-results {
+  position: relative;
+  max-height: 220px;
+  overflow-y: auto;
+  margin-top: 4px;
+  border-radius: 8px;
+}
+.global-search-results:empty { display: none; }
+.global-search-result-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 10px;
+  font-size: 12.5px;
+  border-bottom: 1px solid var(--border, #E2E8F0);
+  cursor: pointer;
+  background: #fff;
+}
+.global-search-result-item:hover { background: var(--msi-red-bg); }
+.global-search-result-item .gsr-meta { color: var(--text-secondary); font-size: 11px; }
+
+.sparkline { vertical-align: middle; margin-right: 6px; }
+.spark-last { font-family: var(--font-mono, 'IBM Plex Mono', monospace); font-weight: 700; font-size: 11px; color: var(--text-primary); }
+.model-detail-table td { vertical-align: middle; }
+.model-sub { font-size: 10.5px; color: var(--text-secondary); font-weight: 500; margin-top: 1px; }
+
+.pill-btn.active.pill-highend { background: var(--msi-red-bg); border-color: var(--msi-red); color: var(--msi-red); }
+
+@media (max-width: 720px) {
+  .tab-nav { padding: 6px 12px 0; }
+  .tab-nav-item { padding: 8px 12px; font-size: 12px; }
+}

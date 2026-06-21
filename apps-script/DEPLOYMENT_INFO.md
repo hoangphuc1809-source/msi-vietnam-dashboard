@@ -66,3 +66,53 @@ https://script.google.com/macros/s/AKfycbwA403Z2FAYM_qyq0sGNqTfWuRiJc9rhSrb7RoZR
   docs/data/weekly-sellout.json neu chua deploy - giong nguyen tac voi action=nv
 - Cach deploy: GIONG HET cach deploy action=nv o tren (paste DashboardAPI.gs
   moi, chay thu testGetWeeklySelloutData() de kiem tra, roi tao New version)
+
+## Userbuy Tracking tab (NEW Jun 21) - 3 endpoint moi/mo rong, can deploy 1 lan
+
+Tab moi `docs/userbuy.html` (nav rieng, link tu Market Overall). Can MOT lan
+deploy DashboardAPI.gs phien ban moi nhat de tat ca live - lam dung 6 buoc
+"CACH DEPLOY ACTION=NV" o tren (paste de ghi de DashboardAPI.gs, Deploy >
+Manage deployments > New version). Sau khi deploy, chay thu trong Apps Script
+editor de kiem tra ten tab dung:
+- `testGetUserbuyData()` - neu loi "Khong tim thay sheet Userbuy data", mo
+  spreadsheet "Data Analysic - Calculated" xem ten tab CHINH XAC la gi, sua
+  bien `SHEET_USERBUY_CANDIDATES` dau file cho khop.
+- `testGetDistyInvData()` - tuong tu, sua `SHEET_DISTY_INV_CANDIDATES` neu can.
+- `testGetWeeklySelloutData()` - kiem tra co them `byDealer`/`byDisty`/
+  `bySegment`/`byGpu`/`byModel` (khong chi `rows` nhu truoc).
+
+### action=userbuy (MOI)
+- Doc tab "Userbuy data" (CUNG spreadsheet voi RAW - IHS, khong can openById
+  rieng). Tach payload thanh `skus` (thuoc tinh SKU, 1 dong/SKU) + `facts`
+  (Week x SKU, da cong don User Buy/Rev) de payload gon hon nhieu so voi gui
+  tung dong theo Ngay.
+- Client: `docs/js/userbuyData.js`. Fallback: `docs/data/userbuy.json`.
+
+### action=distyinv (MOI)
+- Doc tab "Disty Monthly INV" (cung spreadsheet). Gop theo THANG (khac cac
+  endpoint khac la theo TUAN). File nho nen tra ve full rows, khong gop them.
+- Client: `docs/js/distyInvData.js`. Fallback: `docs/data/disty-inv.json`.
+
+### action=sellout (MO RONG)
+- Van tra ve `rows` (Week, Series Group) nhu cu - Market Overall (salesData.js)
+  khong bi anh huong.
+- THEM 4 mang moi tu CUNG 1 lan doc sheet 12MB (khong doc lai nhieu lan):
+  `byDealer` (Week, Customer), `byDisty` (Week, Disty - co them On Hand),
+  `bySegment` (Week, SEGMENT1 - chi co On Hand), `byGpu` (Week, GPU - chi co
+  On Hand), `byModel` (Week, marketing_sku - chi co On Hand, cho bang Model
+  Detail cua tab Userbuy Tracking).
+- Client doc them: `docs/js/dealerSelloutData.js`. Fallback:
+  `docs/data/weekly-sellout-detail.json`.
+
+### Luu y ve static fallback snapshot
+- `userbuy.json` va `disty-inv.json`: build tu FULL data thuc te (qua Google
+  Drive), nen ngay ca khi CHUA deploy, 2 nguon nay van chuan/day du.
+- `weekly-sellout-detail.json`: CHI co du lieu 2025W01-2025W07 (gioi han tai
+  file CSV goc >10MB khong tai duoc full). Dealers/Disty table se trong neu
+  dang xem nam/quy khac ngoai khoang nay - se TU DONG day du ngay khi Apps
+  Script duoc deploy (khong can sua code).
+
+### Gia dinh can xac nhan lai voi Phuc (xem tin nhan tom tat trong chat)
+- WOI cua bang Dealers dung trung binh SELL OUT 4 tuan (khong phai Userbuy,
+  vi Userbuy khong gan duoc vao Dealer) - co the can dieu chinh neu Phuc muon
+  logic khac.

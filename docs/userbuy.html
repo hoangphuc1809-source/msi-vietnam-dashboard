@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MSI Vietnam - Userbuy Tracking</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/dashboard.css?v=1782004100">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+</head>
+<body>
+
+<div class="app-shell">
+
+  <header class="app-header">
+    <div class="app-logo">
+      <img src="assets/msi-logo.png" alt="MSI">
+      <span>
+        <div class="title">Userbuy Tracking</div>
+        <div class="subtitle">End-customer activation &amp; Inventory Health</div>
+      </span>
+    </div>
+
+    <div class="header-meta">
+      <span id="lastUpdated">Loading data...</span>
+      <button class="refresh-btn" id="refreshBtn">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        Refresh
+      </button>
+    </div>
+  </header>
+
+  <nav class="tab-nav">
+    <a href="index.html" class="tab-nav-item">Market Overall</a>
+    <a href="userbuy.html" class="tab-nav-item active">Userbuy Tracking</a>
+  </nav>
+
+  <div class="filter-bar">
+    <div class="filter-field filter-field-wide">
+      <label for="globalSearchInput">Search anything</label>
+      <input type="text" id="globalSearchInput" class="global-search-input" placeholder="Model, Segment, GPU, CPU, Disty, Dealer...">
+      <div id="globalSearchResults" class="global-search-results"></div>
+    </div>
+    <div class="filter-field">
+      <label for="yearSelect">Year</label>
+      <select id="yearSelect" multiple></select>
+    </div>
+    <div class="filter-field">
+      <label for="quarterSelect">Quarter</label>
+      <select id="quarterSelect" multiple></select>
+    </div>
+    <div class="filter-field filter-field-wide">
+      <label for="modelSelect">Model (marketing_sku)</label>
+      <select id="modelSelect"></select>
+    </div>
+    <div class="filter-field filter-field-pills">
+      <label>Series Group</label>
+      <div id="seriesGroupPills" class="pill-group"></div>
+    </div>
+    <div class="filter-field filter-field-pills">
+      <label>Quick Filter</label>
+      <div class="pill-group">
+        <button class="pill-btn" id="highEndPillBtn" type="button">High-End</button>
+        <button class="pill-btn" id="series50PillBtn" type="button">Series 50 GPU</button>
+      </div>
+    </div>
+    <button class="chip reset" id="resetFilterBtn">Reset Filter</button>
+  </div>
+
+  <div class="error-banner" id="errorBanner"></div>
+  <div class="filter-tags" id="filterTags"></div>
+
+  <!-- ===== ZONE 0: WEEKLY TREND ===== -->
+  <div class="zone-label">Weekly Trend</div>
+  <div class="dash-grid" style="grid-template-columns: 1fr;">
+    <div class="card accent-red">
+      <h3 class="card-title">
+        <span class="dot" style="background:#CC0000"></span>
+        Total Userbuy - weekly
+        <span class="hint">This period vs Last Year</span>
+      </h3>
+      <div class="chart-wrap"><canvas id="weeklyTotalChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="dash-grid">
+    <div class="card">
+      <h3 class="card-title">Userbuy by Series Group</h3>
+      <div class="chart-wrap"><canvas id="seriesGroupChart"></canvas></div>
+    </div>
+    <div class="card">
+      <h3 class="card-title">Userbuy by Segment</h3>
+      <div class="chart-wrap tall"><canvas id="segmentBarChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="dash-grid">
+    <div class="card">
+      <h3 class="card-title">Userbuy by GPU</h3>
+      <div class="chart-wrap tall"><canvas id="gpuBarChart"></canvas></div>
+    </div>
+    <div class="card">
+      <h3 class="card-title">Userbuy by CPU Segment</h3>
+      <div class="chart-wrap tall"><canvas id="cpuBarChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ===== ZONE 1: EARLY WARNING ===== -->
+  <div class="zone-label">Early Warning</div>
+  <div class="dash-grid" style="grid-template-columns: 1fr;">
+    <div class="card accent-amber">
+      <h3 class="card-title">
+        <span class="dot" style="background:#D97706"></span>
+        Inventory Health Alerts
+        <span class="hint">Out of Stock risk &middot; Overstock / Slow Moving</span>
+      </h3>
+      <div id="earlyWarningPanel"></div>
+    </div>
+  </div>
+
+  <!-- ===== ZONE 2: SEGMENT & GPU DETAIL ===== -->
+  <div class="zone-label">Segment &amp; GPU Detail</div>
+  <div class="dash-grid">
+    <div class="card">
+      <h3 class="card-title">Segment</h3>
+      <div class="table-scroll" id="segmentTable"></div>
+    </div>
+    <div class="card">
+      <h3 class="card-title">GPU</h3>
+      <div class="table-scroll" id="gpuTable"></div>
+    </div>
+  </div>
+
+  <!-- ===== ZONE 3: DEALER & DISTY DETAIL ===== -->
+  <div class="zone-label">Dealer &amp; Disty Detail</div>
+  <div class="dash-grid">
+    <div class="card">
+      <h3 class="card-title">Dealers</h3>
+      <div class="table-scroll" id="dealersTable"></div>
+    </div>
+    <div class="card">
+      <h3 class="card-title">Disty</h3>
+      <div class="table-scroll" id="distyTable"></div>
+    </div>
+  </div>
+
+  <!-- ===== ZONE 4: MODEL DETAIL ===== -->
+  <div class="zone-label">Model Detail</div>
+  <div class="dash-grid" style="grid-template-columns: 1fr;">
+    <div class="card">
+      <h3 class="card-title">
+        Model &middot; 13w Userbuy rolling
+        <span class="hint">Onhand &middot; Disty Onhand &middot; WOI</span>
+      </h3>
+      <div class="table-scroll" id="modelDetailTable"></div>
+    </div>
+  </div>
+
+  <footer class="app-footer">
+    MSI Vietnam &middot; Userbuy Tracking Dashboard &middot; Source: Userbuy data / Weekly Sales Data / Disty Monthly INV (Google Sheets, auto-sync)
+  </footer>
+
+</div>
+
+<script src="js/config.js?v=1782004100"></script>
+<script src="js/format.js?v=1782004100"></script>
+<script src="js/weekUtils.js?v=1782004100"></script>
+<script src="js/userbuyFilterState.js?v=1782004100"></script>
+<script src="js/userbuyData.js?v=1782004100"></script>
+<script src="js/distyInvData.js?v=1782004100"></script>
+<script src="js/dealerSelloutData.js?v=1782004100"></script>
+<script src="js/userbuyCharts.js?v=1782004100"></script>
+<script src="js/userbuyTables.js?v=1782004100"></script>
+<script src="js/userbuyApp.js?v=1782004100"></script>
+</body>
+</html>
