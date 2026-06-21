@@ -76,6 +76,21 @@ window.MsiFormat = (function () {
     return str.slice(0, len - 1) + '\u2026';
   }
 
+  // So gon: 27180551 -> '27,1M' (cat bot, khong lam tron, theo dung vi du
+  // Phuc yeu cau - dung phay lam dau thap phan kieu VN)
+  function compactVnd(n) {
+    if (n === null || n === undefined || isNaN(n)) return '-';
+    var sign = n < 0 ? '-' : '';
+    var abs = Math.abs(n);
+    var val, suffix;
+    if (abs >= 1e9) { val = abs / 1e9; suffix = 'B'; }
+    else if (abs >= 1e6) { val = abs / 1e6; suffix = 'M'; }
+    else if (abs >= 1e3) { val = abs / 1e3; suffix = 'K'; }
+    else return sign + Math.round(abs).toLocaleString('en-US');
+    var cut = Math.floor(val * 10) / 10;
+    return sign + cut.toFixed(1).replace('.', ',') + suffix;
+  }
+
   return {
     weekShort: weekShort,
     weekParts: weekParts,
@@ -87,6 +102,7 @@ window.MsiFormat = (function () {
     number: number,
     percent: percent,
     percentSigned: percentSigned,
+    compactVnd: compactVnd,
     truncate: truncate
   };
 })();

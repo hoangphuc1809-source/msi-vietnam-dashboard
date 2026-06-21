@@ -59,7 +59,7 @@ window.MsiUserbuyTables = (function () {
         '<td title="' + escapeAttr(r.label) + '">' + fmt.truncate(r.label, 20) + '</td>' +
         '<td>' + fmt.percent(r.share, 1) + '</td>' +
         '<td>' + fmt.number(r.qty) + '</td>' +
-        '<td>' + (asp === null ? '-' : Math.round(asp).toLocaleString('en-US')) + '</td>' +
+        '<td>' + (asp === null ? '-' : fmt.compactVnd(asp)) + '</td>' +
         '<td>' + fmt.number(r.last3[0]) + '</td>' +
         '<td>' + fmt.number(r.last3[1]) + '</td>' +
         '<td>' + fmt.number(r.last3[2]) + '</td>' +
