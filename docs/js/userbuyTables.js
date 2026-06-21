@@ -91,6 +91,16 @@ window.MsiUserbuyTables = (function () {
     return fmt.number(v);
   }
 
+  // So sanh voi tuan truoc TRONG CUNG 1 dong (so thuc, khong phai chuoi da
+  // blank-hoa) - tang: xanh la nhe, giam: do nhe, bang nhau/tuan dau: trung lap
+  function weekTrendClass_(curr, prev) {
+    if (prev === null || prev === undefined) return '';
+    var c = curr || 0, p = prev || 0;
+    if (c > p) return 'wk-up';
+    if (c < p) return 'wk-down';
+    return '';
+  }
+
   // rows: [{sku, segment, last13:[...13 gia tri...], total13, onHand, distyOnHand, woi, isEOL}]
   // weekLabels13: 13 nhan tuan ('2026W22', '2026W23', ...) lam header cot
   function renderModelDetailTable(containerId, rows, weekLabels13) {
@@ -102,7 +112,10 @@ window.MsiUserbuyTables = (function () {
     rows.forEach(function (r) {
       html += '<tr>' +
         '<td class="model-col-sticky" title="' + escapeAttr(r.sku) + '"><div class="model-name-full">' + escapeAttr(r.sku) + '</div><div class="model-sub">' + escapeAttr(r.segment) + '</div></td>';
-      r.last13.forEach(function (v) { html += '<td>' + numOrBlank_(v) + '</td>'; });
+      r.last13.forEach(function (v, i) {
+        var cls = weekTrendClass_(v, i > 0 ? r.last13[i - 1] : null);
+        html += '<td class="' + cls + '">' + numOrBlank_(v) + '</td>';
+      });
       html += '<td><b>' + numOrBlank_(r.total13) + '</b></td>' +
         '<td>' + numOrBlank_(r.onHand) + '</td>' +
         '<td>' + numOrBlank_(r.distyOnHand) + '</td>' +
