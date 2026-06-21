@@ -409,6 +409,10 @@ html, body {
   grid-template-columns: 1fr 1.6fr;
 }
 
+.dash-grid-top-align {
+  align-items: start;
+}
+
 @media (max-width: 1340px) {
   .dash-grid-wide-right { grid-template-columns: 1fr; }
 }
@@ -1038,26 +1042,64 @@ html, body {
 /* KPI snapshot tiles */
 .kpi-hero-card {
   display: flex;
-  gap: 24px;
-  align-items: stretch;
+  flex-direction: row;
+  gap: 20px;
+  align-items: center;
   flex-wrap: wrap;
+  align-self: start; /* khong de Grid keo gian theo card ben canh (donut) */
 }
-.kpi-hero-left { flex: 0 0 200px; }
-.kpi-hero-right { flex: 1; min-width: 260px; height: 150px; }
+.kpi-hero-left { flex: 0 0 190px; }
+.kpi-hero-right { position: relative; flex: 1; min-width: 200px; height: 64px; }
+.kpi-hero-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
 .kpi-hero-number {
   font-family: var(--font-mono);
-  font-size: 38px;
+  font-size: 52px;
   font-weight: 700;
   color: var(--text-primary);
   line-height: 1;
-  margin-top: 6px;
+  margin-top: 8px;
 }
-.kpi-hero-yoy { font-family: var(--font-mono); font-size: 14px; font-weight: 700; margin-top: 8px; }
+.kpi-hero-yoy { margin-top: 10px; }
+.kpi-hero-chart-legend {
+  display: flex;
+  gap: 14px;
+  margin-bottom: 6px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.kpi-hero-chart-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.kpi-hero-chart-legend i { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
+
+/* Badge YoY voi mui ten - dung chung cho hero card + kpi tile */
+.yoy-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+}
+.yoy-badge.up { background: var(--signal-green-bg); color: var(--signal-green); }
+.yoy-badge.down { background: var(--signal-red-bg); color: var(--signal-red); }
+.yoy-badge.flat { background: #F1F5F9; color: #94A3B8; }
+.kpi-hero-yoy .yoy-badge { font-size: 14px; padding: 4px 11px; }
 
 .kpi-tile-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 10px;
+  align-items: start;
 }
 .kpi-tile {
   background: var(--card, #fff);
@@ -1082,9 +1124,11 @@ html, body {
   margin-top: 5px;
   line-height: 1.1;
 }
-.kpi-tile-yoy { font-family: var(--font-mono); font-size: 11px; font-weight: 700; margin-top: 3px; }
+.kpi-tile-yoy { margin-top: 6px; }
+.kpi-tile-yoy .yoy-badge { font-size: 10.5px; padding: 2px 8px; }
+.kpi-tile-yoy .val-flat { font-family: var(--font-mono); font-size: 10.5px; color: #94A3B8; }
 
-.donut-card-wrap { height: 230px; }
+.donut-card-wrap { height: 200px; }
 
 /* Empty state for tables awaiting live data */
 .table-empty-state {

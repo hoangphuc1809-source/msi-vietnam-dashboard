@@ -264,9 +264,10 @@
   }
 
   function yoyHtml_(yoy) {
-    if (yoy === null || yoy === undefined) return '<span class="val-flat">YoY -</span>';
-    var cls = yoy >= 0 ? 'val-up' : 'val-down';
-    return '<span class="' + cls + '">YoY ' + fmt.percentSigned(yoy, 0) + '</span>';
+    if (yoy === null || yoy === undefined) return '<span class="yoy-badge flat">YoY -</span>';
+    var cls = yoy >= 0 ? 'up' : 'down';
+    var arrow = yoy >= 0 ? '\u25B2' : '\u25BC';
+    return '<span class="yoy-badge ' + cls + '">' + arrow + ' YoY ' + fmt.percentSigned(yoy, 0).replace(/^[+-]/, '') + '</span>';
   }
 
   function renderSnapshotZone_(state, ubFilters, periodWeeks, snapshotWeek, snap) {

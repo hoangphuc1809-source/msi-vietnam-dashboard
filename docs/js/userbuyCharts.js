@@ -9,7 +9,16 @@ window.MsiUserbuyCharts = (function () {
   var charts = {};
 
   function destroyIfExists(id) {
-    if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+    if (charts[id]) {
+      charts[id].destroy();
+      delete charts[id];
+      var el = document.getElementById(id);
+      if (el) {
+        el.removeAttribute('style');
+        el.removeAttribute('width');
+        el.removeAttribute('height');
+      }
+    }
   }
 
   function hexToRgba(hex, alpha) {
@@ -181,6 +190,9 @@ window.MsiUserbuyCharts = (function () {
   }
 
   // ===== 3. Bar chart cong don (cumulative) - This period vs Last Year =====
+  // Toi gian: KHONG truc X/Y, KHONG legend canvas (dung legend HTML rieng ben
+  // ngoai) - chi con cot + tooltip khi hover, dung lam "sparkline" ben canh
+  // con so Total Userbuy.
   function renderAccumulateBarChart(canvasId, weeks, thisYear, lastYear) {
     destroyIfExists(canvasId);
     var ctx = document.getElementById(canvasId).getContext('2d');
@@ -188,26 +200,29 @@ window.MsiUserbuyCharts = (function () {
       var sum = 0;
       return arr.map(function (v) { sum += (v || 0); return sum; });
     }
-    var labels = weeks.map(function (w) { return fmt.weekAxisLabel(w); });
+    var labels = weeks.map(function (w) { return w; });
     charts[canvasId] = new Chart(ctx, {
       type: 'bar',
       data: {
         labels: labels,
         datasets: [
-          { label: 'This period (cumulative)', data: cumulate(thisYear), backgroundColor: hexToRgba(C.accentMSI, 0.85), borderRadius: 3, maxBarThickness: 16 },
-          { label: 'Last Year (cumulative)', data: cumulate(lastYear), backgroundColor: '#CBD5E1', borderRadius: 3, maxBarThickness: 16 }
+          { label: 'This period', data: cumulate(thisYear), backgroundColor: C.accentMSI, borderRadius: 2, maxBarThickness: 14 },
+          { label: 'Last Year', data: cumulate(lastYear), backgroundColor: '#CBD5E1', borderRadius: 2, maxBarThickness: 14 }
         ]
       },
       options: {
         responsive: true, maintainAspectRatio: false,
         plugins: {
-          legend: { display: true, position: 'top', labels: { boxWidth: 10, boxHeight: 10, font: { size: 10, weight: '600' }, usePointStyle: true, pointStyle: 'rectRounded' } },
-          tooltip: { backgroundColor: '#0F172A', padding: 10, cornerRadius: 8, mode: 'index', intersect: false }
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#0F172A', padding: 8, cornerRadius: 6, mode: 'index', intersect: false,
+            titleFont: { size: 10.5 }, bodyFont: { size: 10.5 }
+          }
         },
         interaction: { mode: 'index', intersect: false },
         scales: {
-          x: { grid: { display: false }, ticks: { color: C.textSecondary, font: { size: 9.5, weight: '600' }, maxRotation: 0, autoSkip: true } },
-          y: { beginAtZero: true, ticks: { color: C.textSecondary } }
+          x: { display: false },
+          y: { display: false, beginAtZero: true }
         }
       }
     });
