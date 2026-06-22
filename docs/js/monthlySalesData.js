@@ -49,6 +49,12 @@ window.MsiMonthlySalesData = (function () {
     try { localStorage.removeItem(key); } catch (e) {}
   }
 
+  var LS_KEY_ = SS_KEY_;
+  var epoch_ = 0;
+  function lsGet_(k) { return ssGet_(k); }
+  function lsSet_(k, v) { ssSet_(k, v); }
+  function lsClear_(k) { ssClear_(k); }
+
   async function fetchData(onLiveReady) {
     // 1. localStorage cache: instant ~1ms, skip GAS hoàn toàn
     var _ls = lsGet_(LS_KEY_);
@@ -182,7 +188,7 @@ window.MsiMonthlySalesData = (function () {
 
   return {
     fetchData: fetchData,
-    clearCache: function() { ssClear_(SS_KEY_); },
+    clearCache: function() { lsClear_(LS_KEY_); epoch_++; },
     isLoaded: isLoaded,
     getMeta: getMeta,
     onHandAtMonth: onHandAtMonth,
