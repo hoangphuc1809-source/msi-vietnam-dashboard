@@ -632,15 +632,16 @@ html, body {
 }
 
 /* ===== Equal-height scrollable tables: Segment, GPU, Dealers, Disty =====
-   Ca 4 bang dat cung chieu cao co dinh 400px de can doi.
-   Segment va GPU: scroll doc khi co nhieu segment/gpu.
-   Dealers: scroll doc khi co nhieu dealer (reduce height).
-   Disty: it hang hon nen co khoang trang cuoi, nhung card cao bang nhau. */
+   .table-scroll co flex:1 (flex-grow:1, flex-basis:0) se override height thong thuong.
+   Phai dung flex: 0 0 400px de set flex-basis=400px, grow=0, shrink=0.
+   Ca 4 bang se cao dung 400px, scroll doc khi content vuot qua. */
 #segmentTable,
 #gpuTable,
 #dealersTable,
 #distyTable {
-  height: 400px;
+  flex: 0 0 400px;   /* override flex:1 tu .table-scroll */
+  height: 400px;     /* fallback */
+  min-height: 0;
   overflow-y: auto;
   overflow-x: auto;
 }
