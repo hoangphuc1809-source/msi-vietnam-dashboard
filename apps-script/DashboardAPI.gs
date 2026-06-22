@@ -555,7 +555,7 @@ return result;
 // dong chay. Tach skuMeta + facts giong Userbuy data de payload gon.
 function getMonthlySalesData_() {
 var cache = CacheService.getScriptCache();
-var cached = cache.get('monthly_sales_data_v1');
+var cached = cache.get('monthly_sales_data_v2');
 if (cached) {
 return JSON.parse(cached);
 }
@@ -564,11 +564,12 @@ var sheet = findSheetByCandidates_(ss, SHEET_MONTHLY_SALES_CANDIDATES);
 if (!sheet) throw new Error('Khong tim thay sheet Monthly Sales data. Da thu: ' + SHEET_MONTHLY_SALES_CANDIDATES.join(', ') + '. Kiem tra lai ten tab va sua bien SHEET_MONTHLY_SALES_CANDIDATES.');
 var lastRow = sheet.getLastRow();
 var lastCol = sheet.getLastColumn();
-if (lastRow < 2) return { skus: [], facts: [], byDealer: [], meta: {} };
+if (lastRow < 2) return { skus: [], facts: [], byDealer: [], byDealerSkus: {}, meta: {} };
 var values = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
 var skuMap = {};
 var factMap = {}; // 'year|month|sku' -> onHand (cong don tat ca Customer)
 var dealerMap = {}; // 'year|month|customer' -> onHand (cong don tat ca SKU)
+var dealerSkuSet = {}; // customer -> { sku: true } - de xay dung cross-filter Dealer -> Model Detail
 for (var i = 0; i < values.length; i++) {
 var r = values[i];
 var year = r[0];
@@ -596,6 +597,9 @@ factMap[key] = (factMap[key] || 0) + onHand;
 if (customer) {
 var dKey = String(year).replace(/^Y/, '') + '|' + String(month) + '|' + customer;
 dealerMap[dKey] = (dealerMap[dKey] || 0) + onHand;
+// Track which SKUs this dealer has carried (co onHand bat ky thoi diem nao)
+if (!dealerSkuSet[customer]) dealerSkuSet[customer] = {};
+dealerSkuSet[customer][sku] = true;
 }
 }
 var skus = [];
@@ -610,10 +614,18 @@ for (var dk in dealerMap) {
 var dParts = dk.split('|');
 byDealer.push({ y: dParts[0], m: dParts[1], cust: dParts[2], onHand: round2_(dealerMap[dk]) });
 }
+// byDealerSkus: { 'CellPhones': ['Katana 15 B12V', 'Titan GT77', ...], ... }
+// Dung cho cross-filter: khi click Dealers table -> Model Detail chi hien thi
+// cac model ma dealer do co inventory trong Monthly Sales data.
+var byDealerSkus = {};
+for (var c in dealerSkuSet) {
+byDealerSkus[c] = Object.keys(dealerSkuSet[c]).sort();
+}
 var result = {
 skus: skus,
 facts: facts,
 byDealer: byDealer,
+byDealerSkus: byDealerSkus,
 meta: {
 generatedAt: new Date().toISOString(),
 source: sheet.getName() + ' (live)',
@@ -625,7 +637,7 @@ dealerCount: byDealer.length
 try {
 var json = JSON.stringify(result);
 if (json.length < 950000) {
-cache.put('monthly_sales_data_v1', json, CACHE_SECONDS_MONTHLY_SALES);
+cache.put('monthly_sales_data_v2', json, CACHE_SECONDS_MONTHLY_SALES);
 }
 } catch (e) {
 }
@@ -724,3 +736,4 @@ Logger.log('Sample sku: ' + JSON.stringify(data.skus[0]));
 Logger.log('Sample fact: ' + JSON.stringify(data.facts[0]));
 Logger.log('Sample dealer: ' + JSON.stringify(data.byDealer[0]));
 }
+
