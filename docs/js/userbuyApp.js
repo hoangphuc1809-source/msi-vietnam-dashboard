@@ -180,7 +180,8 @@
     return {
       years: state.years, quarters: state.quarters, seriesGroups: state.seriesGroups,
       highEndOnly: state.highEndOnly, series50Only: state.series50Only, model: state.model,
-      segment: state.segment, gpu: state.gpu, cpu: state.cpu, disty: state.disty
+      segment: state.segment, gpu: state.gpu, cpu: state.cpu, disty: state.disty,
+      dealer: state.dealer  // cross-filter Dealers table -> Model Detail
     };
   }
 
@@ -483,6 +484,20 @@
   function renderModelDetailTable_(state, ubFilters, snap) {
     var anchor = snap.week || WU.isoWeekLabel(new Date());
     var weeks13 = WU.getRollingNWeekLabels(anchor, 13);
+
+    // Cross-filter Dealers -> Model Detail:
+    // Khi 1 dealer duoc chon, xay dung tap cac SKU ma dealer do co inventory
+    // (tu byDealerSkus trong Monthly Sales data). Neu dealer chua co data
+    // (fallback hoac GAS cu chua deploy v2), bo qua bo loc nay de tranh mat data.
+    var dealerSkuSet = null;
+    if (ubFilters.dealer) {
+      var dSkus = MS.getDealerSkus(ubFilters.dealer);
+      if (dSkus.length > 0) {
+        dealerSkuSet = {};
+        dSkus.forEach(function (s) { dealerSkuSet[s] = true; });
+      }
+    }
+
     var skus = UB.getSkus().filter(function (sk) {
       if (ubFilters.seriesGroups.length && ubFilters.seriesGroups.indexOf(sk.sg) === -1) return false;
       if (ubFilters.highEndOnly && !sk.highEnd) return false;
@@ -492,6 +507,8 @@
       if (ubFilters.gpu && sk.gpu !== ubFilters.gpu) return false;
       if (ubFilters.cpu && sk.cpuSeg !== ubFilters.cpu) return false;
       if (ubFilters.disty && sk.disty !== ubFilters.disty) return false;
+      // Neu dealer duoc chon va co byDealerSkus data: chi hien thi SKU dealer nay co hang
+      if (dealerSkuSet && !dealerSkuSet[sk.sku]) return false;
       return true;
     });
     // Gioi han so dong hien thi (sap theo Total 13w giam dan) de tranh render qua nang
@@ -558,3 +575,4 @@
 
   document.addEventListener('DOMContentLoaded', init);
 })();
+
