@@ -11,6 +11,7 @@ window.MsiMonthlySalesData = (function () {
   var byDealer = [];  // [{y, m, cust, onHand}]
   var byDealerSkus = {}; // { custName: [sku1, sku2, ...] } - cross-filter Dealer -> Model Detail
   var skuToDealersCache_ = null; // lazy reverse map: sku -> [dealer1, dealer2, ...]
+  var byDealerModelOnHand = {}; // {'cust||sku||y||m': onHand} - per-dealer per-model onHand
   var skuIndex = {};
   var meta = {};
   var loaded = false;
@@ -48,6 +49,7 @@ window.MsiMonthlySalesData = (function () {
     byDealer = json.byDealer || [];
     byDealerSkus = json.byDealerSkus || {}; // { cust: [sku1, sku2, ...] }
     skuToDealersCache_ = null; // reset lazy reverse map
+    byDealerModelOnHand = json.byDealerModelOnHand || {};
     meta = json.meta || {};
     skuIndex = {};
     skus.forEach(function (s) { skuIndex[s.sku] = s; });
@@ -118,6 +120,14 @@ window.MsiMonthlySalesData = (function () {
   // Tra ve tat ca dealer nao co SKU nay trong inventory (reverse map cua byDealerSkus).
   // Lazy-build lan dau goi, sau do cache lai. Reset khi fetchData() moi.
   // Dung cho cross-filter: model/segment/gpu duoc chon -> chi show relevant dealers.
+  // Tra ve OnHand cua dealer cho 1 SKU cu the tai 1 thang (dung cho Dealers table
+  // ONHAND column khi model/segment/gpu filter dang active).
+  // Tra ve 0 neu khong co data (fallback: cot OnHand van dung dealerOnHandAtMonth).
+  function dealerModelOnHandAtMonth(customer, sku, year, month) {
+    var key = customer + '||' + sku + '||' + normYear_(year) + '||' + String(month);
+    return byDealerModelOnHand[key] || 0;
+  }
+
   function getDealersForSku(sku) {
     if (!skuToDealersCache_) {
       skuToDealersCache_ = {};
@@ -139,6 +149,8 @@ window.MsiMonthlySalesData = (function () {
     dealerOnHandAtMonth: dealerOnHandAtMonth,
     getDealerSkus: getDealerSkus,
     hasDealerSkus: hasDealerSkus,
-    getDealersForSku: getDealersForSku
+    getDealersForSku: getDealersForSku,
+    dealerModelOnHandAtMonth: dealerModelOnHandAtMonth
   };
 })();
+
