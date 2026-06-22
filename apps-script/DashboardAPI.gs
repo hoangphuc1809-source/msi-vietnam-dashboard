@@ -281,7 +281,7 @@ if (sheet) break;
 if (!sheet) throw new Error('Khong tim thay sheet Weekly Sales Data trong spreadsheet nguon. Da thu: ' + SHEET_WEEKLY_SALES_CANDIDATES.join(', '));
 var lastRow = sheet.getLastRow();
 var lastCol = sheet.getLastColumn();
-if (lastRow < 2) return { rows: [], byDealer: [], byDisty: [], bySegment: [], byGpu: [], byModel: [], meta: {} };
+if (lastRow < 2) return { rows: [], byDealer: [], byDisty: [], bySegment: [], byGpu: [], byModel: [], byDealerModel: [], byDistyModel: [], meta: {} };
 var values = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
 var aggSg = {}; // key 'week|sg' -> sum sellOut (Market Overall - khong doi)
 var aggDealer = {}; // key 'week|customer' -> {sellOut, sellIn, onHand, rev}
@@ -289,6 +289,8 @@ var aggDisty = {}; // key 'week|disty' -> {sellOut, onHand, rev}
 var aggSegment = {}; // key 'week|segment1' -> {onHand}
 var aggGpu = {}; // key 'week|gpu' -> {onHand}
 var aggModel = {}; // key 'week|marketing_sku' -> {onHand} (cho Model Detail table)
+var aggDealerModel = {}; // key 'week|customer|sku' -> sellOut (cross-filter sell out theo model)
+var aggDistyModel = {};  // key 'week|disty|sku'    -> sellOut (cross-filter sell out theo model)
 var dealerChannel = {}; // customer -> channelType (gan nhat thay duoc)
 for (var i = 0; i < values.length; i++) {
 var r = values[i];
@@ -333,6 +335,15 @@ aggGpu[keyGpu] = (aggGpu[keyGpu] || 0) + onHand;
 if (sku) {
 var keyModel = week + '|' + sku;
 aggModel[keyModel] = (aggModel[keyModel] || 0) + onHand;
+// byDealerModel va byDistyModel cho cross-filter sell out theo model
+if (customer && customer !== 'Unknown' && sellOut > 0) {
+var keyDM = week + '|' + customer + '|' + sku;
+aggDealerModel[keyDM] = (aggDealerModel[keyDM] || 0) + sellOut;
+}
+if (disty && disty !== 'Unknown' && sellOut > 0) {
+var keyDisM = week + '|' + disty + '|' + sku;
+aggDistyModel[keyDisM] = (aggDistyModel[keyDisM] || 0) + sellOut;
+}
 }
 }
 var rows = [];
@@ -367,6 +378,16 @@ for (var key6 in aggModel) {
 var parts6 = key6.split('|');
 byModel.push({ w: parts6[0], sku: parts6[1], onHand: round2_(aggModel[key6]) });
 }
+var byDealerModel = [];
+for (var keyDM2 in aggDealerModel) {
+var pDM = keyDM2.split('|');
+byDealerModel.push({ w: pDM[0], cust: pDM[1], sku: pDM[2], sellOut: round2_(aggDealerModel[keyDM2]) });
+}
+var byDistyModel = [];
+for (var keyDisM2 in aggDistyModel) {
+var pDis = keyDisM2.split('|');
+byDistyModel.push({ w: pDis[0], disty: pDis[1], sku: pDis[2], sellOut: round2_(aggDistyModel[keyDisM2]) });
+}
 var result = {
 rows: rows,
 byDealer: byDealer,
@@ -374,6 +395,8 @@ byDisty: byDisty,
 bySegment: bySegment,
 byGpu: byGpu,
 byModel: byModel,
+byDealerModel: byDealerModel,
+byDistyModel: byDistyModel,
 meta: {
 generatedAt: new Date().toISOString(),
 source: sheet.getName() + ' (live, external spreadsheet)',
@@ -382,13 +405,15 @@ dealerRowCount: byDealer.length,
 distyRowCount: byDisty.length,
 segmentRowCount: bySegment.length,
 gpuRowCount: byGpu.length,
-modelRowCount: byModel.length
+modelRowCount: byModel.length,
+dealerModelRowCount: byDealerModel.length,
+distyModelRowCount: byDistyModel.length
 }
 };
 try {
 var json = JSON.stringify(result);
 if (json.length < 950000) {
-cache.put('sellout_data_v3', json, CACHE_SECONDS_SELLOUT);
+cache.put('sellout_data_v4', json, CACHE_SECONDS_SELLOUT);
 }
 } catch (e) {
 }
@@ -736,4 +761,5 @@ Logger.log('Sample sku: ' + JSON.stringify(data.skus[0]));
 Logger.log('Sample fact: ' + JSON.stringify(data.facts[0]));
 Logger.log('Sample dealer: ' + JSON.stringify(data.byDealer[0]));
 }
+
 
