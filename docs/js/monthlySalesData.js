@@ -10,6 +10,7 @@ window.MsiMonthlySalesData = (function () {
   var facts = [];    // [{y, m, sku, onHand}]
   var byDealer = [];  // [{y, m, cust, onHand}]
   var byDealerSkus = {}; // { custName: [sku1, sku2, ...] } - cross-filter Dealer -> Model Detail
+  var skuToDealersCache_ = null; // lazy reverse map: sku -> [dealer1, dealer2, ...]
   var skuIndex = {};
   var meta = {};
   var loaded = false;
@@ -46,6 +47,7 @@ window.MsiMonthlySalesData = (function () {
     facts = json.facts || [];
     byDealer = json.byDealer || [];
     byDealerSkus = json.byDealerSkus || {}; // { cust: [sku1, sku2, ...] }
+    skuToDealersCache_ = null; // reset lazy reverse map
     meta = json.meta || {};
     skuIndex = {};
     skus.forEach(function (s) { skuIndex[s.sku] = s; });
@@ -99,9 +101,34 @@ window.MsiMonthlySalesData = (function () {
     return byDealerSkus[customer]; // sorted array of sku strings
   }
 
-  // Tra ve true neu dealer nay co inventory cho it nhat 1 SKU nao do
+  // Tra ve danh sach SKU ma dealer nay da co inventory (tu byDealerSkus).
+  // Dung cho cross-filter: khi click Dealers table row -> Model Detail chi hien
+  // thi cac model thuoc dealer do.
+  // Tra ve [] neu khong co du lieu (fallback: hien thi tat ca model - giu nguyen hien tai).
+  function getDealerSkus(customer) {
+    if (!customer || !byDealerSkus[customer]) return [];
+    return byDealerSkus[customer]; // sorted array of sku strings
+  }
+
+  // Tra ve true neu byDealerSkus da duoc load (GAS v4+)
   function hasDealerSkus() {
     return Object.keys(byDealerSkus).length > 0;
+  }
+
+  // Tra ve tat ca dealer nao co SKU nay trong inventory (reverse map cua byDealerSkus).
+  // Lazy-build lan dau goi, sau do cache lai. Reset khi fetchData() moi.
+  // Dung cho cross-filter: model/segment/gpu duoc chon -> chi show relevant dealers.
+  function getDealersForSku(sku) {
+    if (!skuToDealersCache_) {
+      skuToDealersCache_ = {};
+      Object.keys(byDealerSkus).forEach(function (cust) {
+        byDealerSkus[cust].forEach(function (s) {
+          if (!skuToDealersCache_[s]) skuToDealersCache_[s] = [];
+          skuToDealersCache_[s].push(cust);
+        });
+      });
+    }
+    return skuToDealersCache_[sku] || [];
   }
 
   return {
@@ -111,6 +138,7 @@ window.MsiMonthlySalesData = (function () {
     onHandAtMonth: onHandAtMonth,
     dealerOnHandAtMonth: dealerOnHandAtMonth,
     getDealerSkus: getDealerSkus,
-    hasDealerSkus: hasDealerSkus
+    hasDealerSkus: hasDealerSkus,
+    getDealersForSku: getDealersForSku
   };
 })();
