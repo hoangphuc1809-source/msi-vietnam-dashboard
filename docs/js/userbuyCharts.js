@@ -41,7 +41,7 @@ window.MsiUserbuyCharts = (function () {
     if (pts.length < 2) {
       var last = pts.length ? pts[pts.length - 1][1] : 0;
       var flat = [];
-      for (var k = 0; k < forecastN; k++) flat.push(Math.max(0, last));
+      for (var k = 0; k < forecastN; k++) flat.push(Math.round(Math.max(0, last)));
       return flat;
     }
     var n = pts.length, sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
@@ -52,7 +52,7 @@ window.MsiUserbuyCharts = (function () {
     var lastIndex = values.length - 1;
     var out = [];
     for (var i2 = 1; i2 <= forecastN; i2++) {
-      out.push(Math.max(0, slope * (lastIndex + i2) + intercept));
+      out.push(Math.round(Math.max(0, slope * (lastIndex + i2) + intercept)));
     }
     return out;
   }
