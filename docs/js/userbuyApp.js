@@ -60,6 +60,11 @@
       FS.reset();
     });
     document.getElementById('refreshBtn').addEventListener('click', function () {
+      // Clear sessionStorage cache de force re-fetch moi nhat tu GAS
+      UB.clearCache();
+      DI.clearCache();
+      DS.clearCache();
+      MS.clearCache();
       loadData(false);
     });
     document.getElementById('highEndPillBtn').addEventListener('click', function () {
@@ -724,6 +729,7 @@
 
   document.addEventListener('DOMContentLoaded', init);
 })();
+
 
 
 
