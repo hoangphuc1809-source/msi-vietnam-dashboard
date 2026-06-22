@@ -23,7 +23,35 @@ window.MsiMonthlySalesData = (function () {
     return s;
   }
 
+
+  var SS_KEY_ = 'msivn_ms_v1';
+
+  // ===== SessionStorage cache =====
+  // Du lieu duoc giu trong session (cung 1 browser tab) de tranh re-fetch khi
+  // switch tab Market Overall <-> Userbuy Tracking. TTL 30 phut = bang GAS cache.
+  // Refresh button se clear cache va fetch lai tu GAS.
+  var SS_TTL_ = 30 * 60 * 1000; // 30 phut
+
+  function ssGet_(key) {
+    try {
+      var item = sessionStorage.getItem(key);
+      if (!item) return null;
+      var obj = JSON.parse(item);
+      if ((Date.now() - obj.ts) > SS_TTL_) { sessionStorage.removeItem(key); return null; }
+      return obj.data;
+    } catch (e) { return null; }
+  }
+  function ssSet_(key, data) {
+    try { sessionStorage.setItem(key, JSON.stringify({ ts: Date.now(), data: data })); }
+    catch (e) {} // QuotaExceeded -> bo qua, khong cache
+  }
+  function ssClear_(key) {
+    try { sessionStorage.removeItem(key); } catch (e) {}
+  }
+
   async function fetchData() {
+    var _ss = ssGet_(SS_KEY_);
+    if (_ss) { applyData_(_ss); return _ss; }
     var liveUrl = window.MSI_CONFIG.APPS_SCRIPT_URL + '?action=monthlysales&_=' + Date.now();
     try {
       var res = await fetch(liveUrl, { method: 'GET' });
@@ -31,6 +59,7 @@ window.MsiMonthlySalesData = (function () {
       var json = await res.json();
       if (json.error) throw new Error(json.error);
       applyData_(json);
+      ssSet_(SS_KEY_, json);
       return json;
     } catch (liveErr) {
       console.warn('[MonthlySales] Live fetch (action=monthlysales) chua san sang, dung static snapshot:', liveErr.message);
@@ -38,6 +67,7 @@ window.MsiMonthlySalesData = (function () {
       if (!res2.ok) throw new Error('Monthly Sales static fallback that bai: ' + res2.status);
       var json2 = await res2.json();
       applyData_(json2);
+      ssSet_(SS_KEY_, json2);
       return json2;
     }
   }
@@ -143,6 +173,7 @@ window.MsiMonthlySalesData = (function () {
 
   return {
     fetchData: fetchData,
+    clearCache: function() { ssClear_(SS_KEY_); },
     isLoaded: isLoaded,
     getMeta: getMeta,
     onHandAtMonth: onHandAtMonth,
@@ -153,4 +184,5 @@ window.MsiMonthlySalesData = (function () {
     dealerModelOnHandAtMonth: dealerModelOnHandAtMonth
   };
 })();
+
 
