@@ -243,7 +243,7 @@
     renderDimensionCharts_(state, ubFilters, periodWeeks);
     renderSegmentTable_(state, ubFilters, periodWeeks, last3, snap);
     renderGpuTable_(state, ubFilters, periodWeeks, last3, snap);
-    renderDealersTable_(state, periodWeeks, last3, snap);
+    renderDealersTable_(state, ubFilters, periodWeeks, last3, snap);
     renderDistyTable_(state, ubFilters, periodWeeks, last3, snap);
     renderModelDetailTable_(state, ubFilters, snap);
     renderEarlyWarning_(state, ubFilters, snap);
@@ -406,7 +406,7 @@
     var groups = UB.groupBy(ubFilters, 'seg1');
     var rows = buildMetricRows_(groups, last3,
       function (seg) { var f = cloneState_(ubFilters); f.segment = seg; return f; },
-      function (seg) { return snap.month ? MS.onHandAtMonth(snap.year, snap.month, { segment: seg }) : 0; },
+      function (seg) { if (!snap.month) return 0; var f = cloneState_(ubFilters); f.segment = seg; return MS.onHandAtMonth(snap.year, snap.month, f); },
       null
     );
     TB.renderMetricTable('segmentTable', {
@@ -419,7 +419,7 @@
     var groups = UB.groupBy(ubFilters, 'gpu');
     var rows = buildMetricRows_(groups, last3,
       function (gpu) { var f = cloneState_(ubFilters); f.gpu = gpu; return f; },
-      function (gpu) { return snap.month ? MS.onHandAtMonth(snap.year, snap.month, { gpu: gpu }) : 0; },
+      function (gpu) { if (!snap.month) return 0; var f = cloneState_(ubFilters); f.gpu = gpu; return MS.onHandAtMonth(snap.year, snap.month, f); },
       null
     );
     TB.renderMetricTable('gpuTable', {
@@ -428,11 +428,62 @@
     });
   }
 
-  function renderDealersTable_(state, periodWeeks, last3, snap) {
+  // ===== Cross-filter helpers cho Dealers & Disty tables =====
+  // Tra ve tap hop Disty can hien thi khi model/segment/gpu/cpu filter dang active.
+  // Dua tren sk.disty trong UB SKU metadata - khong can them data moi tu GAS.
+  // Tra ve null = khong filter (hien tat ca disty). Tra ve {} = khong match disty nao.
+  // NOTE: khong filter theo ubFilters.disty (do la "self-filter" cua Disty table - chi highlight row).
+  function getRelevantDistiesSet_(ubFilters) {
+    var hasDimFilter = !!(ubFilters.model || ubFilters.segment || ubFilters.gpu || ubFilters.cpu);
+    if (!hasDimFilter) return null; // khong co dim filter -> hien tat ca disty
+    var matchingSkus = UB.getSkus().filter(function (sk) {
+      if (ubFilters.seriesGroups && ubFilters.seriesGroups.length && ubFilters.seriesGroups.indexOf(sk.sg) === -1) return false;
+      if (ubFilters.highEndOnly && !sk.highEnd) return false;
+      if (ubFilters.series50Only && !UB.isSeries50(sk.gpu)) return false;
+      if (ubFilters.model && sk.sku !== ubFilters.model) return false;
+      if (ubFilters.segment && sk.seg1 !== ubFilters.segment) return false;
+      if (ubFilters.gpu && sk.gpu !== ubFilters.gpu) return false;
+      if (ubFilters.cpu && sk.cpuSeg !== ubFilters.cpu) return false;
+      return true; // NOTE: khong filter theo disty o day
+    });
+    var distySet = {};
+    matchingSkus.forEach(function (sk) { if (sk.disty) distySet[sk.disty] = true; });
+    return distySet;
+  }
+
+  // Tra ve tap hop Dealer can hien thi khi model/segment/gpu/cpu/disty filter active.
+  // Dua tren byDealerSkus (GAS v4+) de tim dealer nao co hang cac SKU phu hop.
+  // Tra ve null = khong filter (fallback khi chua co data, hoac khong co dim filter).
+  function getRelevantDealersSet_(ubFilters) {
+    var hasDimFilter = !!(ubFilters.model || ubFilters.segment || ubFilters.gpu || ubFilters.cpu || ubFilters.disty);
+    if (!hasDimFilter) return null; // khong co cross-filter -> hien tat ca dealer
+    if (!MS.hasDealerSkus()) return null; // chua co byDealerSkus data -> fallback show all
+    var matchingSkus = UB.getSkus().filter(function (sk) {
+      if (ubFilters.seriesGroups && ubFilters.seriesGroups.length && ubFilters.seriesGroups.indexOf(sk.sg) === -1) return false;
+      if (ubFilters.highEndOnly && !sk.highEnd) return false;
+      if (ubFilters.series50Only && !UB.isSeries50(sk.gpu)) return false;
+      if (ubFilters.model && sk.sku !== ubFilters.model) return false;
+      if (ubFilters.segment && sk.seg1 !== ubFilters.segment) return false;
+      if (ubFilters.gpu && sk.gpu !== ubFilters.gpu) return false;
+      if (ubFilters.cpu && sk.cpuSeg !== ubFilters.cpu) return false;
+      if (ubFilters.disty && sk.disty !== ubFilters.disty) return false;
+      return true;
+    });
+    var dealerSet = {};
+    matchingSkus.forEach(function (sk) {
+      MS.getDealersForSku(sk.sku).forEach(function (d) { dealerSet[d] = true; });
+    });
+    return dealerSet;
+  }
+
+  function renderDealersTable_(state, ubFilters, periodWeeks, last3, snap) {
     var weekSet = {}; periodWeeks.forEach(function (w) { weekSet[w] = true; });
+    // Cross-filter: chi hien thi dealers co hang cac SKU phu hop voi filter hien tai
+    var relevantDealers = getRelevantDealersSet_(ubFilters);
     var groups = {};
     DS.getByDealer().forEach(function (r) {
       if (!weekSet[r.w]) return;
+      if (relevantDealers !== null && !relevantDealers[r.cust]) return; // cross-filter
       if (!groups[r.cust]) groups[r.cust] = { qty: 0, rev: 0, byWeek: {} };
       groups[r.cust].qty += r.sellOut;
       groups[r.cust].rev += r.rev;
@@ -459,9 +510,12 @@
 
   function renderDistyTable_(state, ubFilters, periodWeeks, last3, snap) {
     var weekSet = {}; periodWeeks.forEach(function (w) { weekSet[w] = true; });
+    // Cross-filter: chi hien thi disty phan phoi cac SKU phu hop voi filter hien tai
+    var relevantDisties = getRelevantDistiesSet_(ubFilters);
     var groups = {};
     DS.getByDisty().forEach(function (r) {
       if (!weekSet[r.w]) return;
+      if (relevantDisties !== null && !relevantDisties[r.disty]) return; // cross-filter
       if (!groups[r.disty]) groups[r.disty] = { qty: 0, rev: 0, byWeek: {} };
       groups[r.disty].qty += r.sellOut;
       groups[r.disty].rev += r.rev;
@@ -470,7 +524,7 @@
     var distyOnHandMap = snap.month ? DI.onHandByDistyAtMonth(snap.year, snap.month, ubFilters) : {};
     var rows = buildMetricRows_(groups, last3,
       function (disty) { var f = cloneState_(ubFilters); f.disty = disty; return f; },
-      function (disty) { return snap.month ? MS.onHandAtMonth(snap.year, snap.month, { disty: disty }) : 0; },
+      function (disty) { if (!snap.month) return 0; var f = cloneState_(ubFilters); f.disty = disty; return MS.onHandAtMonth(snap.year, snap.month, f); },
       function (disty) { return distyOnHandMap[disty] || 0; }
     );
     TB.renderMetricTable('distyTable', {
@@ -575,4 +629,5 @@
 
   document.addEventListener('DOMContentLoaded', init);
 })();
+
 
