@@ -631,6 +631,34 @@ html, body {
   flex: 1;
 }
 
+/* ===== Equal-height scrollable tables: Dealers & Disty =====
+   Hai bang nay nam trong cung 1 dash-grid row. Dat chieu cao co dinh
+   bang nhau de can doi + scroll doc khi co nhieu dong. */
+#dealersTable,
+#distyTable {
+  height: 400px;
+  overflow-y: auto;
+  overflow-x: auto;
+}
+
+/* Model Detail: tu dong co gian den max 500px roi scroll */
+#modelDetailTable {
+  max-height: 500px;
+  overflow-y: auto;
+  overflow-x: auto;
+}
+
+/* Sticky header cho 3 bang co scroll doc */
+#dealersTable thead th,
+#distyTable thead th,
+#modelDetailTable thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--card);
+  box-shadow: 0 1px 0 var(--border);
+}
+
 /* ===== KPI mini stats inside table card ===== */
 .table-card-header {
   display: flex;
@@ -1171,3 +1199,4 @@ html, body {
 @media (max-width: 900px) {
   .filter-row-even { grid-template-columns: repeat(2, 1fr); }
 }
+
