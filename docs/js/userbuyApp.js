@@ -319,10 +319,12 @@
   // Tinh Top 10 model theo Userbuy cho 1 segment cu the trong period.
   // Tra ve [{sku, shortLabel, qty, pct}] - pct = qty / totalQty (toan bo period).
   // Cross-filter: dung ubFilters hien tai (year/quarter/gpu/cpu/disty...) tru segment.
-  function computeTop10_(ubFilters, segmentFilter, totalQty) {
+  // seriesGroupName = 'Gaming' hoac 'Business& Productivity'
+  // Gaming la sg (Series Group), KHONG phai seg1 (seg1 = Katana/Modern/Cyborg...)
+  function computeTop10_(ubFilters, seriesGroupName, totalQty) {
     var segFilters = cloneState_(ubFilters);
-    segFilters.segment = segmentFilter;
-    segFilters.model = null; // top10 khong filter theo model don le
+    segFilters.seriesGroups = [seriesGroupName]; // override sang SG nay
+    segFilters.model = null; // top10 hien tat ca model trong SG nay
     var skuTotals = {};
     UB.applyFilters(segFilters).forEach(function (f) {
       skuTotals[f.sku] = (skuTotals[f.sku] || 0) + (f.qty || 0);
