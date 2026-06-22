@@ -201,14 +201,38 @@
   // Trung binh Sell Out 4 tuan KET THUC tai snapshotWeek cho 1 Dealer (dung cho
   // WOI bang Dealers - Userbuy khong gan duoc vao Dealer nen dung Sell Out lam
   // proxy nhu cau o cap do dealer)
-  function avgSellOut4wkForDealer_(dealer, snapshotWeek) {
+  function avgSellOut4wkForDealer_(dealer, snapshotWeek, ubSkuSet) {
     if (!snapshotWeek) return 0;
     var weeks4 = WU.getRollingNWeekLabels(snapshotWeek, 4);
     var weekSet = {}; weeks4.forEach(function (w) { weekSet[w] = true; });
     var sum = 0;
-    DS.getByDealer().forEach(function (r) {
-      if (r.cust === dealer && weekSet[r.w]) sum += (r.sellOut || 0);
-    });
+    if (ubSkuSet && DS.hasByDealerModel()) {
+      // Model filter active: use per-model sell out
+      DS.getByDealerModel().forEach(function (r) {
+        if (r.cust === dealer && weekSet[r.w] && ubSkuSet[r.sku]) sum += (r.sellOut || 0);
+      });
+    } else {
+      DS.getByDealer().forEach(function (r) {
+        if (r.cust === dealer && weekSet[r.w]) sum += (r.sellOut || 0);
+      });
+    }
+    return sum / 4;
+  }
+
+  function avgSellOut4wkForDisty_(disty, snapshotWeek, ubSkuSet) {
+    if (!snapshotWeek) return 0;
+    var weeks4 = WU.getRollingNWeekLabels(snapshotWeek, 4);
+    var weekSet = {}; weeks4.forEach(function (w) { weekSet[w] = true; });
+    var sum = 0;
+    if (ubSkuSet && DS.hasByDistyModel()) {
+      DS.getByDistyModel().forEach(function (r) {
+        if (r.disty === disty && weekSet[r.w] && ubSkuSet[r.sku]) sum += (r.sellOut || 0);
+      });
+    } else {
+      DS.getByDisty().forEach(function (r) {
+        if (r.disty === disty && weekSet[r.w]) sum += (r.sellOut || 0);
+      });
+    }
     return sum / 4;
   }
 
@@ -428,6 +452,26 @@
     });
   }
 
+  // Build tap hop SKU tu ubFilters (dung cho filter sell out theo model trong DS)
+  // Tra ve null khi khong co dim filter active (show all models)
+  function buildUbSkuSet_(ubFilters) {
+    var hasDimFilter = !!(ubFilters.model || ubFilters.segment || ubFilters.gpu || ubFilters.cpu || ubFilters.disty);
+    if (!hasDimFilter) return null;
+    var set = {};
+    UB.getSkus().filter(function (sk) {
+      if (ubFilters.seriesGroups && ubFilters.seriesGroups.length && ubFilters.seriesGroups.indexOf(sk.sg) === -1) return false;
+      if (ubFilters.highEndOnly && !sk.highEnd) return false;
+      if (ubFilters.series50Only && !UB.isSeries50(sk.gpu)) return false;
+      if (ubFilters.model && sk.sku !== ubFilters.model) return false;
+      if (ubFilters.segment && sk.seg1 !== ubFilters.segment) return false;
+      if (ubFilters.gpu && sk.gpu !== ubFilters.gpu) return false;
+      if (ubFilters.cpu && sk.cpuSeg !== ubFilters.cpu) return false;
+      if (ubFilters.disty && sk.disty !== ubFilters.disty) return false;
+      return true;
+    }).forEach(function (sk) { set[sk.sku] = true; });
+    return Object.keys(set).length ? set : null;
+  }
+
   // ===== Cross-filter helpers cho Dealers & Disty tables =====
   // Tra ve tap hop Disty can hien thi khi model/segment/gpu/cpu filter dang active.
   // Dua tren sk.disty trong UB SKU metadata - khong can them data moi tu GAS.
@@ -480,23 +524,40 @@
     var weekSet = {}; periodWeeks.forEach(function (w) { weekSet[w] = true; });
     // Cross-filter: chi hien thi dealers co hang cac SKU phu hop voi filter hien tai
     var relevantDealers = getRelevantDealersSet_(ubFilters);
+    // Build SKU set de filter sell out theo model/segment/gpu/cpu/disty
+    // Neu co byDealerModel data (GAS v4+): dung per-model sell out → con so chinh xac
+    // Neu chua co: fallback sang byDealer aggregate (con so tong tat ca model)
+    var ubSkuSet = buildUbSkuSet_(ubFilters);
     var groups = {};
-    DS.getByDealer().forEach(function (r) {
-      if (!weekSet[r.w]) return;
-      if (relevantDealers !== null && !relevantDealers[r.cust]) return; // cross-filter
-      if (!groups[r.cust]) groups[r.cust] = { qty: 0, rev: 0, byWeek: {} };
-      groups[r.cust].qty += r.sellOut;
-      groups[r.cust].rev += r.rev;
-      groups[r.cust].byWeek[r.w] = (groups[r.cust].byWeek[r.w] || 0) + r.sellOut;
-    });
+    if (ubSkuSet && DS.hasByDealerModel()) {
+      // Per-model sell out: chi tinh sell out cho cac SKU phu hop filter
+      DS.getByDealerModel().forEach(function (r) {
+        if (!weekSet[r.w]) return;
+        if (relevantDealers !== null && !relevantDealers[r.cust]) return;
+        if (!ubSkuSet[r.sku]) return; // filter by matching SKUs
+        if (!groups[r.cust]) groups[r.cust] = { qty: 0, rev: 0, byWeek: {} };
+        groups[r.cust].qty += r.sellOut;
+        groups[r.cust].byWeek[r.w] = (groups[r.cust].byWeek[r.w] || 0) + r.sellOut;
+      });
+    } else {
+      // Fallback: aggregate per dealer (tat ca model)
+      DS.getByDealer().forEach(function (r) {
+        if (!weekSet[r.w]) return;
+        if (relevantDealers !== null && !relevantDealers[r.cust]) return;
+        if (!groups[r.cust]) groups[r.cust] = { qty: 0, rev: 0, byWeek: {} };
+        groups[r.cust].qty += r.sellOut;
+        groups[r.cust].rev += r.rev;
+        groups[r.cust].byWeek[r.w] = (groups[r.cust].byWeek[r.w] || 0) + r.sellOut;
+      });
+    }
     var rows = buildMetricRows_(groups, last3,
       function () { return null; }, // demand cho dealer dung rieng avgSellOut4wk_ ben duoi, khong dung avgUserbuy4wk_
       function (dealer) { return snap.month ? MS.dealerOnHandAtMonth(dealer, snap.year, snap.month) : 0; },
       null
     );
-    // Ghi de WOI: dung avg Sell Out 4 tuan rieng cho Dealer (xem ghi chu avgSellOut4wkForDealer_)
+    // Ghi de WOI: dung avg Sell Out 4 tuan rieng cho Dealer (co filter theo model neu co data)
     rows.forEach(function (r) {
-      var avgDemand = avgSellOut4wkForDealer_(r.key, last3[2]);
+      var avgDemand = avgSellOut4wkForDealer_(r.key, last3[2], ubSkuSet);
       r.avgDemand = avgDemand;
       r.woi = computeWoi_(r.onHand, avgDemand);
     });
@@ -512,21 +573,42 @@
     var weekSet = {}; periodWeeks.forEach(function (w) { weekSet[w] = true; });
     // Cross-filter: chi hien thi disty phan phoi cac SKU phu hop voi filter hien tai
     var relevantDisties = getRelevantDistiesSet_(ubFilters);
+    var ubSkuSet = buildUbSkuSet_(ubFilters);
     var groups = {};
-    DS.getByDisty().forEach(function (r) {
-      if (!weekSet[r.w]) return;
-      if (relevantDisties !== null && !relevantDisties[r.disty]) return; // cross-filter
-      if (!groups[r.disty]) groups[r.disty] = { qty: 0, rev: 0, byWeek: {} };
-      groups[r.disty].qty += r.sellOut;
-      groups[r.disty].rev += r.rev;
-      groups[r.disty].byWeek[r.w] = (groups[r.disty].byWeek[r.w] || 0) + r.sellOut;
-    });
+    if (ubSkuSet && DS.hasByDistyModel()) {
+      // Per-model sell out: chi tinh sell out cua cac SKU phu hop filter
+      DS.getByDistyModel().forEach(function (r) {
+        if (!weekSet[r.w]) return;
+        if (relevantDisties !== null && !relevantDisties[r.disty]) return;
+        if (!ubSkuSet[r.sku]) return;
+        if (!groups[r.disty]) groups[r.disty] = { qty: 0, rev: 0, byWeek: {} };
+        groups[r.disty].qty += r.sellOut;
+        groups[r.disty].byWeek[r.w] = (groups[r.disty].byWeek[r.w] || 0) + r.sellOut;
+      });
+    } else {
+      DS.getByDisty().forEach(function (r) {
+        if (!weekSet[r.w]) return;
+        if (relevantDisties !== null && !relevantDisties[r.disty]) return;
+        if (!groups[r.disty]) groups[r.disty] = { qty: 0, rev: 0, byWeek: {} };
+        groups[r.disty].qty += r.sellOut;
+        groups[r.disty].rev += r.rev;
+        groups[r.disty].byWeek[r.w] = (groups[r.disty].byWeek[r.w] || 0) + r.sellOut;
+      });
+    }
     var distyOnHandMap = snap.month ? DI.onHandByDistyAtMonth(snap.year, snap.month, ubFilters) : {};
     var rows = buildMetricRows_(groups, last3,
       function (disty) { var f = cloneState_(ubFilters); f.disty = disty; return f; },
       function (disty) { if (!snap.month) return 0; var f = cloneState_(ubFilters); f.disty = disty; return MS.onHandAtMonth(snap.year, snap.month, f); },
       function (disty) { return distyOnHandMap[disty] || 0; }
     );
+    // Ghi de WOI cho Disty: dung avg Sell Out 4 tuan co filter theo model neu co data
+    rows.forEach(function (r) {
+      var avgDemand = avgSellOut4wkForDisty_(r.key, last3[2], ubSkuSet);
+      if (avgDemand > 0) {
+        var totalOnHand = (r.onHand || 0) + (r.distyOnHand || 0);
+        r.woi = computeWoi_(totalOnHand, avgDemand);
+      }
+    });
     TB.renderMetricTable('distyTable', {
       rows: rows, dimLabel: 'Disty', metricLabel: 'Sell Out', weekLabels: last3.map(weekLabelOrFallback_),
       activeValue: state.disty, onRowClick: function (key) { FS.setDisty(key); }, showDistyOnHand: true,
@@ -629,5 +711,6 @@
 
   document.addEventListener('DOMContentLoaded', init);
 })();
+
 
 
