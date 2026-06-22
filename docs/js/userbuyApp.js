@@ -270,7 +270,11 @@
   // ===== Render orchestration =====
 
   function renderAll(state) {
-    if (!UB.isLoaded() || !DI.isLoaded() || !DS.isLoaded() || !MS.isLoaded()) return;
+    // Re-read TB trong truong hop co race condition khi module loads
+    if (!TB) TB = window.MsiUserbuyTables;
+    if (!TB) { console.warn('[renderAll] MsiUserbuyTables chua san sang'); return; }
+    // Chi can UB loaded la co the render snapshot + tables (DS/MS co the chua co)
+    if (!UB.isLoaded()) return;
 
     var ubFilters = ubBaseFilters_(state);
     var periodWeeks = UB.getWeeksForState(ubFilters);
