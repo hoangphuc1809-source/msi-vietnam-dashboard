@@ -6,7 +6,7 @@
 <title>MSI Vietnam - Userbuy Tracking</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/dashboard.css?v=1782126000">
+<link rel="stylesheet" href="css/dashboard.css?v=1782130000">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
@@ -76,7 +76,7 @@
 
   <!-- ===== ZONE SNAPSHOT (NEW) ===== -->
   <div class="zone-label">Snapshot</div>
-  <div class="dash-grid dash-grid-top-align">
+  <div class="dash-grid dash-grid-top-align snapshot-4-grid">
     <div class="card accent-red kpi-hero-card snapshot-card">
       <h3 class="card-title" style="margin-bottom:0;">Total Userbuy</h3>
       <div class="kpi-hero-number" id="kpiTotalNumber">-</div>
@@ -92,6 +92,14 @@
     <div class="card snapshot-card">
       <h3 class="card-title">Userbuy Share by Series Group</h3>
       <div class="donut-card-wrap"><canvas id="seriesGroupDonutChart"></canvas></div>
+    </div>
+    <div class="card snapshot-card">
+      <h3 class="card-title">Top 10 Gaming <span class="hint">% of total Userbuy</span></h3>
+      <div class="top10-list" id="top10GamingList"></div>
+    </div>
+    <div class="card snapshot-card">
+      <h3 class="card-title">Top 10 B&amp;P <span class="hint">% of total Userbuy</span></h3>
+      <div class="top10-list" id="top10BnpList"></div>
     </div>
   </div>
 
@@ -191,16 +199,16 @@
 
 </div>
 
-<script src="js/config.js?v=1782126000"></script>
-<script src="js/format.js?v=1782126000"></script>
-<script src="js/weekUtils.js?v=1782126000"></script>
-<script src="js/userbuyFilterState.js?v=1782126000"></script>
-<script src="js/userbuyData.js?v=1782126000"></script>
-<script src="js/distyInvData.js?v=1782126000"></script>
-<script src="js/dealerSelloutData.js?v=1782126000"></script>
-<script src="js/monthlySalesData.js?v=1782126000"></script>
-<script src="js/userbuyCharts.js?v=1782126000"></script>
-<script src="js/userbuyTables.js?v=1782126000"></script>
-<script src="js/userbuyApp.js?v=1782126000"></script>
+<script src="js/config.js?v=1782130000"></script>
+<script src="js/format.js?v=1782130000"></script>
+<script src="js/weekUtils.js?v=1782130000"></script>
+<script src="js/userbuyFilterState.js?v=1782130000"></script>
+<script src="js/userbuyData.js?v=1782130000"></script>
+<script src="js/distyInvData.js?v=1782130000"></script>
+<script src="js/dealerSelloutData.js?v=1782130000"></script>
+<script src="js/monthlySalesData.js?v=1782130000"></script>
+<script src="js/userbuyCharts.js?v=1782130000"></script>
+<script src="js/userbuyTables.js?v=1782130000"></script>
+<script src="js/userbuyApp.js?v=1782130000"></script>
 </body>
 </html>
