@@ -80,26 +80,26 @@ window.MsiUserbuyTables = (function () {
       html += '<tr class="' + (isActive ? 'row-active' : '') + '" data-key="' + escapeAttr(r.key) + '">' +
         '<td title="' + escapeAttr(r.label) + '">' + fmt.truncate(r.label, 20) + '</td>' +
         '<td>' + fmt.percent(r.share, 1) + '</td>' +
-        '<td>' + fmt.number(r.qty) + '</td>' +
-        '<td class="' + cellTrendClass_(r.last3[0], null) + '">' + fmt.number(r.last3[0]) + '</td>' +
-        '<td class="' + cellTrendClass_(r.last3[1], r.last3[0]) + '">' + fmt.number(r.last3[1]) + '</td>' +
-        '<td class="' + cellTrendClass_(r.last3[2], r.last3[1]) + '">' + fmt.number(r.last3[2]) + '</td>' +
+        '<td>' + numOrBlank_(r.qty) + '</td>' +
+        '<td class="' + cellTrendClass_(r.last3[0], null) + '">' + numOrBlank_(r.last3[0]) + '</td>' +
+        '<td class="' + cellTrendClass_(r.last3[1], r.last3[0]) + '">' + numOrBlank_(r.last3[1]) + '</td>' +
+        '<td class="' + cellTrendClass_(r.last3[2], r.last3[1]) + '">' + numOrBlank_(r.last3[2]) + '</td>' +
         '<td class="' + yoyClass(r.wow) + '">' + fmt.percentSigned(r.wow, 0) + '</td>' +
-        '<td>' + fmt.number(r.onHand) + '</td>' +
-        (opts.showDistyOnHand ? '<td>' + fmt.number(r.distyOnHand) + '</td>' : '') +
+        '<td>' + numOrBlank_(r.onHand) + '</td>' +
+        (opts.showDistyOnHand ? '<td>' + numOrBlank_(r.distyOnHand) + '</td>' : '') +
         '<td>' + woiBadge(r.woi, r.isEOL) + '</td>' +
         '</tr>';
     });
 
     html += '<tr class="total-row">' +
       '<td>Grand total</td><td>100%</td>' +
-      '<td>' + fmt.number(grandQty) + '</td>' +
-      '<td class="' + cellTrendClass_(grandWeek[0], null) + '">' + fmt.number(grandWeek[0]) + '</td>' +
-      '<td class="' + cellTrendClass_(grandWeek[1], grandWeek[0]) + '">' + fmt.number(grandWeek[1]) + '</td>' +
-      '<td class="' + cellTrendClass_(grandWeek[2], grandWeek[1]) + '">' + fmt.number(grandWeek[2]) + '</td>' +
+      '<td>' + numOrBlank_(grandQty) + '</td>' +
+      '<td class="' + cellTrendClass_(grandWeek[0], null) + '">' + numOrBlank_(grandWeek[0]) + '</td>' +
+      '<td class="' + cellTrendClass_(grandWeek[1], grandWeek[0]) + '">' + numOrBlank_(grandWeek[1]) + '</td>' +
+      '<td class="' + cellTrendClass_(grandWeek[2], grandWeek[1]) + '">' + numOrBlank_(grandWeek[2]) + '</td>' +
       '<td class="' + yoyClass(grandWow) + '">' + fmt.percentSigned(grandWow, 0) + '</td>' +
-      '<td>' + fmt.number(grandOnHand) + '</td>' +
-      (opts.showDistyOnHand ? '<td>' + fmt.number(grandDistyOnHand) + '</td>' : '') +
+      '<td>' + numOrBlank_(grandOnHand) + '</td>' +
+      (opts.showDistyOnHand ? '<td>' + numOrBlank_(grandDistyOnHand) + '</td>' : '') +
       '<td>' + woiBadge(grandWoi, false) + '</td>' +
       '</tr>';
     html += '</tbody></table>';
@@ -220,3 +220,4 @@ window.MsiUserbuyTables = (function () {
     renderEarlyWarningPanel: renderEarlyWarningPanel
   };
 })();
+
