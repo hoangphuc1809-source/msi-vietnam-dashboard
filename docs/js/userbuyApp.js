@@ -25,19 +25,32 @@
   }
 
   async function loadData(isFirstLoad) {
+    // Progressive render: Phase 1 load UB + DI (core userbuy data).
+    // Chúng load từ localStorage cache (instant nếu đã cached).
+    // Page render ngay sau Phase 1, không chờ DS + MS (sell out + onHand).
+    // Phase 2: DS + MS load background, re-render khi xong.
+    document.getElementById('refreshBtn').classList.add('loading');
     try {
-      document.getElementById('refreshBtn').classList.add('loading');
-      await Promise.all([UB.fetchData(), DI.fetchData(), DS.fetchData(), MS.fetchData()]);
+      await Promise.all([UB.fetchData(), DI.fetchData()]);
+      // Phase 1 xong: render ngay với dữ liệu UB + DI
+      document.getElementById('refreshBtn').classList.remove('loading');
       hideError();
       updateMetaInfo();
       if (isFirstLoad) initSelects();
       renderAll(FS.getState());
     } catch (err) {
-      console.error(err);
+      console.error('[Phase1]', err);
       showError('Khong tai duoc du lieu: ' + err.message);
-    } finally {
       document.getElementById('refreshBtn').classList.remove('loading');
     }
+    // Phase 2: DS + MS load song song background, không block UI.
+    // Khi xong sẽ re-render để update Dealers/Disty/OnHand columns.
+    Promise.allSettled([DS.fetchData(), MS.fetchData()]).then(function () {
+      if (DS.isLoaded() || MS.isLoaded()) {
+        updateMetaInfo();
+        renderAll(FS.getState());
+      }
+    });
   }
 
   function showError(msg) {
@@ -60,7 +73,7 @@
       FS.reset();
     });
     document.getElementById('refreshBtn').addEventListener('click', function () {
-      // Clear sessionStorage cache de force re-fetch moi nhat tu GAS
+      // Clear localStorage cache de force re-fetch moi nhat tu GAS
       UB.clearCache();
       DI.clearCache();
       DS.clearCache();
