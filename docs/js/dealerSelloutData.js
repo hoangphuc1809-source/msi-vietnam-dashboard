@@ -12,6 +12,8 @@ window.MsiDealerSelloutData = (function () {
   var bySegment = [];   // [{w, segment, onHand}]
   var byGpu = [];        // [{w, gpu, onHand}]
   var byModel = [];       // [{w, sku, onHand}]
+  var byDealerModel = []; // [{w, cust, sku, sellOut}] -- cross-filter sell out theo model
+  var byDistyModel = [];  // [{w, disty, sku, sellOut}] -- cross-filter sell out theo model
   var meta = {};
   var loaded = false;
 
@@ -40,6 +42,8 @@ window.MsiDealerSelloutData = (function () {
     bySegment = json.bySegment || [];
     byGpu = json.byGpu || [];
     byModel = json.byModel || [];
+    byDealerModel = json.byDealerModel || [];
+    byDistyModel = json.byDistyModel || [];
     meta = json.meta || {};
     loaded = true;
     modelOnHandIndex_ = null; // rebuild lazy khi can
@@ -60,6 +64,10 @@ window.MsiDealerSelloutData = (function () {
   }
 
   function isLoaded() { return loaded; }
+  function hasByDealerModel() { return byDealerModel.length > 0; }
+  function hasByDistyModel() { return byDistyModel.length > 0; }
+  function getByDealerModel() { return byDealerModel; }
+  function getByDistyModel() { return byDistyModel; }
   function getMeta() { return meta; }
   function getByDealer() { return byDealer; }
   function getByDisty() { return byDisty; }
@@ -132,6 +140,11 @@ window.MsiDealerSelloutData = (function () {
     distyOnHandAtWeek: distyOnHandAtWeek,
     modelOnHandAtWeek: modelOnHandAtWeek,
     getDealers: getDealers,
-    getWeeks: getWeeks
+    getWeeks: getWeeks,
+    hasByDealerModel: hasByDealerModel,
+    hasByDistyModel: hasByDistyModel,
+    getByDealerModel: getByDealerModel,
+    getByDistyModel: getByDistyModel
   };
 })();
+
