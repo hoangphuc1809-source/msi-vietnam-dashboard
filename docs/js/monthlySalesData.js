@@ -34,19 +34,19 @@ window.MsiMonthlySalesData = (function () {
 
   function ssGet_(key) {
     try {
-      var item = sessionStorage.getItem(key);
+      var item = localStorage.getItem(key);
       if (!item) return null;
       var obj = JSON.parse(item);
-      if ((Date.now() - obj.ts) > SS_TTL_) { sessionStorage.removeItem(key); return null; }
+      if ((Date.now() - obj.ts) > SS_TTL_) { localStorage.removeItem(key); return null; }
       return obj.data;
     } catch (e) { return null; }
   }
   function ssSet_(key, data) {
-    try { sessionStorage.setItem(key, JSON.stringify({ ts: Date.now(), data: data })); }
+    try { localStorage.setItem(key, JSON.stringify({ ts: Date.now(), data: data })); }
     catch (e) {} // QuotaExceeded -> bo qua, khong cache
   }
   function ssClear_(key) {
-    try { sessionStorage.removeItem(key); } catch (e) {}
+    try { localStorage.removeItem(key); } catch (e) {}
   }
 
   async function fetchData() {
