@@ -55,27 +55,36 @@ window.MsiUserbuyData = (function () {
     try { localStorage.removeItem(key); } catch (e) {}
   }
 
-  async function fetchData() {
-    var _ss = ssGet_(SS_KEY_);
-    if (_ss) { applyData_(_ss); return _ss; }
-    var liveUrl = window.MSI_CONFIG.APPS_SCRIPT_URL + '?action=userbuy&_=' + Date.now();
+  async function fetchData(onLiveReady) {
+    // 1. localStorage cache: instant ~1ms, skip GAS hoàn toàn
+    var _ls = lsGet_(LS_KEY_);
+    if (_ls) { applyData_(_ls); return _ls; }
+
+    // 2. Static fallback NGAY LẬP TỨC (browser HTTP cache ~10ms)
+    // Cho phép page render mà không cần đợi GAS
     try {
-      var res = await fetch(liveUrl, { method: 'GET' });
-      if (!res.ok) throw new Error('status ' + res.status);
-      var json = await res.json();
-      if (json.error) throw new Error(json.error);
-      applyData_(json);
-      ssSet_(SS_KEY_, json);
-      return json;
-    } catch (liveErr) {
-      console.warn('[Userbuy] Live fetch (action=userbuy) chua san sang, dung static snapshot:', liveErr.message);
-      var res2 = await fetch('data/userbuy.json');
-      if (!res2.ok) throw new Error('Userbuy static fallback that bai: ' + res2.status);
-      var json2 = await res2.json();
-      applyData_(json2);
-      ssSet_(SS_KEY_, json2);
-      return json2;
-    }
+      var r2 = await fetch('data/userbuy.json');
+      if (r2.ok) { var j2 = await r2.json(); applyData_(j2); }
+    } catch (_e) {}
+
+    // 3. GAS fetch chạy BACKGROUND - không block caller
+    // epoch_ ngăn stale response ghi đè khi user bấm Refresh
+    var _epoch = epoch_;
+    ;(async function () {
+      try {
+        var _res = await fetch(window.MSI_CONFIG.APPS_SCRIPT_URL + '?action=userbuy&_=' + Date.now(), { method: 'GET' });
+        if (!_res.ok) throw new Error('HTTP ' + _res.status);
+        var _json = await _res.json();
+        if (_json.error) throw new Error(_json.error);
+        if (_epoch !== epoch_) return; // stale - user đã clear cache
+        applyData_(_json);
+        lsSet_(LS_KEY_, _json);
+      } catch (_e) {
+        console.warn('[Userbuy GAS background]', _e.message);
+      } finally {
+        if (typeof onLiveReady === 'function') onLiveReady();
+      }
+    })();
   }
 
   function applyData_(json) {
