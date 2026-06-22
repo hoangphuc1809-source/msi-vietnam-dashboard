@@ -631,9 +631,13 @@ html, body {
   flex: 1;
 }
 
-/* ===== Equal-height scrollable tables: Dealers & Disty =====
-   Hai bang nay nam trong cung 1 dash-grid row. Dat chieu cao co dinh
-   bang nhau de can doi + scroll doc khi co nhieu dong. */
+/* ===== Equal-height scrollable tables: Segment, GPU, Dealers, Disty =====
+   Ca 4 bang dat cung chieu cao co dinh 400px de can doi.
+   Segment va GPU: scroll doc khi co nhieu segment/gpu.
+   Dealers: scroll doc khi co nhieu dealer (reduce height).
+   Disty: it hang hon nen co khoang trang cuoi, nhung card cao bang nhau. */
+#segmentTable,
+#gpuTable,
 #dealersTable,
 #distyTable {
   height: 400px;
@@ -648,7 +652,9 @@ html, body {
   overflow-x: auto;
 }
 
-/* Sticky header cho 3 bang co scroll doc */
+/* Sticky header cho tat ca 5 bang co scroll doc */
+#segmentTable thead th,
+#gpuTable thead th,
 #dealersTable thead th,
 #distyTable thead th,
 #modelDetailTable thead th {
