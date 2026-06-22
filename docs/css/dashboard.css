@@ -653,7 +653,7 @@ html, body {
   overflow-x: auto;
 }
 
-/* Sticky header cho tat ca 5 bang co scroll doc */
+/* Sticky header (frozen top) */
 #segmentTable thead th,
 #gpuTable thead th,
 #dealersTable thead th,
@@ -664,6 +664,30 @@ html, body {
   z-index: 2;
   background: var(--card);
   box-shadow: 0 1px 0 var(--border);
+}
+
+/* Sticky Grand Total row (frozen bottom) cho Segment/GPU/Dealers/Disty
+   Apply tren <td> thay vi <tr> de tranh loi border-collapse + sticky tren Firefox.
+   background set tuong minh de khong bi transparent khi scroll qua. */
+#segmentTable tbody tr.total-row td,
+#gpuTable tbody tr.total-row td,
+#dealersTable tbody tr.total-row td,
+#distyTable tbody tr.total-row td {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  background: var(--card);
+  box-shadow: 0 -2px 0 var(--border);
+  border-top: none; /* dung box-shadow thay the border-top de tranh loi voi sticky */
+}
+
+/* Sticky Total row trong tfoot cua Model Detail table */
+#modelDetailTable tfoot td {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  background: var(--card);
+  box-shadow: 0 -2px 0 var(--border);
 }
 
 /* ===== KPI mini stats inside table card ===== */
