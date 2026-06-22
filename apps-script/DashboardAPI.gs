@@ -580,7 +580,7 @@ return result;
 // dong chay. Tach skuMeta + facts giong Userbuy data de payload gon.
 function getMonthlySalesData_() {
 var cache = CacheService.getScriptCache();
-var cached = cache.get('monthly_sales_data_v2');
+var cached = cache.get('monthly_sales_data_v3');
 if (cached) {
 return JSON.parse(cached);
 }
@@ -589,12 +589,13 @@ var sheet = findSheetByCandidates_(ss, SHEET_MONTHLY_SALES_CANDIDATES);
 if (!sheet) throw new Error('Khong tim thay sheet Monthly Sales data. Da thu: ' + SHEET_MONTHLY_SALES_CANDIDATES.join(', ') + '. Kiem tra lai ten tab va sua bien SHEET_MONTHLY_SALES_CANDIDATES.');
 var lastRow = sheet.getLastRow();
 var lastCol = sheet.getLastColumn();
-if (lastRow < 2) return { skus: [], facts: [], byDealer: [], byDealerSkus: {}, meta: {} };
+if (lastRow < 2) return { skus: [], facts: [], byDealer: [], byDealerSkus: {}, byDealerModelOnHand: {}, meta: {} };
 var values = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
 var skuMap = {};
 var factMap = {}; // 'year|month|sku' -> onHand (cong don tat ca Customer)
 var dealerMap = {}; // 'year|month|customer' -> onHand (cong don tat ca SKU)
 var dealerSkuSet = {}; // customer -> { sku: true } - de xay dung cross-filter Dealer -> Model Detail
+var dealerModelOnHandMap = {}; // 'customer||sku||y||m' -> onHand (Dealers table ONHAND theo model)
 for (var i = 0; i < values.length; i++) {
 var r = values[i];
 var year = r[0];
@@ -625,6 +626,12 @@ dealerMap[dKey] = (dealerMap[dKey] || 0) + onHand;
 // Track which SKUs this dealer has carried (co onHand bat ky thoi diem nao)
 if (!dealerSkuSet[customer]) dealerSkuSet[customer] = {};
 dealerSkuSet[customer][sku] = true;
+// byDealerModelOnHand: per-dealer per-model per-month OnHand (Dealers table cross-filter)
+if (onHand > 0) {
+var normY = String(year).replace(/^Y/, '');
+var keyDMH = customer + '||' + sku + '||' + normY + '||' + String(month);
+dealerModelOnHandMap[keyDMH] = (dealerModelOnHandMap[keyDMH] || 0) + onHand;
+}
 }
 }
 var skus = [];
@@ -646,11 +653,18 @@ var byDealerSkus = {};
 for (var c in dealerSkuSet) {
 byDealerSkus[c] = Object.keys(dealerSkuSet[c]).sort();
 }
+// byDealerModelOnHand: {'cust||sku||y||m': onHand} - tra ve only non-zero
+// Dung cho Dealers table OnHand theo model (cross-filter)
+var byDealerModelOnHand = {};
+for (var keyDMH2 in dealerModelOnHandMap) {
+if (dealerModelOnHandMap[keyDMH2] > 0) byDealerModelOnHand[keyDMH2] = round2_(dealerModelOnHandMap[keyDMH2]);
+}
 var result = {
 skus: skus,
 facts: facts,
 byDealer: byDealer,
 byDealerSkus: byDealerSkus,
+byDealerModelOnHand: byDealerModelOnHand,
 meta: {
 generatedAt: new Date().toISOString(),
 source: sheet.getName() + ' (live)',
@@ -662,7 +676,7 @@ dealerCount: byDealer.length
 try {
 var json = JSON.stringify(result);
 if (json.length < 950000) {
-cache.put('monthly_sales_data_v2', json, CACHE_SECONDS_MONTHLY_SALES);
+cache.put('monthly_sales_data_v3', json, CACHE_SECONDS_MONTHLY_SALES);
 }
 } catch (e) {
 }
@@ -761,5 +775,6 @@ Logger.log('Sample sku: ' + JSON.stringify(data.skus[0]));
 Logger.log('Sample fact: ' + JSON.stringify(data.facts[0]));
 Logger.log('Sample dealer: ' + JSON.stringify(data.byDealer[0]));
 }
+
 
 
