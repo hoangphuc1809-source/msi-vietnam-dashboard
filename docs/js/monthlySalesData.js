@@ -9,6 +9,7 @@ window.MsiMonthlySalesData = (function () {
   var skus = [];   // [{sku, sg, seg1, cpuSeg, gpu, disty, status, highEnd}]
   var facts = [];    // [{y, m, sku, onHand}]
   var byDealer = [];  // [{y, m, cust, onHand}]
+  var byDealerSkus = {}; // { custName: [sku1, sku2, ...] } - cross-filter Dealer -> Model Detail
   var skuIndex = {};
   var meta = {};
   var loaded = false;
@@ -44,6 +45,7 @@ window.MsiMonthlySalesData = (function () {
     skus.forEach(function (s) { s.sg = normSeriesGroup_(s.sg); });
     facts = json.facts || [];
     byDealer = json.byDealer || [];
+    byDealerSkus = json.byDealerSkus || {}; // { cust: [sku1, sku2, ...] }
     meta = json.meta || {};
     skuIndex = {};
     skus.forEach(function (s) { skuIndex[s.sku] = s; });
@@ -88,11 +90,27 @@ window.MsiMonthlySalesData = (function () {
     return Math.round(total * 100) / 100;
   }
 
+  // Tra ve danh sach SKU ma dealer nay da co inventory (tu byDealerSkus).
+  // Dung cho cross-filter: khi click Dealers table row -> Model Detail chi hien
+  // thi cac model thuoc dealer do.
+  // Tra ve [] neu khong co du lieu (fallback: hien thi tat ca model - giu nguyen hien tai).
+  function getDealerSkus(customer) {
+    if (!customer || !byDealerSkus[customer]) return [];
+    return byDealerSkus[customer]; // sorted array of sku strings
+  }
+
+  // Tra ve true neu dealer nay co inventory cho it nhat 1 SKU nao do
+  function hasDealerSkus() {
+    return Object.keys(byDealerSkus).length > 0;
+  }
+
   return {
     fetchData: fetchData,
     isLoaded: isLoaded,
     getMeta: getMeta,
     onHandAtMonth: onHandAtMonth,
-    dealerOnHandAtMonth: dealerOnHandAtMonth
+    dealerOnHandAtMonth: dealerOnHandAtMonth,
+    getDealerSkus: getDealerSkus,
+    hasDealerSkus: hasDealerSkus
   };
 })();
