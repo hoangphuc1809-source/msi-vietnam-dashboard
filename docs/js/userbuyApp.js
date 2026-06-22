@@ -23,34 +23,37 @@
     });
     loadData(true);
   }
-
   async function loadData(isFirstLoad) {
-    // Progressive render: Phase 1 load UB + DI (core userbuy data).
-    // Chúng load từ localStorage cache (instant nếu đã cached).
-    // Page render ngay sau Phase 1, không chờ DS + MS (sell out + onHand).
-    // Phase 2: DS + MS load background, re-render khi xong.
+    // Static-first loading:
+    // fetchData(callback) trả về ngay sau khi static/localStorage sẵn sàng (~10-100ms).
+    // GAS fetch chạy background, callback() sẽ trigger re-render khi có live data.
     document.getElementById('refreshBtn').classList.add('loading');
+
+    function onModuleLiveReady() {
+      // Được gọi khi 1 module nhận được GAS data mới → re-render im lặng
+      updateMetaInfo();
+      renderAll(FS.getState());
+    }
+
     try {
-      await Promise.all([UB.fetchData(), DI.fetchData()]);
-      // Phase 1 xong: render ngay với dữ liệu UB + DI
-      document.getElementById('refreshBtn').classList.remove('loading');
+      // Promise.all resolve sau khi cả 4 module có static/cached data (~10-100ms)
+      await Promise.all([
+        UB.fetchData(onModuleLiveReady),
+        DI.fetchData(onModuleLiveReady),
+        DS.fetchData(onModuleLiveReady),
+        MS.fetchData(onModuleLiveReady)
+      ]);
+      // Render ngay với static/cached data
       hideError();
       updateMetaInfo();
       if (isFirstLoad) initSelects();
       renderAll(FS.getState());
     } catch (err) {
-      console.error('[Phase1]', err);
+      console.error('[loadData]', err);
       showError('Khong tai duoc du lieu: ' + err.message);
+    } finally {
       document.getElementById('refreshBtn').classList.remove('loading');
     }
-    // Phase 2: DS + MS load song song background, không block UI.
-    // Khi xong sẽ re-render để update Dealers/Disty/OnHand columns.
-    Promise.allSettled([DS.fetchData(), MS.fetchData()]).then(function () {
-      if (DS.isLoaded() || MS.isLoaded()) {
-        updateMetaInfo();
-        renderAll(FS.getState());
-      }
-    });
   }
 
   function showError(msg) {
