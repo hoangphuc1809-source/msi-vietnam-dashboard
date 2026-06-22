@@ -313,6 +313,59 @@
     return '<span class="yoy-badge ' + cls + '">' + arrow + ' YoY ' + fmt.percentSigned(yoy, 0).replace(/^[+-]/, '') + '</span>';
   }
 
+  // Tinh Top 10 model theo Userbuy cho 1 segment cu the trong period.
+  // Tra ve [{sku, shortLabel, qty, pct}] - pct = qty / totalQty (toan bo period).
+  // Cross-filter: dung ubFilters hien tai (year/quarter/gpu/cpu/disty...) tru segment.
+  function computeTop10_(ubFilters, segmentFilter, totalQty) {
+    var segFilters = cloneState_(ubFilters);
+    segFilters.segment = segmentFilter;
+    segFilters.model = null; // top10 khong filter theo model don le
+    var skuTotals = {};
+    UB.applyFilters(segFilters).forEach(function (f) {
+      skuTotals[f.sku] = (skuTotals[f.sku] || 0) + (f.qty || 0);
+    });
+    return Object.keys(skuTotals)
+      .map(function (sku) { return { sku: sku, qty: skuTotals[sku] }; })
+      .filter(function (x) { return x.qty > 0; })
+      .sort(function (a, b) { return b.qty - a.qty; })
+      .slice(0, 10)
+      .map(function (x) {
+        // Rut gon label: bo phan "Katana 15 " o dau neu qua dai
+        var label = x.sku;
+        var pct = totalQty > 0 ? (x.qty / totalQty * 100) : 0;
+        return { sku: x.sku, label: label, qty: x.qty, pct: pct };
+      });
+  }
+
+  // Render danh sach Top10 vao 1 container (Gaming hoac B&P)
+  // Items: [{sku, label, qty, pct}], maxPct: max % trong list (de scale bar)
+  // onClickModel: callback khi click ten model -> cross-filter
+  function renderTop10List_(containerId, items, maxPct) {
+    var el = document.getElementById(containerId);
+    if (!el) return;
+    if (!items.length) { el.innerHTML = '<div style="color:var(--text-secondary);font-size:12px;padding:8px 0;">No data</div>'; return; }
+    var html = '';
+    items.forEach(function (item, i) {
+      var barW = maxPct > 0 ? Math.round(item.pct / maxPct * 100) : 0;
+      var shortLabel = item.label.length > 22 ? item.label.slice(0, 20) + '...' : item.label;
+      html += '<div class="top10-item" data-sku="' + escapeHtml(item.sku) + '" title="' + escapeHtml(item.label) + ' — ' + item.qty + ' units (' + item.pct.toFixed(1) + '%)">' +
+        '<span class="top10-rank">' + (i + 1) + '</span>' +
+        '<span class="top10-label">' + escapeHtml(shortLabel) + '</span>' +
+        '<div class="top10-bar-track"><div class="top10-bar-fill" style="width:' + barW + '%"></div></div>' +
+        '<span class="top10-pct">' + item.pct.toFixed(1) + '%</span>' +
+        '</div>';
+    });
+    el.innerHTML = html;
+    // Click model -> cross-filter model
+    el.querySelectorAll('.top10-item[data-sku]').forEach(function (row) {
+      row.addEventListener('click', function () {
+        var sku = row.getAttribute('data-sku');
+        var cur = FS.getState().model;
+        FS.setModel(cur === sku ? null : sku);
+      });
+    });
+  }
+
   function renderSnapshotZone_(state, ubFilters, periodWeeks, snapshotWeek, snap) {
     var w13 = periodWeeks.length > 13 ? periodWeeks.slice(periodWeeks.length - 13) : periodWeeks;
 
@@ -338,6 +391,15 @@
       if (idx === -1) next.push(label); else next.splice(idx, 1);
       FS.setSeriesGroups(next);
     });
+
+    // --- Top 10 Gaming + Top 10 B&P score cards ---
+    var totalQty = total.qty || 0;
+    var gamingTop10 = computeTop10_(ubFilters, 'Gaming', totalQty);
+    var bnpTop10   = computeTop10_(ubFilters, 'Business& Productivity', totalQty);
+    var gamingMaxPct = gamingTop10.length ? gamingTop10[0].pct : 0;
+    var bnpMaxPct   = bnpTop10.length   ? bnpTop10[0].pct   : 0;
+    renderTop10List_('top10GamingList', gamingTop10, gamingMaxPct);
+    renderTop10List_('top10BnpList',   bnpTop10,   bnpMaxPct);
 
     // --- KPI tiles: Gaming / B&P / Handheld / Series50 / HighEnd / Disty SOH / Dealers SOH / WOI ---
     var gaming = sumAndYoy_(ubFilters, { seriesGroups: ['Gaming'] }, w13);
