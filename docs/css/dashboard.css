@@ -1173,16 +1173,24 @@ html, body {
 
 /* KPI snapshot tiles */
 .snapshot-card {
-  min-height: 300px;
+  height: 300px;
   overflow: hidden;
+}
+
+/* Top10 cards only: flex column so list + footer fill card height */
+.snapshot-card.top10-card {
   display: flex;
   flex-direction: column;
 }
 
-/* Top10 card: list stretches to fill card bottom */
-.snapshot-card .top10-list {
+.snapshot-card.top10-card .top10-list {
   flex: 1;
   min-height: 0;
+  overflow-y: auto;
+}
+
+.snapshot-card.top10-card .top10-footer {
+  flex-shrink: 0;
 }
 
 /* 4-column snapshot grid: cung 1 hang tren man hinh rong, wrap 2x2 tren hep */
