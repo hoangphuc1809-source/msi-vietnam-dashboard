@@ -18,7 +18,7 @@ window.MsiDistyInvData = (function () {
   }
 
 
-  var LS_KEY_ = 'msivn_di_v1';
+  var LS_KEY_ = 'msivn_di_v2';
   var epoch_ = 0;
 
   // ===== localStorage "cache-last-open" =====
