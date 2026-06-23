@@ -55,6 +55,8 @@ payload = getUserbuyData_();
 payload = getDistyInvData_();
 } else if (action === 'monthlysales') {
 payload = getMonthlySalesData_();
+} else if (action === 'scrapeFpt') {
+payload = scrapeFptInternal_();
 } else if (action === 'ping') {
 payload = { ok: true, time: new Date().toISOString() };
 } else {
@@ -777,4 +779,155 @@ Logger.log('Sample dealer: ' + JSON.stringify(data.byDealer[0]));
 }
 
 
+// ════════════════════════════════════════════════════════════
+// FPT SHOP SCRAPER — dùng UrlFetchApp (Google server IP)
+// Chạy 3x/ngày qua GAS time-based trigger (setupFptTrigger)
+// Ghi vào tab FPT_TEST trong spreadsheet Retail Price Tracking
+// ════════════════════════════════════════════════════════════
 
+var FPT_RETAIL_SS_ID = '1VQAHqU3FaVfEOzVmp9nqLlkVokN0s9JkkJwLDscvr6w';
+
+function scrapeFptInternal_() {
+  var result = fetchAndParseFpt_();
+  if (!result.success) {
+    logFptTestRun_(result.error);
+    return { success: false, error: result.error };
+  }
+  var written = writeFptRows_(result.products, 'FPT_TEST');
+  logFptTestRun_('ok', written);
+  return { success: true, written: written, productCount: result.products.length };
+}
+
+function fetchAndParseFpt_() {
+  var TARGET_URL = 'https://fptshop.com.vn/may-tinh-xach-tay/msi';
+  try {
+    var response = UrlFetchApp.fetch(TARGET_URL, {
+      method: 'GET',
+      followRedirects: true,
+      muteHttpExceptions: true,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,*/*;q=0.8',
+        'Accept-Language': 'vi-VN,vi;q=0.9,en;q=0.8',
+        'Cache-Control': 'no-cache',
+      },
+    });
+    var status = response.getResponseCode();
+    var html = response.getContentText();
+    Logger.log('FPT HTTP status: ' + status + ' | HTML: ' + html.length + ' chars');
+    if (status !== 200) return { success: false, error: 'HTTP ' + status };
+    if (html.indexOf('Just a moment') >= 0) return { success: false, error: 'CF challenge' };
+    var products = parseFptHtml_(html);
+    Logger.log('Parsed ' + products.length + ' products');
+    return { success: true, products: products };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+
+function parseFptHtml_(html) {
+  var products = [];
+  var seen = {};
+  var linkRe = new RegExp('href="(\/may-tinh-xach-tay\/msi[^"?#]*)"[^>]*title="([^"]+)"', 'gi');
+  var match;
+  while ((match = linkRe.exec(html)) !== null) {
+    var path = match[1];
+    var title = match[2].replace(/^Laptop\s+/i, '').trim();
+    if (seen[path] || !isFptProductUrl_(path)) continue;
+    seen[path] = true;
+    var product = { path: path, name: title, url: 'https://fptshop.com.vn' + path };
+    var hrefIdx = html.indexOf('href="' + path + '"');
+    var slice = html.substring(hrefIdx, hrefIdx + 3000);
+    var priceM = slice.match(/(\d{2,3}(?:\.\d{3})+)[đd][-–](\d+)%(\d{2,3}(?:\.\d{3})+)[đd]/i);
+    if (priceM) {
+      product.priceOld = parseInt(priceM[1].replace(/\./g, ''), 10);
+      product.discount = parseInt(priceM[2], 10);
+      product.priceNew = parseInt(priceM[3].replace(/\./g, ''), 10);
+    } else {
+      var sm = slice.match(/(\d{2,3}(?:\.\d{3})+)[đd]/i);
+      if (sm) product.priceNew = parseInt(sm[1].replace(/\./g, ''), 10);
+    }
+    var t = title;
+    var cpuM = t.match(/Core\s+Ultra\s+\d+|Core\s+[i\d]+\s+\d+[A-Z]+\w*|Ryzen\s+\d+\s+\d+\w*/i);
+    product.cpu = cpuM ? cpuM[0] : '';
+    var rams = []; var ramRe = new RegExp('(\\d+)\\s*GB', 'gi'); var rm;
+    while ((rm = ramRe.exec(t)) !== null) rams.push(rm[1]);
+    product.ram = rams[0] ? rams[0] + 'GB' : '';
+    product.ssd = rams[1] ? rams[1] + 'GB' : '';
+    var scrM = t.match(/(\d{2}(?:\.\d+)?)[\u201d"]/);
+    product.screen = scrM ? scrM[1] + '"' : '';
+    var gpuM = t.match(/RTX\s*\d{4}(?:\s*Ti)?|GTX\s*\d{4}/i);
+    product.gpu = gpuM ? gpuM[0].replace(/\s+/g, ' ') : '';
+    products.push(product);
+  }
+  return products;
+}
+
+function isFptProductUrl_(path) {
+  var cats = ['/may-tinh-xach-tay/msi', '/may-tinh-xach-tay/msi-modern', '/may-tinh-xach-tay/msi-venture'];
+  for (var i = 0; i < cats.length; i++) if (path === cats[i]) return false;
+  if (/^\/may-tinh-xach-tay\/msi\//.test(path)) return false;
+  if (/^\/may-tinh-xach-tay\/msi-gaming-(?:thin-gf|stealth-vector|katana-sword)[a-z-]*$/.test(path)) return false;
+  return /[a-z]\d{2}[a-z0-9]+/i.test(path);
+}
+
+function writeFptRows_(products, sheetName) {
+  var ss = SpreadsheetApp.openById(FPT_RETAIL_SS_ID);
+  var sheet = ss.getSheetByName(sheetName);
+  if (!sheet) {
+    sheet = ss.insertSheet(sheetName);
+    var headers = ['Ngày','Giờ','STT','Dealer','Tên Model','Hãng','CPU','RAM','Ổ cứng','Màn hình','Card đồ họa','Trọng lượng','Giá gốc','Giá KM','Giảm%','Đã bán','Rating','Link','Method','Status'];
+    sheet.getRange(1,1,1,headers.length).setValues([headers]).setFontWeight('bold');
+    sheet.setFrozenRows(1);
+  }
+  var now = new Date();
+  var vn = new Date(now.getTime() + 7*3600000);
+  var d = Utilities.formatDate(vn, 'GMT', 'dd/MM/yyyy');
+  var t = Utilities.formatDate(vn, 'GMT', 'HH:mm');
+  var lastRow = sheet.getLastRow();
+  if (lastRow > 1) {
+    var data = sheet.getRange(2,1,lastRow-1,20).getValues();
+    for (var i = data.length-1; i >= 0; i--) {
+      if (String(data[i][0]) === d && String(data[i][18]) === 'gas-fetch') sheet.deleteRow(i+2);
+    }
+  }
+  if (!products || products.length === 0) return 0;
+  var rows = products.filter(function(p){return p.name;}).map(function(p,i){
+    return [d,t,i+1,'FPT',p.name,'MSI',p.cpu||'',p.ram||'',p.ssd||'',p.screen||'',p.gpu||'','',
+      p.priceOld?String(p.priceOld):'',p.priceNew?String(p.priceNew):'',p.discount?'-'+p.discount+'%':'',
+      '','',p.url||'','gas-fetch','ok'];
+  });
+  sheet.getRange(sheet.getLastRow()+1,1,rows.length,rows[0].length).setValues(rows);
+  return rows.length;
+}
+
+function logFptTestRun_(statusOrError, count) {
+  try {
+    var ss = SpreadsheetApp.openById(FPT_RETAIL_SS_ID);
+    var log = ss.getSheetByName('FPT_TEST_LOG');
+    if (!log) {
+      log = ss.insertSheet('FPT_TEST_LOG');
+      log.getRange(1,1,1,4).setValues([['Timestamp','Method','Status','Count']]).setFontWeight('bold');
+    }
+    var status = (statusOrError === 'ok') ? 'ok' : 'failed';
+    var err = (statusOrError !== 'ok') ? statusOrError : '';
+    log.appendRow([new Date().toISOString(), 'gas-fetch', status, count||0, err]);
+  } catch(e) { Logger.log('logFptTestRun_ error: ' + e.message); }
+}
+
+// Chạy 1 lần để tạo trigger 3x/ngày (8h, 12h, 17h VN)
+function setupFptTrigger() {
+  ScriptApp.getProjectTriggers().forEach(function(t) {
+    if (t.getHandlerFunction() === 'runFptScrape') ScriptApp.deleteTrigger(t);
+  });
+  // 3 triggers: 8h=1h UTC, 12h=5h UTC, 17h=10h UTC
+  [1, 5, 10].forEach(function(hour) {
+    ScriptApp.newTrigger('runFptScrape').timeBased().atHour(hour).everyDays(1).inTimezone('Etc/GMT').create();
+  });
+  Logger.log('Created 3 daily triggers: 8h, 12h, 17h VN');
+}
+
+function runFptScrape() {
+  var result = scrapeFptInternal_();
+  Logger.log('FPT scrape: ' + JSON.stringify(result));
+}
