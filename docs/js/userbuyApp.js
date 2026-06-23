@@ -651,6 +651,30 @@
         groups[r.cust].byWeek[r.w] = (groups[r.cust].byWeek[r.w] || 0) + r.sellOut;
       });
     }
+    // Merge thêm dealers có OnHand nhưng 0 sell-out trong kỳ → không có trong groups
+    // Đây là nguyên nhân chính thiếu dealers trong table
+    if (snap.month) {
+      var dealersWithOnHand;
+      if (ubSkuSet) {
+        // Model filter active: lấy dealers từ byDealerModelOnHand cho từng SKU
+        var ohSet = {};
+        Object.keys(ubSkuSet).forEach(function (sku) {
+          MS.getDealersWithModelOnHand(sku, snap.year, snap.month).forEach(function (d) { ohSet[d] = true; });
+        });
+        dealersWithOnHand = Object.keys(ohSet);
+      } else {
+        // Không có filter: lấy tất cả dealers có OnHand trong tháng đó
+        dealersWithOnHand = MS.getAllDealersWithOnHand(snap.year, snap.month);
+      }
+      dealersWithOnHand.forEach(function (dealer) {
+        if (!groups[dealer]) {
+          // Dealer này có OnHand nhưng 0 sell-out → thêm vào groups với qty=0
+          if (relevantDealers !== null && !relevantDealers[dealer]) return;
+          groups[dealer] = { qty: 0, rev: 0, byWeek: {} };
+        }
+      });
+    }
+
     var rows = buildMetricRows_(groups, last3,
       function () { return null; }, // demand cho dealer dung rieng avgSellOut4wk_ ben duoi, khong dung avgUserbuy4wk_
       function (dealer) {
