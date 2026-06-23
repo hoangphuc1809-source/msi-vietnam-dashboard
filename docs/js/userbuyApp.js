@@ -749,6 +749,13 @@
       });
     }
     var distyOnHandMap = snap.month ? DI.onHandByDistyAtMonth(snap.year, snap.month, ubFilters) : {};
+    // Merge distys có Disty OnHand nhưng 0 sell-out → không có trong groups → thiếu row
+    Object.keys(distyOnHandMap).forEach(function (disty) {
+      if (distyOnHandMap[disty] > 0 && !groups[disty]) {
+        if (relevantDisties !== null && !relevantDisties[disty]) return;
+        groups[disty] = { qty: 0, rev: 0, byWeek: {} };
+      }
+    });
     var rows = buildMetricRows_(groups, last3,
       function (disty) { var f = cloneState_(ubFilters); f.disty = disty; return f; },
       function (disty) { if (!snap.month) return 0; var f = cloneState_(ubFilters); f.disty = disty; return MS.onHandAtMonth(snap.year, snap.month, f); },
@@ -762,9 +769,15 @@
         r.woi = computeWoi_(totalOnHand, avgDemand);
       }
     });
+    // Grand Total Dealer OnHand: dùng MS.onHandAtMonth (authoritative, khớp với KPI tile)
+    // Grand Total Disty OnHand: dùng DI.onHandAtMonth (authoritative, khớp với KPI tile)
+    var distyGrandDealerOnHand = snap.month ? MS.onHandAtMonth(snap.year, snap.month, ubFilters) : null;
+    var distyGrandDistyOnHand  = snap.month ? DI.onHandAtMonth(snap.year, snap.month, ubFilters) : null;
     TB.renderMetricTable('distyTable', {
       rows: rows, dimLabel: 'Disty', metricLabel: 'Sell Out', weekLabels: last3.map(weekLabelOrFallback_),
       activeValue: state.disty, onRowClick: function (key) { FS.setDisty(key); }, showDistyOnHand: true,
+      grandOnHandOverride: distyGrandDealerOnHand,
+      grandDistyOnHandOverride: distyGrandDistyOnHand,
       emptyMessage: 'Chưa có dữ liệu Weekly Sales Data cho giai đoạn đang chọn. ' +
         'Bản static hiện tại chỉ có 2025W01-W07 (giới hạn tải file). Bảng sẽ tự đầy đủ ngay khi Apps Script được deploy (xem DEPLOYMENT_INFO.md) - không cần sửa filter.'
     });
