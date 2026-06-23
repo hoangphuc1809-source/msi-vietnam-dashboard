@@ -656,15 +656,15 @@
       function (dealer) {
         if (!snap.month) return 0;
         if (ubSkuSet) {
-          // Model/segment filter active: sum per-model onHand for this dealer
+          // Model/segment filter active: sum per-model onHand chỉ cho các SKU match filter.
+          // KHÔNG fallback về dealerOnHandAtMonth (tổng tất cả model) vì sẽ cho số sai.
           var total = 0;
           Object.keys(ubSkuSet).forEach(function (sku) {
             total += MS.dealerModelOnHandAtMonth(dealer, sku, snap.year, snap.month);
           });
-          // Fallback: neu byDealerModelOnHand chua co data (GAS chua deploy v6)
-          // dung total dealer onHand (toan bo model) thay vi 0
-          return total > 0 ? total : MS.dealerOnHandAtMonth(dealer, snap.year, snap.month);
+          return total;
         }
+        // Không có model/segment filter → dùng tổng OnHand theo dealer (tất cả model)
         return MS.dealerOnHandAtMonth(dealer, snap.year, snap.month);
       },
       null
