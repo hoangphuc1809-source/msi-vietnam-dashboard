@@ -577,10 +577,47 @@
     var whitespace = D.whitespaceList(alertFilters).slice(0, 5);
     var volatility = D.volatilityFlags(alertFilters, state.weeksBack).slice(0, 5);
 
+    // ===== Zone 4: KA Channel Share (IHS Gaming vol per KA dealer × brand vs NV Report total) =====
+    // Always Gaming-only to match NV Report scope. Respects Year/Quarter filter from state.
+    var KA_DEALERS = ['Mobile World', 'FPT RETAIL JSC', 'CELLPHONES', 'PHONG VU'];
+    var kaShareData = null;
+    if (nvReady) {
+      var scopeWeeks = NV.getWeeksForYearQuarter(state.years, state.quarters);
+      var nvRows = NV.brandSummaryTable(scopeWeeks);
+      var nvByBrand = {};
+      nvRows.forEach(function (r) { nvByBrand[r.brand] = r.volume; });
+
+      // All brands in NV Report for this period, sorted desc by NV volume
+      var allBrands = Object.keys(nvByBrand).sort(function (a, b) {
+        return (nvByBrand[b] || 0) - (nvByBrand[a] || 0);
+      });
+
+      // IHS base: Gaming only, same Year/Quarter — no customer/brand override yet
+      var ihsBase = { seriesGroup: ['Gaming'], year: state.years, quarter: state.quarters };
+
+      var kaRows = allBrands.map(function (brand) {
+        var dealerVols = {};
+        var kaTotal = 0;
+        KA_DEALERS.forEach(function (dealer) {
+          var f = Object.assign({}, ihsBase, { customer: dealer, brand: brand });
+          var rows = D.applyFilters(f).filter(function (r) { return !r.isTotal; });
+          var vol = rows.reduce(function (a, r) { return a + (r.brandVol || 0); }, 0);
+          dealerVols[dealer] = vol;
+          kaTotal += vol;
+        });
+        var nvTotal = nvByBrand[brand] || 0;
+        var kaShare = nvTotal > 0 ? kaTotal / nvTotal : null;
+        return { brand: brand, dealerVols: dealerVols, kaTotal: kaTotal, nvTotal: nvTotal, kaShare: kaShare };
+      }).filter(function (r) { return r.nvTotal > 0 || r.kaTotal > 0; });
+
+      kaShareData = { dealers: KA_DEALERS, rows: kaRows };
+    }
+
     Tables.renderAlertsPanel('alertsPanel', {
       topMovers: topMovers,
       whitespace: whitespace,
-      volatility: volatility
+      volatility: volatility,
+      kaShare: kaShareData
     });
   }
 
@@ -758,3 +795,4 @@
 
   document.addEventListener('DOMContentLoaded', init);
 })();
+
