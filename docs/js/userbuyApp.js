@@ -31,6 +31,18 @@
 
     function onModuleLiveReady() {
       // Được gọi khi 1 module nhận được GAS data mới → re-render im lặng
+      // Nếu Year TomSelect đang trống (init lúc cache rỗng) → refresh options
+      if (yearTs && yearTs.options && Object.keys(yearTs.options).length === 0) {
+        var freshYears = UB.getYears();
+        if (freshYears.length > 0) {
+          freshYears.forEach(function (y) { yearTs.addOption({ value: y, text: y }); });
+          yearTs.refreshOptions(false);
+        }
+      }
+      if (seriesGroupTs && seriesGroupTs.options && Object.keys(seriesGroupTs.options).length === 0) {
+        UB.getSeriesGroups().forEach(function (sg) { seriesGroupTs.addOption({ value: sg, text: sg }); });
+        seriesGroupTs.refreshOptions(false);
+      }
       updateMetaInfo();
       renderAll(FS.getState());
     }
@@ -813,6 +825,7 @@
 
   document.addEventListener('DOMContentLoaded', init);
 })();
+
 
 
 
