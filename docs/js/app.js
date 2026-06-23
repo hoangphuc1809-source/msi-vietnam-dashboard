@@ -615,11 +615,11 @@
 
     // ===== Zone 4: KA Channel Share =====
     // Always Gaming-only to match NV Report scope. Respects Year/Quarter filter.
-    // MAIN_BRANDS = brands tracked individually; everything else → one "Others" row.
-    // IHS "Others" vol = total IHS at KA dealer − sum of main brand vols (catches
-    // all non-main IHS brands regardless of name: "Others", "Dell", etc.)
+    // IHS rename: "Others"/"Other" → "Giga" (IHS naming fix pending, use map for now).
+    // Rows = union(IHS brands after rename, NV brands) — each brand appears once,
+    // showing KA dealer vols from IHS and NV total side by side.
     var KA_DEALERS = ['Mobile World', 'FPT RETAIL JSC', 'CELLPHONES', 'PHONG VU'];
-    var MAIN_BRANDS = ['Asus', 'Lenovo', 'Acer', 'MSI', 'HP'];
+    var IHS_BRAND_RENAME = { 'Others': 'Giga', 'Other': 'Giga' };
     var kaShareData = null;
     if (nvReady) {
       var scopeWeeks = NV.getWeeksForYearQuarter(state.years, state.quarters);
@@ -629,43 +629,35 @@
 
       var ihsBase = { seriesGroup: ['Gaming'], year: state.years, quarter: state.quarters };
 
-      // 1. Main brand rows (NV total + IHS per-brand per-dealer)
-      var kaRows = MAIN_BRANDS
-        .filter(function (b) { return nvByBrand[b]; })
+      // Step 1: Accumulate IHS brand vols at each KA dealer (apply rename map)
+      var ihsBrandAtDealer = {}; // { brand: { dealer: vol } }
+      KA_DEALERS.forEach(function (dealer) {
+        var f = Object.assign({}, ihsBase, { customer: dealer });
+        D.applyFilters(f).filter(function (r) { return !r.isTotal; }).forEach(function (r) {
+          var bName = IHS_BRAND_RENAME[r.brand] || r.brand;
+          if (!ihsBrandAtDealer[bName]) ihsBrandAtDealer[bName] = {};
+          ihsBrandAtDealer[bName][dealer] = (ihsBrandAtDealer[bName][dealer] || 0) + (r.brandVol || 0);
+        });
+      });
+
+      // Step 2: Union IHS brands (after rename) + NV brands, sorted by NV vol desc
+      var brandSet = {};
+      Object.keys(ihsBrandAtDealer).forEach(function (b) { brandSet[b] = true; });
+      Object.keys(nvByBrand).forEach(function (b) { brandSet[b] = true; });
+
+      var kaRows = Object.keys(brandSet)
+        .sort(function (a, b) { return (nvByBrand[b] || 0) - (nvByBrand[a] || 0); })
         .map(function (brand) {
           var dealerVols = {}, kaTotal = 0;
           KA_DEALERS.forEach(function (dealer) {
-            var f = Object.assign({}, ihsBase, { customer: dealer, brand: brand });
-            var vol = D.applyFilters(f).filter(function (r) { return !r.isTotal; })
-              .reduce(function (a, r) { return a + (r.brandVol || 0); }, 0);
-            dealerVols[dealer] = vol;
-            kaTotal += vol;
+            var v = (ihsBrandAtDealer[brand] && ihsBrandAtDealer[brand][dealer]) || 0;
+            dealerVols[dealer] = v;
+            kaTotal += v;
           });
           var nvTotal = nvByBrand[brand] || 0;
           return { brand: brand, dealerVols: dealerVols, kaTotal: kaTotal, nvTotal: nvTotal,
                    kaShare: nvTotal > 0 ? kaTotal / nvTotal : null };
         }).filter(function (r) { return r.nvTotal > 0 || r.kaTotal > 0; });
-
-      // 2. "Others" row — NV total = all non-MAIN_BRANDS; IHS total = grand total minus main brands
-      var othersNvTotal = Object.keys(nvByBrand)
-        .filter(function (b) { return MAIN_BRANDS.indexOf(b) === -1; })
-        .reduce(function (s, b) { return s + (nvByBrand[b] || 0); }, 0);
-
-      if (othersNvTotal > 0) {
-        var othersDealerVols = {}, othersKaTotal = 0;
-        KA_DEALERS.forEach(function (dealer) {
-          var fAll = Object.assign({}, ihsBase, { customer: dealer });
-          var allVol = D.applyFilters(fAll).filter(function (r) { return !r.isTotal; })
-            .reduce(function (a, r) { return a + (r.brandVol || 0); }, 0);
-          var mainVol = kaRows.reduce(function (s, r) { return s + (r.dealerVols[dealer] || 0); }, 0);
-          var othersVol = Math.max(0, allVol - mainVol);
-          othersDealerVols[dealer] = othersVol;
-          othersKaTotal += othersVol;
-        });
-        kaRows.push({ brand: 'Others', dealerVols: othersDealerVols,
-                      kaTotal: othersKaTotal, nvTotal: othersNvTotal,
-                      kaShare: othersNvTotal > 0 ? othersKaTotal / othersNvTotal : null });
-      }
 
       kaShareData = { dealers: KA_DEALERS, rows: kaRows };
     }
