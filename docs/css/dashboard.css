@@ -798,11 +798,22 @@ html, body {
 .alerts-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 18px;
+  gap: 14px;
 }
 
 @media (max-width: 900px) {
   .alerts-grid { grid-template-columns: 1fr; }
+}
+
+/* Each alert zone is its own card */
+.alert-col {
+  background: var(--card);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--signal-amber);
+  padding: 14px 14px 12px;
+  min-width: 0;
 }
 
 /* KA Share by Brand table (Zone 4) */
@@ -867,6 +878,26 @@ html, body {
 
 .ka-share-pct {
   font-weight: 700 !important;
+}
+
+.ka-rest-pct {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+/* Grand Total row */
+.ka-grand-total td {
+  background: #EFF6FF;
+  font-weight: 700 !important;
+  font-family: var(--font-mono);
+  border-top: 1.5px solid #BFDBFE !important;
+  border-bottom: none !important;
+}
+
+.ka-grand-total td:first-child {
+  font-family: var(--font-body);
+  color: var(--text-primary);
 }
 
 .ka-share-note {
