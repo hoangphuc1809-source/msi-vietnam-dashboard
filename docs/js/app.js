@@ -317,7 +317,6 @@
     var filters = baseFilters(state);
     var recentWeeks = getRollingNWeekLabels_(getRollingAnchorWeek_(state), 3);
     var rows = D.brandsTable(filters, recentWeeks);
-    rows = mergeBrandsOthers_(rows, ['Others', 'Dell']);
 
     // Cross-filter: khi co brand dang duoc chon (vd click "Asus" o bat ky bang nao),
     // so to/YoY/footer cua CHINH card nay cung phai "theo" dung brand do - giong
@@ -364,7 +363,6 @@
     var scopeWeeks = NV.getWeeksForYearQuarter(state.years, state.quarters);
     var recentWeeks = getRollingNWeekLabels_(getRollingAnchorWeek_(state), 3);
     var rows = NV.brandSummaryTable(scopeWeeks, recentWeeks);
-    rows = mergeBrandsOthers_(rows, ['Giga', 'Other']);
 
     // Cross-filter (xem ghi chu o renderKeyDealersScorecardSection)
     var selected = state.brand ? rows.filter(function (r) { return r.brand === state.brand; })[0] : null;
