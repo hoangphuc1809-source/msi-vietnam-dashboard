@@ -18,51 +18,48 @@ window.MsiDealerSelloutData = (function () {
   var loaded = false;
 
 
-  var SS_KEY_ = 'msivn_ds_v1';
+  var LS_KEY_ = 'msivn_ds_v1';
+  var epoch_ = 0;
 
-  // ===== SessionStorage cache =====
-  // Du lieu duoc giu trong session (cung 1 browser tab) de tranh re-fetch khi
-  // switch tab Market Overall <-> Userbuy Tracking. TTL 30 phut = bang GAS cache.
-  // Refresh button se clear cache va fetch lai tu GAS.
-  var SS_TTL_ = 30 * 60 * 1000; // 30 phut
-
-  function ssGet_(key) {
+  // ===== localStorage "cache-last-open" =====
+  // Không có TTL cứng. Cache sống vô thời hạn và chỉ bị replace khi GAS
+  // fetch thành công. Mục đích: luôn hiển thị OnHand từ lần mở gần nhất,
+  // thay vì fallback về static JSON cũ khi cache expire sau 30 phút.
+  // Xóa cache chỉ khi user bấm Refresh (clearCache + epoch++).
+  function lsGet_(k) {
     try {
-      var item = localStorage.getItem(key);
-      if (!item) return null;
-      var obj = JSON.parse(item);
-      if ((Date.now() - obj.ts) > SS_TTL_) { localStorage.removeItem(key); return null; }
-      return obj.data;
+      var raw = localStorage.getItem(k);
+      if (!raw) return null;
+      return JSON.parse(raw);
     } catch (e) { return null; }
   }
-  function ssSet_(key, data) {
-    try { localStorage.setItem(key, JSON.stringify({ ts: Date.now(), data: data })); }
-    catch (e) {} // QuotaExceeded -> bo qua, khong cache
+  function lsSet_(k, v) {
+    try { localStorage.setItem(k, JSON.stringify(v)); }
+    catch (e) {} // QuotaExceeded -> bo qua
   }
-  function ssClear_(key) {
-    try { localStorage.removeItem(key); } catch (e) {}
+  function lsClear_(k) {
+    try { localStorage.removeItem(k); } catch (e) {}
   }
-
-  var LS_KEY_ = SS_KEY_;
-  var epoch_ = 0;
-  function lsGet_(k) { return ssGet_(k); }
-  function lsSet_(k, v) { ssSet_(k, v); }
-  function lsClear_(k) { ssClear_(k); }
 
   async function fetchData(onLiveReady) {
-    // 1. localStorage cache: instant ~1ms, skip GAS hoàn toàn
+    // 1. localStorage cache-last-open: instant ~1ms, không có TTL
+    //    Nếu có cache từ lần mở trước -> render ngay với OnHand đúng.
+    //    GAS vẫn chạy background để update data mới nhất.
     var _ls = lsGet_(LS_KEY_);
-    if (_ls) { applyData_(_ls); return _ls; }
+    if (_ls) { applyData_(_ls); }
 
-    // 2. Static fallback NGAY LẬP TỨC (browser HTTP cache ~10ms)
-    // Cho phép page render mà không cần đợi GAS
-    try {
-      var r2 = await fetch('data/weekly-sellout-detail.json');
-      if (r2.ok) { var j2 = await r2.json(); applyData_(j2); }
-    } catch (_e) {}
+    // 2. Static fallback: chỉ dùng khi localStorage TRỐNG (lần đầu mở)
+    if (!_ls) {
+      try {
+        var r2 = await fetch('data/weekly-sellout-detail.json');
+        if (r2.ok) { var j2 = await r2.json(); applyData_(j2); }
+      } catch (_e) {}
+    }
 
     // 3. GAS fetch chạy BACKGROUND - không block caller
-    // epoch_ ngăn stale response ghi đè khi user bấm Refresh
+    //    Nếu thành công: cập nhật localStorage + re-render qua onLiveReady
+    //    Nếu lỗi: giữ nguyên cache cũ (OnHand vẫn hiển thị)
+    //    epoch_ ngăn stale response ghi đè khi user bấm Refresh
     var _epoch = epoch_;
     ;(async function () {
       try {
@@ -72,7 +69,7 @@ window.MsiDealerSelloutData = (function () {
         if (_json.error) throw new Error(_json.error);
         if (_epoch !== epoch_) return; // stale - user đã clear cache
         applyData_(_json);
-        lsSet_(LS_KEY_, _json);
+        lsSet_(LS_KEY_, _json); // cập nhật cache với data mới nhất từ GAS
       } catch (_e) {
         console.warn('[DealerSellout GAS background]', _e.message);
       } finally {
