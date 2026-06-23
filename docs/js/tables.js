@@ -243,9 +243,42 @@ window.MsiTables = (function () {
           '<h4>' + title + '<span class="alert-hint">' + hint + '</span></h4>' +
           '<div class="alert-empty">' + msg + '</div></div>';
       }
-      var dealers = ka.dealers; // ['Mobile World', 'FPT RETAIL JSC', 'CELLPHONES', 'PHONG VU']
+      var dealers = ka.dealers;
 
-      // Table header
+      // Step 1: Merge 'Giga' + 'Others' → single 'Others' row
+      var othersAccum = null;
+      var displayRows = [];
+      ka.rows.forEach(function (r) {
+        if (r.brand === 'Giga' || r.brand === 'Others') {
+          if (!othersAccum) {
+            othersAccum = { brand: 'Others', dealerVols: {}, kaTotal: 0, nvTotal: 0, kaShare: null };
+            dealers.forEach(function (d) { othersAccum.dealerVols[d] = 0; });
+          }
+          dealers.forEach(function (d) { othersAccum.dealerVols[d] += (r.dealerVols[d] || 0); });
+          othersAccum.kaTotal += r.kaTotal;
+          othersAccum.nvTotal += r.nvTotal;
+        } else {
+          displayRows.push(r);
+        }
+      });
+      if (othersAccum) {
+        othersAccum.kaShare = othersAccum.nvTotal > 0 ? othersAccum.kaTotal / othersAccum.nvTotal : null;
+        displayRows.push(othersAccum);
+      }
+
+      // Step 2: Grand Total
+      var grandDealerVols = {};
+      dealers.forEach(function (d) { grandDealerVols[d] = 0; });
+      var grandNvTotal = 0, grandKaTotal = 0;
+      displayRows.forEach(function (r) {
+        dealers.forEach(function (d) { grandDealerVols[d] += (r.dealerVols[d] || 0); });
+        grandNvTotal += r.nvTotal;
+        grandKaTotal += r.kaTotal;
+      });
+      var grandKaShare   = grandNvTotal > 0 ? grandKaTotal / grandNvTotal : null;
+      var grandRestShare = grandKaShare !== null ? (1 - grandKaShare) : null;
+
+      // Step 3: Build table
       var theadCells = dealers.map(function (d) {
         var short = KA_DEALER_SHORT[d] || d;
         return '<th title="' + escapeAttr(d) + '">' +
@@ -257,28 +290,43 @@ window.MsiTables = (function () {
         theadCells +
         '<th style="color:#2563EB;font-weight:700">Nvidia</th>' +
         '<th>KA%</th>' +
+        '<th>Rest channel</th>' +
         '</tr></thead>';
 
-      // Table body
-      var tbody = ka.rows.map(function (r) {
+      var tbody = displayRows.map(function (r) {
         var dealerCells = dealers.map(function (d) {
           var v = r.dealerVols[d] || 0;
           return '<td>' + (v > 0 ? fmt.number(v) : '<span style="color:#CBD5E1">\u2013</span>') + '</td>';
         }).join('');
         var shareClass = 'ka-share-pct' +
           (r.kaShare === null ? '' : r.kaShare >= 0.7 ? ' val-up' : r.kaShare < 0.4 ? ' val-down' : '');
+        var restShare = r.kaShare !== null ? (1 - r.kaShare) : null;
         return '<tr>' +
           '<td>' + escapeAttr(r.brand) + '</td>' +
           dealerCells +
           '<td class="ka-nv-vol">' + (r.nvTotal > 0 ? fmt.number(r.nvTotal) : '\u2013') + '</td>' +
           '<td class="' + shareClass + '">' + (r.kaShare !== null ? fmt.percent(r.kaShare, 0) : '\u2013') + '</td>' +
+          '<td class="ka-rest-pct">' + (restShare !== null ? fmt.percent(restShare, 0) : '\u2013') + '</td>' +
           '</tr>';
       }).join('');
+
+      // Grand Total row (tfoot)
+      var grandDealerCells = dealers.map(function (d) {
+        var v = grandDealerVols[d] || 0;
+        return '<td>' + (v > 0 ? fmt.number(v) : '\u2013') + '</td>';
+      }).join('');
+      var tfoot = '<tfoot><tr class="ka-grand-total">' +
+        '<td>Grand Total</td>' +
+        grandDealerCells +
+        '<td class="ka-nv-vol">' + (grandNvTotal > 0 ? fmt.number(grandNvTotal) : '\u2013') + '</td>' +
+        '<td class="ka-share-pct">' + (grandKaShare !== null ? fmt.percent(grandKaShare, 0) : '\u2013') + '</td>' +
+        '<td class="ka-rest-pct">' + (grandRestShare !== null ? fmt.percent(grandRestShare, 0) : '\u2013') + '</td>' +
+        '</tr></tfoot>';
 
       return '<div class="alert-col">' +
         '<h4>' + title + '<span class="alert-hint">' + hint + '</span></h4>' +
         '<div style="overflow-x:auto">' +
-        '<table class="ka-share-table">' + thead + '<tbody>' + tbody + '</tbody></table>' +
+        '<table class="ka-share-table">' + thead + '<tbody>' + tbody + '</tbody>' + tfoot + '</table>' +
         '</div></div>';
     }
 
