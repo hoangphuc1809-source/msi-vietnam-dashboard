@@ -142,10 +142,9 @@ window.MsiNvData = (function () {
   }
 
   // ===== GPU tier mix: MSI vs whole market, gop theo danh sach tuan cu the =====
-  // (weekLabels: mang cac tuan can gop, vd rolling 13w neo theo lich thuc te -
-  // xem getRolling13WeekLabels() trong app.js. Truoc day ham nay tu lay "N tuan
-  // gan nhat co trong data", nhung nhu vay phu thuoc vao data co day du hay khong;
-  // gio nhan danh sach tuan tu ben ngoai de dam bao dung khung thoi gian mong muon.)
+  // weekLabels: mang cac tuan can gop.
+  // Fallback: neu live data khong co 'vol' (tong thi truong), dung truong 'share'
+  // co san trong row (GAS tinh san tu NV Report sheet) de hien thi phan bo thi truong.
   function gpuTierComparison(weekLabels) {
     var weekSet = {};
     (weekLabels || []).forEach(function (w) { weekSet[w] = true; });
@@ -153,26 +152,43 @@ window.MsiNvData = (function () {
     var byTier = {};
     gpuRows.forEach(function (r) {
       if (!weekSet[r.w]) return;
-      if (!byTier[r.gpu]) byTier[r.gpu] = { market: 0, msi: 0 };
-      byTier[r.gpu].market += r.vol;
-      byTier[r.gpu].msi += r.msiVol;
+      if (!byTier[r.gpu]) byTier[r.gpu] = { market: 0, msi: 0, shareSum: 0, shareCnt: 0 };
+      byTier[r.gpu].market += (r.vol || 0);
+      byTier[r.gpu].msi   += (r.msiVol || 0);
+      // Luu truong 'share' de dung khi vol=0 (live data co the thieu vol nhung co share)
+      if (r.share !== null && r.share !== undefined && r.share > 0) {
+        byTier[r.gpu].shareSum += r.share;
+        byTier[r.gpu].shareCnt += 1;
+      }
     });
 
     var marketTotal = 0, msiTotal = 0;
     Object.keys(byTier).forEach(function (gpu) {
       marketTotal += byTier[gpu].market;
-      msiTotal += byTier[gpu].msi;
+      msiTotal   += byTier[gpu].msi;
     });
 
+    // Neu vol = 0 cho tat ca (live data chua populate vol), dung avg(share) lam fallback
+    var useShareFallback = (marketTotal === 0);
+
     return Object.keys(byTier).map(function (gpu) {
+      var t = byTier[gpu];
+      var marketShare;
+      if (marketTotal > 0) {
+        marketShare = t.market / marketTotal;
+      } else if (useShareFallback && t.shareCnt > 0) {
+        marketShare = t.shareSum / t.shareCnt;
+      } else {
+        marketShare = 0;
+      }
       return {
         gpu: gpu,
-        marketVol: byTier[gpu].market,
-        msiVol: byTier[gpu].msi,
-        marketShare: marketTotal > 0 ? byTier[gpu].market / marketTotal : 0,
-        msiShare: msiTotal > 0 ? byTier[gpu].msi / msiTotal : 0
+        marketVol: t.market,
+        msiVol: t.msi,
+        marketShare: marketShare,
+        msiShare: msiTotal > 0 ? t.msi / msiTotal : 0
       };
-    }).filter(function (d) { return d.marketVol > 0 || d.msiVol > 0; })
+    }).filter(function (d) { return d.marketShare > 0 || d.msiVol > 0; })
       .sort(function (a, b) { return b.marketShare - a.marketShare; });
   }
 
@@ -268,3 +284,4 @@ window.MsiNvData = (function () {
     brandSummaryTable: brandSummaryTable
   };
 })();
+
