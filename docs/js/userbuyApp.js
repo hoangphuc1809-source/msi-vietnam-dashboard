@@ -345,17 +345,19 @@
     UB.applyFilters(segFilters).forEach(function (f) {
       skuTotals[f.sku] = (skuTotals[f.sku] || 0) + (f.qty || 0);
     });
-    return Object.keys(skuTotals)
+    var top10 = Object.keys(skuTotals)
       .map(function (sku) { return { sku: sku, qty: skuTotals[sku] }; })
       .filter(function (x) { return x.qty > 0; })
       .sort(function (a, b) { return b.qty - a.qty; })
       .slice(0, 10)
       .map(function (x) {
-        // Rut gon label: bo phan "Katana 15 " o dau neu qua dai
         var label = x.sku;
         var pct = totalQty > 0 ? (x.qty / totalQty * 100) : 0;
         return { sku: x.sku, label: label, qty: x.qty, pct: pct };
       });
+    var top10Qty = top10.reduce(function (a, x) { return a + x.qty; }, 0);
+    top10.totalPct = totalQty > 0 ? (top10Qty / totalQty * 100) : 0;
+    return top10;
   }
 
   // Render danh sach Top10 vao 1 container (Gaming hoac B&P)
@@ -368,14 +370,19 @@
     var html = '';
     items.forEach(function (item, i) {
       var barW = maxPct > 0 ? Math.round(item.pct / maxPct * 100) : 0;
-      var shortLabel = item.label.length > 22 ? item.label.slice(0, 20) + '...' : item.label;
+      // Dung CSS ellipsis (top10-label co overflow:hidden text-overflow:ellipsis)
+      // KHONG truncate cung o day - de CSS tu xu ly theo chieu rong thuc te
       html += '<div class="top10-item" data-sku="' + escapeHtml(item.sku) + '" title="' + escapeHtml(item.label) + ' — ' + item.qty + ' units (' + item.pct.toFixed(1) + '%)">' +
         '<span class="top10-rank">' + (i + 1) + '</span>' +
-        '<span class="top10-label">' + escapeHtml(shortLabel) + '</span>' +
+        '<span class="top10-label">' + escapeHtml(item.label) + '</span>' +
         '<div class="top10-bar-track"><div class="top10-bar-fill" style="width:' + barW + '%"></div></div>' +
         '<span class="top10-pct">' + item.pct.toFixed(1) + '%</span>' +
         '</div>';
     });
+    // Footer: Top 10 chiếm bao nhiêu % tổng Userbuy
+    if (items.totalPct !== undefined) {
+      html += '<div class="top10-footer">Top 10 = <strong>' + items.totalPct.toFixed(1) + '%</strong> of total Userbuy</div>';
+    }
     el.innerHTML = html;
     // Click model -> cross-filter model
     el.querySelectorAll('.top10-item[data-sku]').forEach(function (row) {
