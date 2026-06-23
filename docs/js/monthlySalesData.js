@@ -201,6 +201,35 @@ window.MsiMonthlySalesData = (function () {
     return skuToDealersCache_[sku] || [];
   }
 
+  // Tra ve tat ca dealer co onHand > 0 cho 1 SKU tai 1 thang cu the
+  // Dung de merge dealers OnHand-only vao Dealers table (khong co sell-out nhung co ton kho)
+  function getDealersWithModelOnHand(sku, year, month) {
+    var y = normYear_(year);
+    var suffix = '||' + sku + '||' + y + '||' + String(month);
+    var out = [];
+    Object.keys(byDealerModelOnHand).forEach(function (key) {
+      // key format: 'cust||sku||y||m'
+      if (key.slice(-(suffix.length)) === suffix && byDealerModelOnHand[key] > 0) {
+        var cust = key.slice(0, key.length - suffix.length);
+        out.push(cust);
+      }
+    });
+    return out;
+  }
+
+  // Tra ve tat ca dealer co onHand > 0 tai 1 thang (khong filter sku)
+  // Dung cho Dealers table khi khong co model/segment filter
+  function getAllDealersWithOnHand(year, month) {
+    if (!dealerOnHandIndex_) buildDealerOnHandIndex_();
+    var y = normYear_(year);
+    var custMap = dealerOnHandIndex_[y] || {};
+    var out = [];
+    Object.keys(custMap).forEach(function (cust) {
+      if ((custMap[cust][month] || 0) > 0) out.push(cust);
+    });
+    return out;
+  }
+
   return {
     fetchData: fetchData,
     clearCache: function() { lsClear_(LS_KEY_); epoch_++; },
@@ -211,7 +240,9 @@ window.MsiMonthlySalesData = (function () {
     getDealerSkus: getDealerSkus,
     hasDealerSkus: hasDealerSkus,
     getDealersForSku: getDealersForSku,
-    dealerModelOnHandAtMonth: dealerModelOnHandAtMonth
+    dealerModelOnHandAtMonth: dealerModelOnHandAtMonth,
+    getDealersWithModelOnHand: getDealersWithModelOnHand,
+    getAllDealersWithOnHand: getAllDealersWithOnHand
   };
 })();
 
