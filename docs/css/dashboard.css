@@ -1173,23 +1173,30 @@ html, body {
 
 /* KPI snapshot tiles */
 .snapshot-card {
-  height: 300px;
+  /* Tất cả 4 cards cùng chiều cao — dùng align-items: stretch (default của grid) */
+  /* KHÔNG dùng height cố định để tất cả cards tự stretch bằng nhau */
   overflow: hidden;
-}
-
-/* Top10 cards only: flex column so list + footer fill card height */
-.snapshot-card.top10-card {
   display: flex;
   flex-direction: column;
 }
 
-.snapshot-card.top10-card .top10-list {
+/* Total Userbuy + Donut: không cần flex stretch nội dung */
+.snapshot-card:not(.top10-card) {
+  /* align-self mặc định = stretch → khớp chiều cao với top10 cards */
+}
+
+/* Top10 cards: list fills remaining space, footer dính đáy */
+.snapshot-card.top10-card {
+  /* flex-direction: column đã có ở .snapshot-card */
+}
+
+.snapshot-card .top10-list {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
 }
 
-.snapshot-card.top10-card .top10-footer {
+.snapshot-card .top10-footer {
   flex-shrink: 0;
 }
 
@@ -1208,7 +1215,7 @@ html, body {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  align-self: start;
+  /* align-self: start đã bị bỏ — để grid stretch tất cả 4 cards đều nhau */
 }
 .kpi-hero-number { font-family: var(--font-mono); font-size: 52px; font-weight: 700; color: var(--text-primary); line-height: 1; margin-top: 8px; }
 .kpi-hero-yoy { margin-top: 10px; }
