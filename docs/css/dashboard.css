@@ -931,7 +931,23 @@ html, body {
   gap: 5px;
   overflow-y: auto;
   flex: 1;
+  min-height: 0;
   margin-top: 4px;
+}
+
+.top10-footer {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--text-secondary);
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.top10-footer strong {
+  color: var(--msi-red);
+  font-weight: 700;
 }
 .top10-item {
   display: flex;
@@ -1157,8 +1173,16 @@ html, body {
 
 /* KPI snapshot tiles */
 .snapshot-card {
-  height: 300px;
-  overflow: hidden; /* chart canvas khong tran ra ngoai card */
+  min-height: 300px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Top10 card: list stretches to fill card bottom */
+.snapshot-card .top10-list {
+  flex: 1;
+  min-height: 0;
 }
 
 /* 4-column snapshot grid: cung 1 hang tren man hinh rong, wrap 2x2 tren hep */
@@ -1299,4 +1323,5 @@ html, body {
 @media (max-width: 900px) {
   .filter-row-even { grid-template-columns: repeat(2, 1fr); }
 }
+
 
