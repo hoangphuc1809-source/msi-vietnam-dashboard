@@ -25,7 +25,7 @@ window.MsiMonthlySalesData = (function () {
   }
 
 
-  var LS_KEY_ = 'msivn_ms_v1';
+  var LS_KEY_ = 'msivn_ms_v2';
   var epoch_ = 0;
 
   // ===== localStorage "cache-last-open" =====
