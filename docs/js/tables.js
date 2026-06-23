@@ -233,7 +233,7 @@ window.MsiTables = (function () {
         body + '</div>';
     }
 
-    // Zone 4: KA Channel Share table (IHS KA dealers vs NV Report total, Gaming)
+    // Zone 4: KA Channel Share table (data already cleaned/merged by app.js)
     function kaShareZone(ka) {
       var title = '\ud83d\udccb KA Channel Share';
       var hint = 'IHS Key Dealers vs NV Report (Gaming)';
@@ -244,29 +244,9 @@ window.MsiTables = (function () {
           '<div class="alert-empty">' + msg + '</div></div>';
       }
       var dealers = ka.dealers;
+      var displayRows = ka.rows; // already merged/sorted by app.js
 
-      // Step 1: Merge 'Giga' + 'Others' → single 'Others' row
-      var othersAccum = null;
-      var displayRows = [];
-      ka.rows.forEach(function (r) {
-        if (r.brand === 'Giga' || r.brand === 'Others') {
-          if (!othersAccum) {
-            othersAccum = { brand: 'Others', dealerVols: {}, kaTotal: 0, nvTotal: 0, kaShare: null };
-            dealers.forEach(function (d) { othersAccum.dealerVols[d] = 0; });
-          }
-          dealers.forEach(function (d) { othersAccum.dealerVols[d] += (r.dealerVols[d] || 0); });
-          othersAccum.kaTotal += r.kaTotal;
-          othersAccum.nvTotal += r.nvTotal;
-        } else {
-          displayRows.push(r);
-        }
-      });
-      if (othersAccum) {
-        othersAccum.kaShare = othersAccum.nvTotal > 0 ? othersAccum.kaTotal / othersAccum.nvTotal : null;
-        displayRows.push(othersAccum);
-      }
-
-      // Step 2: Grand Total
+      // Grand Total
       var grandDealerVols = {};
       dealers.forEach(function (d) { grandDealerVols[d] = 0; });
       var grandNvTotal = 0, grandKaTotal = 0;
@@ -278,39 +258,36 @@ window.MsiTables = (function () {
       var grandKaShare   = grandNvTotal > 0 ? grandKaTotal / grandNvTotal : null;
       var grandRestShare = grandKaShare !== null ? (1 - grandKaShare) : null;
 
-      // Step 3: Build table
+      // Header — no KA badge, short names, centered
       var theadCells = dealers.map(function (d) {
-        var short = KA_DEALER_SHORT[d] || d;
-        return '<th title="' + escapeAttr(d) + '">' +
-          '<span class="ka-badge">KA</span>' +
-          '<span class="th-dealer-name">' + short + '</span></th>';
+        return '<th class="ka-th-num" title="' + escapeAttr(d) + '">' + (KA_DEALER_SHORT[d] || d) + '</th>';
       }).join('');
       var thead = '<thead><tr>' +
-        '<th style="text-align:left">Brand</th>' +
+        '<th>Brand</th>' +
         theadCells +
-        '<th style="color:#2563EB;font-weight:700">Nvidia</th>' +
-        '<th>KA%</th>' +
-        '<th>Rest channel</th>' +
+        '<th class="ka-th-num ka-th-nv">Nvidia</th>' +
+        '<th class="ka-th-num">KA%</th>' +
+        '<th class="ka-th-num">Rest channel</th>' +
         '</tr></thead>';
 
       var tbody = displayRows.map(function (r) {
         var dealerCells = dealers.map(function (d) {
           var v = r.dealerVols[d] || 0;
-          return '<td>' + (v > 0 ? fmt.number(v) : '<span style="color:#CBD5E1">\u2013</span>') + '</td>';
+          return '<td class="ka-td-num">' +
+            (v > 0 ? fmt.number(v) : '<span class="ka-zero">\u2013</span>') + '</td>';
         }).join('');
-        var shareClass = 'ka-share-pct' +
+        var shareClass = 'ka-td-num ka-share-pct' +
           (r.kaShare === null ? '' : r.kaShare >= 0.7 ? ' val-up' : r.kaShare < 0.4 ? ' val-down' : '');
         var restShare = r.kaShare !== null ? (1 - r.kaShare) : null;
         return '<tr>' +
-          '<td>' + escapeAttr(r.brand) + '</td>' +
+          '<td class="ka-td-brand">' + escapeAttr(r.brand) + '</td>' +
           dealerCells +
-          '<td class="ka-nv-vol">' + (r.nvTotal > 0 ? fmt.number(r.nvTotal) : '\u2013') + '</td>' +
+          '<td class="ka-td-num ka-nv-vol">' + (r.nvTotal > 0 ? fmt.number(r.nvTotal) : '\u2013') + '</td>' +
           '<td class="' + shareClass + '">' + (r.kaShare !== null ? fmt.percent(r.kaShare, 0) : '\u2013') + '</td>' +
-          '<td class="ka-rest-pct">' + (restShare !== null ? fmt.percent(restShare, 0) : '\u2013') + '</td>' +
+          '<td class="ka-td-num ka-rest-pct">' + (restShare !== null ? fmt.percent(restShare, 0) : '\u2013') + '</td>' +
           '</tr>';
       }).join('');
 
-      // Grand Total row (tfoot)
       var grandDealerCells = dealers.map(function (d) {
         var v = grandDealerVols[d] || 0;
         return '<td>' + (v > 0 ? fmt.number(v) : '\u2013') + '</td>';
