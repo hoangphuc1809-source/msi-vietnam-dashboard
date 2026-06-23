@@ -198,6 +198,14 @@ window.MsiTables = (function () {
     el.innerHTML = html;
   }
 
+  // Short display names for KA dealers in table header
+  var KA_DEALER_SHORT = {
+    'Mobile World':   'MBW',
+    'FPT RETAIL JSC': 'FPT',
+    'CELLPHONES':     'CPS',
+    'PHONG VU':       'PV'
+  };
+
   function renderAlertsPanel(containerId, data) {
     var el = document.getElementById(containerId);
 
@@ -225,10 +233,60 @@ window.MsiTables = (function () {
         body + '</div>';
     }
 
+    // Zone 4: KA Channel Share table (IHS KA dealers vs NV Report total, Gaming)
+    function kaShareZone(ka) {
+      var title = '\ud83d\udccb KA Channel Share';
+      var hint = 'IHS Key Dealers vs NV Report (Gaming)';
+      if (!ka || !ka.rows || !ka.rows.length) {
+        var msg = ka === null ? 'Loading NV Report\u2026' : 'No data for selected period';
+        return '<div class="alert-col">' +
+          '<h4>' + title + '<span class="alert-hint">' + hint + '</span></h4>' +
+          '<div class="alert-empty">' + msg + '</div></div>';
+      }
+      var dealers = ka.dealers; // ['Mobile World', 'FPT RETAIL JSC', 'CELLPHONES', 'PHONG VU']
+
+      // Table header
+      var theadCells = dealers.map(function (d) {
+        var short = KA_DEALER_SHORT[d] || d;
+        return '<th title="' + escapeAttr(d) + '">' +
+          '<span class="ka-badge">KA</span>' +
+          '<span class="th-dealer-name">' + short + '</span></th>';
+      }).join('');
+      var thead = '<thead><tr>' +
+        '<th style="text-align:left">Brand</th>' +
+        theadCells +
+        '<th style="color:#2563EB;font-weight:700">Nvidia</th>' +
+        '<th>KA%</th>' +
+        '</tr></thead>';
+
+      // Table body
+      var tbody = ka.rows.map(function (r) {
+        var dealerCells = dealers.map(function (d) {
+          var v = r.dealerVols[d] || 0;
+          return '<td>' + (v > 0 ? fmt.number(v) : '<span style="color:#CBD5E1">\u2013</span>') + '</td>';
+        }).join('');
+        var shareClass = 'ka-share-pct' +
+          (r.kaShare === null ? '' : r.kaShare >= 0.7 ? ' val-up' : r.kaShare < 0.4 ? ' val-down' : '');
+        return '<tr>' +
+          '<td>' + escapeAttr(r.brand) + '</td>' +
+          dealerCells +
+          '<td class="ka-nv-vol">' + (r.nvTotal > 0 ? fmt.number(r.nvTotal) : '\u2013') + '</td>' +
+          '<td class="' + shareClass + '">' + (r.kaShare !== null ? fmt.percent(r.kaShare, 0) : '\u2013') + '</td>' +
+          '</tr>';
+      }).join('');
+
+      return '<div class="alert-col">' +
+        '<h4>' + title + '<span class="alert-hint">' + hint + '</span></h4>' +
+        '<div style="overflow-x:auto">' +
+        '<table class="ka-share-table">' + thead + '<tbody>' + tbody + '</tbody></table>' +
+        '</div></div>';
+    }
+
     var html = '<div class="alerts-grid">' +
       section('\ud83d\udcca Top Movers', 'Strongest WoW moves', data.topMovers, moverItem, 'No notable movement') +
       section('\ud83c\udfaf Whitespace', 'High capacity, below-avg share', data.whitespace, whitespaceItem, 'No notable opportunities') +
       section('\u26a1 Unusual Volatility', '8-week share std. deviation', data.volatility, volatilityItem, 'No volatile dealers') +
+      kaShareZone(data.kaShare !== undefined ? data.kaShare : null) +
       '</div>';
     el.innerHTML = html;
   }
@@ -245,3 +303,4 @@ window.MsiTables = (function () {
     renderAlertsPanel: renderAlertsPanel
   };
 })();
+
