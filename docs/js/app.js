@@ -317,6 +317,7 @@
     var filters = baseFilters(state);
     var recentWeeks = getRollingNWeekLabels_(getRollingAnchorWeek_(state), 3);
     var rows = D.brandsTable(filters, recentWeeks);
+    rows = mergeBrandsOthers_(rows, ['Others', 'Dell']);
 
     // Cross-filter: khi co brand dang duoc chon (vd click "Asus" o bat ky bang nao),
     // so to/YoY/footer cua CHINH card nay cung phai "theo" dung brand do - giong
@@ -363,6 +364,7 @@
     var scopeWeeks = NV.getWeeksForYearQuarter(state.years, state.quarters);
     var recentWeeks = getRollingNWeekLabels_(getRollingAnchorWeek_(state), 3);
     var rows = NV.brandSummaryTable(scopeWeeks, recentWeeks);
+    rows = mergeBrandsOthers_(rows, ['Giga', 'Other']);
 
     // Cross-filter (xem ghi chu o renderKeyDealersScorecardSection)
     var selected = state.brand ? rows.filter(function (r) { return r.brand === state.brand; })[0] : null;
@@ -567,6 +569,42 @@
     Tables.renderBrandYoyLeaderboard('brandYoyChart', rows);
   }
 
+  // ===== Merge "catch-all" brand rows (Others/Dell → Others, Giga/Other → Others) =====
+  // Dung cho ca KD scorecard (IHS: Others+Dell) va NV scorecard (NV: Giga+Other).
+  // Giu nguyen toan bo so lieu (volume/lastYearVol/shared/yoy/lastWk/wow) - chi
+  // tong hop thanh 1 dong "Others" duy nhat thay vi hien nhieu dong catch-all.
+  function mergeBrandsOthers_(rows, brandsToMerge) {
+    var toMerge = rows.filter(function (r) { return brandsToMerge.indexOf(r.brand) !== -1; });
+    var keep    = rows.filter(function (r) { return brandsToMerge.indexOf(r.brand) === -1; });
+    if (!toMerge.length) return rows;
+
+    var sum = function (arr, f) { return arr.reduce(function (s, r) { return s + (r[f] || 0); }, 0); };
+
+    // lastWk/2Wk/3Wk: null nếu TẤT CẢ đều null; ngược lại cộng dồn (null → 0)
+    var anyNotNull = function (arr, f) { return arr.some(function (r) { return r[f] !== null && r[f] !== undefined; }); };
+    var sumOrNull  = function (arr, f) { return anyNotNull(arr, f) ? sum(arr, f) : null; };
+
+    var vol   = sum(toMerge, 'volume');
+    var lyVol = sum(toMerge, 'lastYearVol');
+    var last3 = sumOrNull(toMerge, 'last3Wk');
+    var last2 = sumOrNull(toMerge, 'last2Wk');
+    var last1 = sumOrNull(toMerge, 'lastWk');
+
+    var merged = {
+      brand:       'Others',
+      volume:      vol,
+      lastYearVol: lyVol,
+      shared:      sum(toMerge, 'shared'),   // shared có cùng mẫu → cộng thẳng
+      yoy:         lyVol > 0 ? (vol - lyVol) / lyVol : null,
+      last3Wk:     last3,
+      last2Wk:     last2,
+      lastWk:      last1,
+      wow:         (last2 !== null && last2 > 0) ? (last1 - last2) / last2 : null
+    };
+
+    return keep.concat([merged]).sort(function (a, b) { return b.volume - a.volume; });
+  }
+
   function renderAlertsPanelSection(state) {
     var filters = Object.assign({}, baseFilters(state), { brand: state.brand, channel: state.channel });
     var capRows = D.dealersCapacityTable(filters);
@@ -577,38 +615,59 @@
     var whitespace = D.whitespaceList(alertFilters).slice(0, 5);
     var volatility = D.volatilityFlags(alertFilters, state.weeksBack).slice(0, 5);
 
-    // ===== Zone 4: KA Channel Share (IHS Gaming vol per KA dealer × brand vs NV Report total) =====
-    // Always Gaming-only to match NV Report scope. Respects Year/Quarter filter from state.
+    // ===== Zone 4: KA Channel Share =====
+    // Always Gaming-only to match NV Report scope. Respects Year/Quarter filter.
+    // MAIN_BRANDS = brands tracked individually; everything else → one "Others" row.
+    // IHS "Others" vol = total IHS at KA dealer − sum of main brand vols (catches
+    // all non-main IHS brands regardless of name: "Others", "Dell", etc.)
     var KA_DEALERS = ['Mobile World', 'FPT RETAIL JSC', 'CELLPHONES', 'PHONG VU'];
+    var MAIN_BRANDS = ['Asus', 'Lenovo', 'Acer', 'MSI', 'HP'];
     var kaShareData = null;
     if (nvReady) {
       var scopeWeeks = NV.getWeeksForYearQuarter(state.years, state.quarters);
-      var nvRows = NV.brandSummaryTable(scopeWeeks);
+      var nvRowsAll = NV.brandSummaryTable(scopeWeeks);
       var nvByBrand = {};
-      nvRows.forEach(function (r) { nvByBrand[r.brand] = r.volume; });
+      nvRowsAll.forEach(function (r) { nvByBrand[r.brand] = r.volume; });
 
-      // All brands in NV Report for this period, sorted desc by NV volume
-      var allBrands = Object.keys(nvByBrand).sort(function (a, b) {
-        return (nvByBrand[b] || 0) - (nvByBrand[a] || 0);
-      });
-
-      // IHS base: Gaming only, same Year/Quarter — no customer/brand override yet
       var ihsBase = { seriesGroup: ['Gaming'], year: state.years, quarter: state.quarters };
 
-      var kaRows = allBrands.map(function (brand) {
-        var dealerVols = {};
-        var kaTotal = 0;
+      // 1. Main brand rows (NV total + IHS per-brand per-dealer)
+      var kaRows = MAIN_BRANDS
+        .filter(function (b) { return nvByBrand[b]; })
+        .map(function (brand) {
+          var dealerVols = {}, kaTotal = 0;
+          KA_DEALERS.forEach(function (dealer) {
+            var f = Object.assign({}, ihsBase, { customer: dealer, brand: brand });
+            var vol = D.applyFilters(f).filter(function (r) { return !r.isTotal; })
+              .reduce(function (a, r) { return a + (r.brandVol || 0); }, 0);
+            dealerVols[dealer] = vol;
+            kaTotal += vol;
+          });
+          var nvTotal = nvByBrand[brand] || 0;
+          return { brand: brand, dealerVols: dealerVols, kaTotal: kaTotal, nvTotal: nvTotal,
+                   kaShare: nvTotal > 0 ? kaTotal / nvTotal : null };
+        }).filter(function (r) { return r.nvTotal > 0 || r.kaTotal > 0; });
+
+      // 2. "Others" row — NV total = all non-MAIN_BRANDS; IHS total = grand total minus main brands
+      var othersNvTotal = Object.keys(nvByBrand)
+        .filter(function (b) { return MAIN_BRANDS.indexOf(b) === -1; })
+        .reduce(function (s, b) { return s + (nvByBrand[b] || 0); }, 0);
+
+      if (othersNvTotal > 0) {
+        var othersDealerVols = {}, othersKaTotal = 0;
         KA_DEALERS.forEach(function (dealer) {
-          var f = Object.assign({}, ihsBase, { customer: dealer, brand: brand });
-          var rows = D.applyFilters(f).filter(function (r) { return !r.isTotal; });
-          var vol = rows.reduce(function (a, r) { return a + (r.brandVol || 0); }, 0);
-          dealerVols[dealer] = vol;
-          kaTotal += vol;
+          var fAll = Object.assign({}, ihsBase, { customer: dealer });
+          var allVol = D.applyFilters(fAll).filter(function (r) { return !r.isTotal; })
+            .reduce(function (a, r) { return a + (r.brandVol || 0); }, 0);
+          var mainVol = kaRows.reduce(function (s, r) { return s + (r.dealerVols[dealer] || 0); }, 0);
+          var othersVol = Math.max(0, allVol - mainVol);
+          othersDealerVols[dealer] = othersVol;
+          othersKaTotal += othersVol;
         });
-        var nvTotal = nvByBrand[brand] || 0;
-        var kaShare = nvTotal > 0 ? kaTotal / nvTotal : null;
-        return { brand: brand, dealerVols: dealerVols, kaTotal: kaTotal, nvTotal: nvTotal, kaShare: kaShare };
-      }).filter(function (r) { return r.nvTotal > 0 || r.kaTotal > 0; });
+        kaRows.push({ brand: 'Others', dealerVols: othersDealerVols,
+                      kaTotal: othersKaTotal, nvTotal: othersNvTotal,
+                      kaShare: othersNvTotal > 0 ? othersKaTotal / othersNvTotal : null });
+      }
 
       kaShareData = { dealers: KA_DEALERS, rows: kaRows };
     }
