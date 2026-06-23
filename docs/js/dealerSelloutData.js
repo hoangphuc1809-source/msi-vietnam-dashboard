@@ -18,7 +18,7 @@ window.MsiDealerSelloutData = (function () {
   var loaded = false;
 
 
-  var LS_KEY_ = 'msivn_ds_v1';
+  var LS_KEY_ = 'msivn_ds_v2';
   var epoch_ = 0;
 
   // ===== localStorage "cache-last-open" =====
