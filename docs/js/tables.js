@@ -264,10 +264,10 @@ window.MsiTables = (function () {
       }).join('');
       var thead = '<thead><tr>' +
         '<th>Brand</th>' +
-        theadCells +
-        '<th class="ka-th-num ka-th-nv">Nvidia</th>' +
         '<th class="ka-th-num">KA%</th>' +
         '<th class="ka-th-num">Rest channel</th>' +
+        theadCells +
+        '<th class="ka-th-num ka-th-nv">Nvidia</th>' +
         '</tr></thead>';
 
       var tbody = displayRows.map(function (r) {
@@ -281,10 +281,10 @@ window.MsiTables = (function () {
         var restShare = r.kaShare !== null ? (1 - r.kaShare) : null;
         return '<tr>' +
           '<td class="ka-td-brand">' + escapeAttr(r.brand) + '</td>' +
-          dealerCells +
-          '<td class="ka-td-num ka-nv-vol">' + (r.nvTotal > 0 ? fmt.number(r.nvTotal) : '\u2013') + '</td>' +
           '<td class="' + shareClass + '">' + (r.kaShare !== null ? fmt.percent(r.kaShare, 0) : '\u2013') + '</td>' +
           '<td class="ka-td-num ka-rest-pct">' + (restShare !== null ? fmt.percent(restShare, 0) : '\u2013') + '</td>' +
+          dealerCells +
+          '<td class="ka-td-num ka-nv-vol">' + (r.nvTotal > 0 ? fmt.number(r.nvTotal) : '\u2013') + '</td>' +
           '</tr>';
       }).join('');
 
@@ -294,10 +294,10 @@ window.MsiTables = (function () {
       }).join('');
       var tfoot = '<tfoot><tr class="ka-grand-total">' +
         '<td>Grand Total</td>' +
-        grandDealerCells +
-        '<td class="ka-nv-vol">' + (grandNvTotal > 0 ? fmt.number(grandNvTotal) : '\u2013') + '</td>' +
         '<td class="ka-share-pct">' + (grandKaShare !== null ? fmt.percent(grandKaShare, 0) : '\u2013') + '</td>' +
         '<td class="ka-rest-pct">' + (grandRestShare !== null ? fmt.percent(grandRestShare, 0) : '\u2013') + '</td>' +
+        grandDealerCells +
+        '<td class="ka-nv-vol">' + (grandNvTotal > 0 ? fmt.number(grandNvTotal) : '\u2013') + '</td>' +
         '</tr></tfoot>';
 
       return '<div class="alert-col">' +
