@@ -10,7 +10,8 @@ window.MsiMonthlySalesData = (function () {
   var facts = [];    // [{y, m, sku, onHand}]
   var byDealer = [];  // [{y, m, cust, onHand}]
   var byDealerSkus = {}; // { custName: [sku1, sku2, ...] } - cross-filter Dealer -> Model Detail
-  var skuToDealersCache_ = null; // lazy reverse map: sku -> [dealer1, dealer2, ...]
+  var skuToDealersCache_ = null;
+  var dealerOnHandIndex_ = null; // lazy reverse map: sku -> [dealer1, dealer2, ...]
   var byDealerModelOnHand = {}; // {'cust||sku||y||m': onHand} - per-dealer per-model onHand
   var skuIndex = {};
   var meta = {};
@@ -88,6 +89,7 @@ window.MsiMonthlySalesData = (function () {
   }
 
   function applyData_(json) {
+    dealerOnHandIndex_ = null; // reset on new data
     skus = (json.skus || []).filter(function (s) { return !EXCLUDED_SERIES_GROUPS[normSeriesGroup_(s.sg)]; });
     skus.forEach(function (s) { s.sg = normSeriesGroup_(s.sg); });
     facts = json.facts || [];
@@ -129,20 +131,36 @@ window.MsiMonthlySalesData = (function () {
   }
 
   // Onhand cua 1 Dealer (Customer) tai 1 thang cu the (cong don tat ca SKU)
-  function dealerOnHandAtMonth(customer, year, month) {
-    if (!year || !month || !customer) return 0;
-    var y = normYear_(year);
-    var total = 0;
+  // Build dealer onHand index [y][cust][m] → tra cứu O(1)
+  function buildDealerOnHandIndex_() {
+    dealerOnHandIndex_ = {};
     byDealer.forEach(function (r) {
-      if (normYear_(r.y) === y && r.m === month && r.cust === customer) total += (r.onHand || 0);
+      var y = normYear_(r.y);
+      if (!dealerOnHandIndex_[y]) dealerOnHandIndex_[y] = {};
+      if (!dealerOnHandIndex_[y][r.cust]) dealerOnHandIndex_[y][r.cust] = {};
+      dealerOnHandIndex_[y][r.cust][r.m] = (dealerOnHandIndex_[y][r.cust][r.m] || 0) + (r.onHand || 0);
     });
-    return Math.round(total * 100) / 100;
   }
 
-  // Tra ve danh sach SKU ma dealer nay da co inventory (tu byDealerSkus).
-  // Dung cho cross-filter: khi click Dealers table row -> Model Detail chi hien
-  // thi cac model thuoc dealer do.
-  // Tra ve [] neu khong co du lieu (fallback: hien thi tat ca model - giu nguyen hien tai).
+  // Trả về onHand của dealer tại tháng cụ thể.
+  // Nếu tháng chính xác không có data (Monthly Sales chưa update),
+  // fallback về tháng mới nhất ≤ tháng target trong cùng năm.
+  function dealerOnHandAtMonth(customer, year, month) {
+    if (!year || !month || !customer) return 0;
+    if (!dealerOnHandIndex_) buildDealerOnHandIndex_();
+    var y = normYear_(year);
+    var custMap = (dealerOnHandIndex_[y] || {})[customer];
+    if (!custMap) return 0;
+    if (custMap[month] !== undefined) return custMap[month];
+    // Fallback: latest available month ≤ target
+    var best = 0;
+    Object.keys(custMap).sort().forEach(function (m) {
+      if (m <= month) best = custMap[m];
+    });
+    return best;
+  }
+
+
   function getDealerSkus(customer) {
     if (!customer || !byDealerSkus[customer]) return [];
     return byDealerSkus[customer]; // sorted array of sku strings
