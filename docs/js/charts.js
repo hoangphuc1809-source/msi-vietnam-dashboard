@@ -457,13 +457,19 @@ window.MsiCharts = (function () {
     destroyIfExists(canvasId);
     var ctx = document.getElementById(canvasId).getContext('2d');
 
+    // GPU labels: ensure "RTX " prefix is present (data field already has it,
+    // but normalise in case some rows use short form like "3050" only)
+    var gpuLabel = function (gpu) {
+      return /^RTX /i.test(gpu) ? gpu : 'RTX ' + gpu;
+    };
+
     charts[canvasId] = new Chart(ctx, {
       type: 'bar',
       data: {
-        labels: rows.map(function (d) { return d.gpu.replace('RTX ', ''); }),
+        labels: rows.map(function (d) { return gpuLabel(d.gpu); }),
         datasets: [
           {
-            label: 'Whole Market',
+            label: 'Nvidia',
             data: rows.map(function (d) { return d.marketShare * 100; }),
             backgroundColor: '#94A3B8',
             borderRadius: 3,
@@ -558,3 +564,4 @@ window.MsiCharts = (function () {
     renderDualMiniBar: renderDualMiniBar
   };
 })();
+
