@@ -1173,7 +1173,7 @@ html, body {
 
 /* KPI snapshot tiles */
 .snapshot-card {
-  height: 100%;          /* fill grid cell height (fixed by grid-template-rows) */
+  height: 320px;         /* fixed height on card itself — no dependency on grid */
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -1191,10 +1191,10 @@ html, body {
   flex-shrink: 0;
 }
 
-/* 4-column snapshot grid: cung 1 hang tren man hinh rong, wrap 2x2 tren hep */
+/* 4-column snapshot grid */
 .snapshot-4-grid {
   grid-template-columns: repeat(4, 1fr);
-  grid-template-rows: 320px;   /* fixed row height → all 4 cards identical height */
+  align-items: start;
 }
 @media (max-width: 1340px) {
   .snapshot-4-grid { grid-template-columns: repeat(2, 1fr); }
