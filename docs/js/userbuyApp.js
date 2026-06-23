@@ -337,13 +337,15 @@
   // Cross-filter: dung ubFilters hien tai (year/quarter/gpu/cpu/disty...) tru segment.
   // seriesGroupName = 'Gaming' hoac 'Business& Productivity'
   // Gaming la sg (Series Group), KHONG phai seg1 (seg1 = Katana/Modern/Cyborg...)
-  function computeTop10_(ubFilters, seriesGroupName, totalQty) {
+  function computeTop10_(ubFilters, seriesGroupName) {
     var segFilters = cloneState_(ubFilters);
     segFilters.seriesGroups = [seriesGroupName]; // override sang SG nay
     segFilters.model = null; // top10 hien tat ca model trong SG nay
     var skuTotals = {};
+    var sgTotal = 0; // tong qty cua toan bo series group nay
     UB.applyFilters(segFilters).forEach(function (f) {
       skuTotals[f.sku] = (skuTotals[f.sku] || 0) + (f.qty || 0);
+      sgTotal += (f.qty || 0);
     });
     var top10 = Object.keys(skuTotals)
       .map(function (sku) { return { sku: sku, qty: skuTotals[sku] }; })
@@ -352,11 +354,14 @@
       .slice(0, 10)
       .map(function (x) {
         var label = x.sku;
-        var pct = totalQty > 0 ? (x.qty / totalQty * 100) : 0;
+        // pct = % trong tong cua series group do (Gaming hoac B&P), KHONG phai grand total
+        var pct = sgTotal > 0 ? (x.qty / sgTotal * 100) : 0;
         return { sku: x.sku, label: label, qty: x.qty, pct: pct };
       });
     var top10Qty = top10.reduce(function (a, x) { return a + x.qty; }, 0);
-    top10.totalPct = totalQty > 0 ? (top10Qty / totalQty * 100) : 0;
+    // totalPct = top10 chiem bao nhieu % trong series group do
+    top10.totalPct = sgTotal > 0 ? (top10Qty / sgTotal * 100) : 0;
+    top10.sgLabel = seriesGroupName === 'Business& Productivity' ? 'B&P' : seriesGroupName;
     return top10;
   }
 
@@ -379,9 +384,10 @@
         '<span class="top10-pct">' + item.pct.toFixed(1) + '%</span>' +
         '</div>';
     });
-    // Footer: Top 10 chiếm bao nhiêu % tổng Userbuy
+    // Footer: Top 10 chiếm bao nhiêu % tổng của series group đó
     if (items.totalPct !== undefined) {
-      html += '<div class="top10-footer">Top 10 = <strong>' + items.totalPct.toFixed(1) + '%</strong> of total Userbuy</div>';
+      var sgLbl = items.sgLabel || 'Series Group';
+      html += '<div class="top10-footer">Top 10 = <strong>' + items.totalPct.toFixed(1) + '%</strong> of total ' + sgLbl + '</div>';
     }
     el.innerHTML = html;
     // Click model -> cross-filter model
@@ -421,9 +427,8 @@
     });
 
     // --- Top 10 Gaming + Top 10 B&P score cards ---
-    var totalQty = total.qty || 0;
-    var gamingTop10 = computeTop10_(ubFilters, 'Gaming', totalQty);
-    var bnpTop10   = computeTop10_(ubFilters, 'Business& Productivity', totalQty);
+    var gamingTop10 = computeTop10_(ubFilters, 'Gaming');
+    var bnpTop10   = computeTop10_(ubFilters, 'Business& Productivity');
     var gamingMaxPct = gamingTop10.length ? gamingTop10[0].pct : 0;
     var bnpMaxPct   = bnpTop10.length   ? bnpTop10[0].pct   : 0;
     renderTop10List_('top10GamingList', gamingTop10, gamingMaxPct);
