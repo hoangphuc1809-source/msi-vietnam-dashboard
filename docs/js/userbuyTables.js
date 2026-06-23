@@ -75,15 +75,42 @@ window.MsiUserbuyTables = (function () {
     var wl = opts.weekLabels || [];
     var h3 = wl[0] || '3wk ago', h2 = wl[1] || '2wk ago', h1 = wl[2] || 'Last Wk';
 
+    // Sort state: default sort by qty desc
+    var sortCol = opts._sortCol || 'qty';
+    var sortDir = opts._sortDir || 'desc';
+    function thSort(col, label) {
+      var cls = sortCol === col ? (' class="sort-' + sortDir + '"') : '';
+      return '<th data-sort="' + col + '"' + cls + '>' + label + '</th>';
+    }
+    // Apply sort to rows
+    var sortedRows = rows.slice().sort(function (a, b) {
+      var av, bv;
+      if (sortCol === 'qty')   { av = a.qty || 0;    bv = b.qty || 0; }
+      else if (sortCol === 'share') { av = a.share || 0; bv = b.share || 0; }
+      else if (sortCol === 'w3')  { av = a.last3[0] || 0; bv = b.last3[0] || 0; }
+      else if (sortCol === 'w2')  { av = a.last3[1] || 0; bv = b.last3[1] || 0; }
+      else if (sortCol === 'w1')  { av = a.last3[2] || 0; bv = b.last3[2] || 0; }
+      else if (sortCol === 'wow') { av = a.wow === null ? -999 : a.wow; bv = b.wow === null ? -999 : b.wow; }
+      else if (sortCol === 'oh')  { av = a.onHand || 0; bv = b.onHand || 0; }
+      else if (sortCol === 'doh') { av = a.distyOnHand || 0; bv = b.distyOnHand || 0; }
+      else if (sortCol === 'woi') { av = a.woi === null ? 9999 : a.woi; bv = b.woi === null ? 9999 : b.woi; }
+      else if (sortCol === 'dim') { av = a.label || ''; bv = b.label || ''; return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av); }
+      else { av = a.qty || 0; bv = b.qty || 0; }
+      return sortDir === 'asc' ? av - bv : bv - av;
+    });
+
     var html = '<table class="data-table">';
     html += '<thead><tr>' +
-      '<th>' + escapeAttr(opts.dimLabel) + '</th><th>Share</th>' +
-      '<th>Total ' + escapeAttr(opts.metricLabel) + '</th>' +
-      '<th>' + escapeAttr(h3) + '</th><th>' + escapeAttr(h2) + '</th><th>' + escapeAttr(h1) + '</th>' +
-      '<th>WoW</th><th>Onhand</th>' + (opts.showDistyOnHand ? '<th>Disty Onhand</th>' : '') + '<th>WOI</th>' +
+      thSort('dim', escapeAttr(opts.dimLabel)) +
+      thSort('share', 'Share') +
+      thSort('qty', 'Total ' + escapeAttr(opts.metricLabel)) +
+      thSort('w3', escapeAttr(h3)) + thSort('w2', escapeAttr(h2)) + thSort('w1', escapeAttr(h1)) +
+      thSort('wow', 'WoW') + thSort('oh', 'Onhand') +
+      (opts.showDistyOnHand ? thSort('doh', 'Disty Onhand') : '') +
+      thSort('woi', 'WOI') +
       '</tr></thead><tbody>';
 
-    rows.forEach(function (r) {
+    sortedRows.forEach(function (r) {
       var isActive = opts.activeValue === r.key;
       html += '<tr class="' + (isActive ? 'row-active' : '') + '" data-key="' + escapeAttr(r.key) + '">' +
         '<td title="' + escapeAttr(r.label) + '">' + fmt.truncate(r.label, 20) + '</td>' +
@@ -112,6 +139,16 @@ window.MsiUserbuyTables = (function () {
       '</tr>';
     html += '</tbody></table>';
     el.innerHTML = html;
+
+    // Sort click handler: toggle asc/desc, re-render with new sort
+    el.querySelectorAll('thead th[data-sort]').forEach(function (th) {
+      th.addEventListener('click', function () {
+        var col = th.getAttribute('data-sort');
+        var newDir = (sortCol === col && sortDir === 'desc') ? 'asc' : 'desc';
+        var newOpts = Object.assign({}, opts, { _sortCol: col, _sortDir: newDir });
+        renderMetricTable(containerId, newOpts);
+      });
+    });
 
     if (opts.onRowClick) {
       el.querySelectorAll('tbody tr[data-key]').forEach(function (tr) {
