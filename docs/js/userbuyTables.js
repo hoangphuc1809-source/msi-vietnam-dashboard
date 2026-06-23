@@ -61,10 +61,13 @@ window.MsiUserbuyTables = (function () {
       grandDistyOnHand += (r.distyOnHand || 0);
       grandAvgDemand += (r.avgDemand || 0);
     });
-    // Override Grand Total OnHand nếu caller cung cấp giá trị chính xác hơn
-    // (ví dụ: Dealers table dùng MS.onHandAtMonth để khớp với Model Detail)
+    // Override Grand Total OnHand/DistyOnHand nếu caller cung cấp giá trị authoritative
+    // (dùng MS.onHandAtMonth / DI.onHandAtMonth để khớp KPI tiles và Model Detail)
     if (opts.grandOnHandOverride !== undefined && opts.grandOnHandOverride !== null) {
       grandOnHand = opts.grandOnHandOverride;
+    }
+    if (opts.grandDistyOnHandOverride !== undefined && opts.grandDistyOnHandOverride !== null) {
+      grandDistyOnHand = opts.grandDistyOnHandOverride;
     }
     var grandWow = (grandWeek[2] !== null && grandWeek[1]) ? (grandWeek[2] - grandWeek[1]) / grandWeek[1] : null;
     var grandTotalOnHand = grandOnHand + (opts.showDistyOnHand ? grandDistyOnHand : 0);
