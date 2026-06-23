@@ -30,7 +30,7 @@ window.MsiUserbuyData = (function () {
   }
 
 
-  var LS_KEY_ = 'msivn_ub_v1';
+  var LS_KEY_ = 'msivn_ub_v2';
   var epoch_ = 0;
 
   // ===== localStorage "cache-last-open" =====
