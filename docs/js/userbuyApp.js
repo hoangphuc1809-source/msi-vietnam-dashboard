@@ -675,9 +675,24 @@
       r.avgDemand = avgDemand;
       r.woi = computeWoi_(r.onHand, avgDemand);
     });
+    // Grand Total OnHand: dùng MS.onHandAtMonth (aggregate từ facts[]) thay vì sum per-dealer
+    // Vì byDealerModelOnHand có thể thiếu một số dealer nhỏ → sum per-dealer < tổng thực
+    // MS.onHandAtMonth dùng cùng nguồn với Model Detail → đảm bảo 2 bảng khớp nhau
+    var dealersGrandOnHand = snap.month
+      ? (ubSkuSet
+          ? (function () {
+              var t = 0;
+              Object.keys(ubSkuSet).forEach(function (sku) {
+                t += MS.onHandAtMonth(snap.year, snap.month, { model: sku });
+              });
+              return t;
+            })()
+          : MS.onHandAtMonth(snap.year, snap.month, ubFilters))
+      : null;
     TB.renderMetricTable('dealersTable', {
       rows: rows, dimLabel: 'Dealers', metricLabel: 'Sell Out', weekLabels: last3.map(weekLabelOrFallback_),
       activeValue: state.dealer, onRowClick: function (key) { FS.setDealer(key); },
+      grandOnHandOverride: dealersGrandOnHand,
       emptyMessage: 'Chưa có dữ liệu Weekly Sales Data cho giai đoạn đang chọn. ' +
         'Bản static hiện tại chỉ có 2025W01-W07 (giới hạn tải file). Bảng sẽ tự đầy đủ ngay khi Apps Script được deploy (xem DEPLOYMENT_INFO.md) - không cần sửa filter.'
     });
