@@ -1203,6 +1203,7 @@ html, body {
 /* 4-column snapshot grid: cung 1 hang tren man hinh rong, wrap 2x2 tren hep */
 .snapshot-4-grid {
   grid-template-columns: repeat(4, 1fr);
+  align-items: stretch;
 }
 @media (max-width: 1340px) {
   .snapshot-4-grid { grid-template-columns: repeat(2, 1fr); }
@@ -1340,3 +1341,29 @@ html, body {
 }
 
 
+
+/* ===== Sortable table headers ===== */
+.data-table th[data-sort] {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+.data-table th[data-sort]:hover {
+  color: var(--msi-red);
+}
+.data-table th[data-sort]::after {
+  content: ' ⇅';
+  font-size: 9px;
+  opacity: 0.4;
+  margin-left: 2px;
+}
+.data-table th[data-sort].sort-asc::after {
+  content: ' ↑';
+  opacity: 1;
+  color: var(--msi-red);
+}
+.data-table th[data-sort].sort-desc::after {
+  content: ' ↓';
+  opacity: 1;
+  color: var(--msi-red);
+}
