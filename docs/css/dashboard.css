@@ -511,7 +511,7 @@ html, body {
 }
 
 .scorecard-minichart {
-  height: 160px;
+  height: 196px;
   margin-bottom: 14px;
 }
 
@@ -1462,4 +1462,5 @@ html, body {
   opacity: 1;
   color: var(--msi-red);
 }
+
 
