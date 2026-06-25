@@ -742,7 +742,6 @@ window.MsiCharts = (function () {
   }
 
   return {
-    renderMsiWeeklyTrend  return {
     renderMsiWeeklyTrend: renderMsiWeeklyTrend,
     renderDealersWeeklyBar: renderDealersWeeklyBar,
     renderMultiLineShare: renderMultiLineShare,
