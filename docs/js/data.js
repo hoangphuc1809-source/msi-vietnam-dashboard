@@ -366,6 +366,8 @@ window.MsiData = (function () {
       var msiRows = applyFilters(Object.assign({}, fNoBrand, { brand: 'MSI' })).filter(function (r) { return !r.isTotal; });
 
       var capacity = sum(totalRows, 'ttlVol');
+      var lastYearCapacity = sum(totalRows, 'lastYear');
+      var mktYoy = lastYearCapacity > 0 ? (capacity - lastYearCapacity) / lastYearCapacity : null;
       var msiCapacity = sum(msiRows, 'brandVol');
 
       var curWeekTtl = lastWeek ? sum(totalRows.filter(function (r) { return r.w === lastWeek; }), 'ttlVol') : 0;
@@ -394,6 +396,8 @@ window.MsiData = (function () {
       return {
         channel: ch,
         capacity: capacity,
+        lastYearCapacity: lastYearCapacity,
+        mktYoy: mktYoy,
         msiCapacity: msiCapacity,
         lastYearMsiTotal: lastYearMsiTotal,
         selectedBrandVolume: selectedBrandVolume,
