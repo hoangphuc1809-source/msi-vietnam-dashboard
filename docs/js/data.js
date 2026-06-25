@@ -366,7 +366,10 @@ window.MsiData = (function () {
       var msiRows = applyFilters(Object.assign({}, fNoBrand, { brand: 'MSI' })).filter(function (r) { return !r.isTotal; });
 
       var capacity = sum(totalRows, 'ttlVol');
-      var lastYearCapacity = sum(totalRows, 'lastYear');
+      // QUAN TRONG: lastYear KHONG co o dong TTL (isTotal=true) - chi co o brand rows
+      // Phai sum TU TAT CA brand rows (allBrandRows) de lay total market lastYear
+      var allBrandRows = applyFilters(fNoBrand).filter(function (r) { return !r.isTotal; });
+      var lastYearCapacity = sum(allBrandRows, 'lastYear');
       var mktYoy = lastYearCapacity > 0 ? (capacity - lastYearCapacity) / lastYearCapacity : null;
       var msiCapacity = sum(msiRows, 'brandVol');
 
