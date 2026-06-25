@@ -725,7 +725,8 @@ window.MsiCharts = (function () {
     });
   }
 
-  return {rMsiWeeklyTrend: renderMsiWeeklyTrend,
+  return {
+    renderMsiWeeklyTrend: renderMsiWeeklyTrend,
     renderDealersWeeklyBar: renderDealersWeeklyBar,
     renderMultiLineShare: renderMultiLineShare,
     renderHBarShare: renderHBarShare,
@@ -736,5 +737,6 @@ window.MsiCharts = (function () {
     renderDualMiniBar: renderDualMiniBar
   };
 })();
+
 
 
