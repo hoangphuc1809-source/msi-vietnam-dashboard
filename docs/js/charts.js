@@ -220,7 +220,16 @@ window.MsiCharts = (function () {
         maintainAspectRatio: false,
         plugins: {
           legend: { display: false }, // custom legend ben ngoai
-          tooltip: { backgroundColor: '#0F172A', padding: 10, cornerRadius: 8, mode: 'index', intersect: false }
+          tooltip: {
+            backgroundColor: '#0F172A', padding: 10, cornerRadius: 8,
+            mode: 'index', intersect: false,
+            callbacks: {
+              label: function (ctx) {
+                var v = ctx.parsed.y;
+                return ' ' + ctx.dataset.label + ': ' + (v === null ? '-' : (v * 100).toFixed(1) + '%');
+              }
+            }
+          }
         },
         interaction: { mode: 'index', intersect: false },
         scales: {
