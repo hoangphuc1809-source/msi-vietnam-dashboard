@@ -144,17 +144,24 @@ window.MsiTables = (function () {
     var capHeader = showingBrand ? (activeBrand + ' Volume') : 'TTL Volume';
     var grandCap = rows.reduce(function (a, r) { return a + (r[capField] || 0); }, 0);
     var grandMsi = rows.reduce(function (a, r) { return a + r.msiCapacity; }, 0);
-    var grandMsiShareThisWk = (function() {
-      // Weighted average of shareThisWeek across channels (weighted by this-week vol)
-      var sumNum = 0, sumDen = 0;
-      rows.forEach(function(r) { if (r.shareThisWeek !== null && r.capacity > 0) { sumNum += r.shareThisWeek * r.capacity; sumDen += r.capacity; } });
-      return sumDen > 0 ? sumNum / sumDen : null;
-    })();
-    // Grand YoY: weighted MSI volume YoY across channels (use per-row yoy * capacity as proxy)
+    // Grand YoY: sum msiCapacity / sum lastYearMsiTotal - nhat quan voi brandsTable
     var grandYoyCap = (function() {
-      var sumVol = 0, sumLy = 0;
-      rows.forEach(function(r) { if (r.yoy !== null && r.capacity > 0) { sumVol += r.msiCapacity; sumLy += r.msiCapacity / (1 + r.yoy); } });
+      var sumVol = rows.reduce(function(a, r) { return a + (r.msiCapacity || 0); }, 0);
+      var sumLy  = rows.reduce(function(a, r) { return a + (r.lastYearMsiTotal || 0); }, 0);
       return sumLy > 0 ? (sumVol - sumLy) / sumLy : null;
+    })();
+    // Grand This Wk MSI share: weighted by channel capacity this week
+    var grandMsiShareThisWk = (function() {
+      var sumMsiWk = 0, sumTtlWk = 0;
+      rows.forEach(function(r) {
+        if (r.shareThisWeek !== null && r.shareThisWeek !== undefined && r.capacity > 0) {
+          // Estimate this-week TTL from shareThisWeek: curWeekMsi = shareThisWeek * curWeekTtl
+          // We do not have curWeekTtl exposed; use capacity-proportional weight as best approximation
+          sumMsiWk += r.shareThisWeek * r.capacity;
+          sumTtlWk += r.capacity;
+        }
+      });
+      return sumTtlWk > 0 ? sumMsiWk / sumTtlWk : null;
     })();
 
     var html = '<table class="data-table">';
