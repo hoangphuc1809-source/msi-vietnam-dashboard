@@ -81,7 +81,10 @@ window.MsiUserbuyCharts = (function () {
             pointRadius: function (c) { return c.dataIndex >= nHist ? 0 : 2.5; },
             pointHoverRadius: 5,
             pointBackgroundColor: C.accentMSI, tension: 0.35, fill: true,
-            segment: { borderDash: function (c) { return c.p0DataIndex >= nHist - 1 ? [6, 4] : undefined; } }
+            segment: {
+              borderDash: function (c) { return c.p0DataIndex >= nHist - 1 ? [3, 5] : undefined; },
+              borderColor: function (c) { return c.p0DataIndex >= nHist - 1 ? hexToRgba(C.accentMSI, 0.4) : C.accentMSI; }
+            }
           },
           {
             label: 'Last Year',
@@ -149,11 +152,20 @@ window.MsiUserbuyCharts = (function () {
         backgroundColor: 'transparent',
         borderWidth: isDim ? 1.5 : 2.5,
         borderColor: isDim ? hexToRgba(color, 0.35) : color,
+        _baseColor: color, // Dung cho forecast segment color fade
         pointRadius: function (c) { return c.dataIndex >= nHist ? 0 : (isDim ? 1.5 : 2.5); },
         pointHoverRadius: 5,
         pointBackgroundColor: color,
         tension: 0.3,
-        segment: forecastN ? { borderDash: function (c) { return c.p0DataIndex >= nHist - 1 ? [6, 4] : undefined; } } : undefined
+        segment: forecastN ? {
+          borderDash: function (c) { return c.p0DataIndex >= nHist - 1 ? [3, 5] : undefined; },
+          borderColor: function (c) {
+            if (c.p0DataIndex < nHist - 1) return undefined; // use dataset borderColor
+            var ds = c.chart.data.datasets[c.datasetIndex];
+            var base = ds._baseColor || ds.borderColor;
+            return hexToRgba(typeof base === 'string' && base.startsWith('#') ? base : '#94A3B8', 0.4);
+          }
+        } : undefined
       };
     });
 
