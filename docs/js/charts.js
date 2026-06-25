@@ -325,30 +325,46 @@ window.MsiCharts = (function () {
         onHover: function (evt, elements) {
           evt.native.target.style.cursor = (onClickItem && elements && elements.length) ? 'pointer' : 'default';
         },
+        interaction: { mode: 'y', intersect: false },
         plugins: {
           legend: { display: false },
           tooltip: hasRef ? {
-            backgroundColor: '#0F172A', padding: 10, cornerRadius: 6,
-            titleFont: { size: 11, weight: '700' }, bodyFont: { size: 10 },
-            mode: 'index', intersect: false,
-            callbacks: {
-              title: function(ctxArr) {
-                return String(items[ctxArr[0].dataIndex][labelField]);
-              },
-              label: function() { return ''; },
-              afterBody: function(ctxArr) {
-                var d = items[ctxArr[0].dataIndex];
-                var tyVal = d[valueField] || 0;
-                var lyVal = d[refField] || 0;
-                var yoy = lyVal > 0 ? (tyVal - lyVal) / lyVal : null;
-                var fmt = window.MsiFormat;
-                var yoyStr = yoy === null ? '-' : (yoy >= 0 ? '+' : '') + (yoy * 100).toFixed(1) + '%';
-                return [
-                  'This Year : ' + fmt.number(tyVal),
-                  'Last Year  : ' + fmt.number(lyVal),
-                  'YoY           : ' + yoyStr
-                ];
+            enabled: false,
+            external: function(context) {
+              var tooltipModel = context.tooltip;
+              var canvasEl = context.chart.canvas;
+              var tooltipEl = canvasEl._hbarTooltip;
+              if (!tooltipEl) {
+                tooltipEl = document.createElement('div');
+                tooltipEl.style.cssText = 'position:absolute;background:#0F172A;color:#fff;padding:8px 12px;border-radius:6px;font-size:11px;pointer-events:none;white-space:nowrap;z-index:999;transition:opacity 0.1s;';
+                canvasEl.parentElement.style.position = 'relative';
+                canvasEl.parentElement.appendChild(tooltipEl);
+                canvasEl._hbarTooltip = tooltipEl;
               }
+              if (tooltipModel.opacity === 0) {
+                tooltipEl.style.opacity = '0';
+                return;
+              }
+              var idx = tooltipModel.dataPoints && tooltipModel.dataPoints[0]
+                ? tooltipModel.dataPoints[0].dataIndex : -1;
+              if (idx < 0 || idx >= items.length) { tooltipEl.style.opacity = '0'; return; }
+              var d = items[idx];
+              var tyVal = d[valueField] || 0;
+              var lyVal = d[refField] || 0;
+              var yoy = lyVal > 0 ? (tyVal - lyVal) / lyVal : null;
+              var fmt = window.MsiFormat;
+              var yoyStr = yoy === null ? '-' : (yoy >= 0 ? '+' : '') + (yoy * 100).toFixed(1) + '%';
+              var yoyColor = yoy === null ? '#94A3B8' : yoy >= 0 ? '#22C55E' : '#EF4444';
+              tooltipEl.innerHTML =
+                '<div style="font-weight:700;margin-bottom:4px">' + String(d[labelField]) + '</div>' +
+                '<div>This Year&nbsp;: ' + fmt.number(tyVal) + '</div>' +
+                '<div>Last Year&nbsp;&nbsp;: ' + fmt.number(lyVal) + '</div>' +
+                '<div>YoY&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: <span style="color:' + yoyColor + ';font-weight:700">' + yoyStr + '</span></div>';
+              var pos = canvasEl.getBoundingClientRect();
+              var canvasParent = canvasEl.parentElement.getBoundingClientRect();
+              tooltipEl.style.opacity = '1';
+              tooltipEl.style.left = (tooltipModel.caretX + pos.left - canvasParent.left + 10) + 'px';
+              tooltipEl.style.top  = (tooltipModel.caretY + pos.top  - canvasParent.top  - 20) + 'px';
             }
           } : { backgroundColor: '#0F172A', padding: 10, cornerRadius: 8 }
         },
