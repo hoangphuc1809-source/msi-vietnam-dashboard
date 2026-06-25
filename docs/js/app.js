@@ -522,9 +522,10 @@
     var filters = Object.assign({}, baseFilters(state), { brand: state.brand, channel: state.channel });
     var rows = D.dealersCapacityTable(filters).slice(0, 8);
     var valueField = state.brand ? 'selectedBrandVolume' : 'capacity';
+    // lastYearCapacity co san tu dealersCapacityTable -> truyen vao de ve overlap + tooltip
     Charts.renderHBarShare('dealersVolumeChart', rows, valueField, 'customer', function () {
       return window.MSI_CONFIG.COLORS.dgw;
-    }, function (d) { F.setCustomer(d.customer); });
+    }, function (d) { F.setCustomer(d.customer); }, 'lastYearCapacity');
   }
 
   function renderStackedMixSection(state) {
@@ -844,4 +845,5 @@
 
   document.addEventListener('DOMContentLoaded', init);
 })();
+
 
