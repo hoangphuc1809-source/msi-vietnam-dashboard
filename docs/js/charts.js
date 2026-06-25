@@ -594,10 +594,12 @@ window.MsiCharts = (function () {
           tooltip: {
             backgroundColor: '#0F172A', padding: 10, cornerRadius: 6,
             titleFont: { size: 11, weight: '700' }, bodyFont: { size: 10 },
-            mode: 'index',
+            position: 'nearest',
+            mode: 'y',
             intersect: false,
             callbacks: {
               title: function (ctxArr) {
+                // BUG FIX: dùng dataIndex từ dataset thực (index 0) để lookup itemsSnap
                 var idx = ctxArr[0].dataIndex;
                 return String(itemsSnap[idx][lField]);
               },
@@ -627,7 +629,7 @@ window.MsiCharts = (function () {
     });
   }
 
-  return {rMsiWeeklyTrend: renderMsiWeeklyTrend,
+  return {renderMsiWeeklyTrend: renderMsiWeeklyTrend,
     renderDealersWeeklyBar: renderDealersWeeklyBar,
     renderMultiLineShare: renderMultiLineShare,
     renderHBarShare: renderHBarShare,
