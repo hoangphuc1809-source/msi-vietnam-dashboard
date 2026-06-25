@@ -631,12 +631,7 @@ window.MsiCharts = (function () {
     var rField = refField;
     var lField = labelField;
     var barColor = color;
-
-    // Compute alpha color for LY track
-    function hexToRgba(hex, alpha) {
-      var r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
-      return 'rgba('+r+','+g+','+b+','+alpha+')';
-    }
+    // Use outer hexToRgba (defined at module level)
     var lyColor = hexToRgba(barColor, 0.15);
 
     // Max value across both TY and LY for x-scale
