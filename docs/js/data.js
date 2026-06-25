@@ -372,12 +372,15 @@ window.MsiData = (function () {
       var curWeekMsi = lastWeek ? sum(msiRows.filter(function (r) { return r.w === lastWeek; }), 'brandVol') : 0;
       var prevWeekTtl = prevWeek ? sum(totalRows.filter(function (r) { return r.w === prevWeek; }), 'ttlVol') : 0;
       var prevWeekMsi = prevWeek ? sum(msiRows.filter(function (r) { return r.w === prevWeek; }), 'brandVol') : 0;
-      var lastYearMsi = lastWeek ? sum(msiRows.filter(function (r) { return r.w === lastWeek; }), 'lastYear') : 0;
+      // YoY: MSI volume toan period (msiCapacity) vs lastYear toan period
+      // Nhat quan voi brandsTable/dealersCapacityTable - KHONG dung single-week snapshot
+      var lastYearMsiTotal = sum(msiRows, 'lastYear');
+      var yoy = lastYearMsiTotal > 0 ? (msiCapacity - lastYearMsiTotal) / lastYearMsiTotal : null;
 
+      var lastYearMsi = lastWeek ? sum(msiRows.filter(function (r) { return r.w === lastWeek; }), 'lastYear') : 0;
       var shareThisWeek = curWeekTtl > 0 ? curWeekMsi / curWeekTtl : null;
       var sharePrevWeek = prevWeekTtl > 0 ? prevWeekMsi / prevWeekTtl : null;
       var shareWow = (shareThisWeek !== null && sharePrevWeek !== null) ? (shareThisWeek - sharePrevWeek) : null;
-      var yoy = (curWeekMsi > 0 && lastYearMsi > 0) ? (curWeekMsi - lastYearMsi) / lastYearMsi : null;
 
       // Volume rieng cua brand dang duoc cross-filter tu noi khac (vd click "Asus"
       // tren bang Brands) - de Channel Type Scorecard cung "theo" dung brand do,
@@ -392,6 +395,7 @@ window.MsiData = (function () {
         channel: ch,
         capacity: capacity,
         msiCapacity: msiCapacity,
+        lastYearMsiTotal: lastYearMsiTotal,
         selectedBrandVolume: selectedBrandVolume,
         msiShareOverall: capacity > 0 ? msiCapacity / capacity : null,
         shareThisWeek: shareThisWeek,
@@ -522,3 +526,4 @@ window.MsiData = (function () {
     volatilityFlags: volatilityFlags
   };
 })();
+
