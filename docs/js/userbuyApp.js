@@ -568,7 +568,8 @@
   // Build tap hop SKU tu ubFilters (dung cho filter sell out theo model trong DS)
   // Tra ve null khi khong co dim filter active (show all models)
   function buildUbSkuSet_(ubFilters) {
-    var hasDimFilter = !!(ubFilters.model || ubFilters.segment || ubFilters.gpu || ubFilters.cpu || ubFilters.disty);
+    var hasDimFilter = !!(ubFilters.model || ubFilters.segment || ubFilters.gpu || ubFilters.cpu || ubFilters.disty ||
+      (ubFilters.seriesGroups && ubFilters.seriesGroups.length) || ubFilters.highEndOnly || ubFilters.series50Only);
     if (!hasDimFilter) return null;
     var set = {};
     UB.getSkus().filter(function (sk) {
@@ -591,7 +592,8 @@
   // Tra ve null = khong filter (hien tat ca disty). Tra ve {} = khong match disty nao.
   // NOTE: khong filter theo ubFilters.disty (do la "self-filter" cua Disty table - chi highlight row).
   function getRelevantDistiesSet_(ubFilters) {
-    var hasDimFilter = !!(ubFilters.model || ubFilters.segment || ubFilters.gpu || ubFilters.cpu);
+    var hasDimFilter = !!(ubFilters.model || ubFilters.segment || ubFilters.gpu || ubFilters.cpu ||
+      (ubFilters.seriesGroups && ubFilters.seriesGroups.length) || ubFilters.highEndOnly || ubFilters.series50Only);
     if (!hasDimFilter) return null; // khong co dim filter -> hien tat ca disty
     var matchingSkus = UB.getSkus().filter(function (sk) {
       if (ubFilters.seriesGroups && ubFilters.seriesGroups.length && ubFilters.seriesGroups.indexOf(sk.sg) === -1) return false;
@@ -612,7 +614,8 @@
   // Dua tren byDealerSkus (GAS v4+) de tim dealer nao co hang cac SKU phu hop.
   // Tra ve null = khong filter (fallback khi chua co data, hoac khong co dim filter).
   function getRelevantDealersSet_(ubFilters) {
-    var hasDimFilter = !!(ubFilters.model || ubFilters.segment || ubFilters.gpu || ubFilters.cpu || ubFilters.disty);
+    var hasDimFilter = !!(ubFilters.model || ubFilters.segment || ubFilters.gpu || ubFilters.cpu || ubFilters.disty ||
+      (ubFilters.seriesGroups && ubFilters.seriesGroups.length) || ubFilters.highEndOnly || ubFilters.series50Only);
     if (!hasDimFilter) return null; // khong co cross-filter -> hien tat ca dealer
     if (!MS.hasDealerSkus()) return null; // chua co byDealerSkus data -> fallback show all
     var matchingSkus = UB.getSkus().filter(function (sk) {
