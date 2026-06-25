@@ -756,7 +756,8 @@ window.MsiCharts = (function () {
     renderQuarterlyTrendLine: renderQuarterlyTrendLine,
     renderWeeklyShareDualLine: renderWeeklyShareDualLine,
     renderGpuTierGroupedBar: renderGpuTierGroupedBar,
-    renderDualMiniBar: renderScorecardHBar
+    renderDualMiniBar: renderScorecardHBar,
+    renderScorecardHBar: renderScorecardHBar
   };
 })();
 
