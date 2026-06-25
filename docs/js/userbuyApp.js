@@ -279,6 +279,13 @@
     return [weeks[n - 3] || null, weeks[n - 2] || null, weeks[n - 1] || null];
   }
 
+  // Phien ban lech 1 tuan cho Dealers / Disty table:
+  // Cot tuần cuoi = Week-1 (tuần vừa đóng, đủ data), không dùng tuần hiện tại (W đang dở)
+  function getLast3WeekLabelsShifted_(weeks) {
+    var n = weeks.length;
+    return [weeks[n - 4] || null, weeks[n - 3] || null, weeks[n - 2] || null];
+  }
+
   // ===== Render orchestration =====
 
   function renderAll(state) {
@@ -292,6 +299,7 @@
     var periodWeeks = UB.getWeeksForState(ubFilters);
     if (!periodWeeks.length) periodWeeks = UB.getWeeksForState({ years: state.years, quarters: state.quarters });
     var last3 = getLast3WeekLabels_(periodWeeks);
+    var last3Shifted = getLast3WeekLabelsShifted_(periodWeeks); // Dealers/Disty dung Week-1
     var snapshotWeek = periodWeeks.length ? periodWeeks[periodWeeks.length - 1] : WU.isoWeekLabel(new Date());
 
     var snap = WU.getInventorySnapshotPeriod(state.years, state.quarters, function (filterObj) {
@@ -304,8 +312,8 @@
     renderDimensionCharts_(state, ubFilters, periodWeeks);
     renderSegmentTable_(state, ubFilters, periodWeeks, last3, snap);
     renderGpuTable_(state, ubFilters, periodWeeks, last3, snap);
-    renderDealersTable_(state, ubFilters, periodWeeks, last3, snap);
-    renderDistyTable_(state, ubFilters, periodWeeks, last3, snap);
+    renderDealersTable_(state, ubFilters, periodWeeks, last3Shifted, snap);
+    renderDistyTable_(state, ubFilters, periodWeeks, last3Shifted, snap);
     renderModelDetailTable_(state, ubFilters, snap);
     renderEarlyWarning_(state, ubFilters, snap);
   }
