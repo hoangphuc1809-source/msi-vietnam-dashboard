@@ -144,10 +144,16 @@ window.MsiTables = (function () {
     var capHeader = showingBrand ? (activeBrand + ' Volume') : 'TTL Volume';
     var grandCap = rows.reduce(function (a, r) { return a + (r[capField] || 0); }, 0);
     var grandMsi = rows.reduce(function (a, r) { return a + r.msiCapacity; }, 0);
-    // Grand YoY: sum msiCapacity / sum lastYearMsiTotal - nhat quan voi brandsTable
+    // Grand MSI YoY
     var grandYoyCap = (function() {
       var sumVol = rows.reduce(function(a, r) { return a + (r.msiCapacity || 0); }, 0);
       var sumLy  = rows.reduce(function(a, r) { return a + (r.lastYearMsiTotal || 0); }, 0);
+      return sumLy > 0 ? (sumVol - sumLy) / sumLy : null;
+    })();
+    // Grand Total Market YoY
+    var grandMktYoy = (function() {
+      var sumVol = rows.reduce(function(a, r) { return a + (r.capacity || 0); }, 0);
+      var sumLy  = rows.reduce(function(a, r) { return a + (r.lastYearCapacity || 0); }, 0);
       return sumLy > 0 ? (sumVol - sumLy) / sumLy : null;
     })();
     // Grand This Wk MSI share: weighted by channel capacity this week
@@ -166,7 +172,7 @@ window.MsiTables = (function () {
 
     var html = '<table class="data-table">';
     html += '<thead><tr>' +
-      '<th>Channel Type</th><th>' + escapeAttr(capHeader) + '</th><th>MSI Share</th><th>This Wk</th><th>WoW</th><th>YoY</th>' +
+      '<th>Channel Type</th><th>' + escapeAttr(capHeader) + '</th><th>MSI Share</th><th>This Wk</th><th>WoW</th><th>MSI YoY</th><th>Total Mkt YoY</th>' +
       '</tr></thead><tbody>';
 
     rows.forEach(function (r) {
@@ -178,6 +184,7 @@ window.MsiTables = (function () {
         '<td>' + fmt.percent(r.shareThisWeek, 1) + '</td>' +
         '<td class="' + yoyClass(r.shareWow) + '">' + (r.shareWow === null ? '-' : (r.shareWow >= 0 ? '+' : '') + (r.shareWow * 100).toFixed(1) + 'pp') + '</td>' +
         '<td class="' + yoyClass(r.yoy) + '">' + fmt.percentSigned(r.yoy, 1) + '</td>' +
+        '<td class="' + yoyClass(r.mktYoy) + '">' + fmt.percentSigned(r.mktYoy, 1) + '</td>' +
         '</tr>';
     });
 
@@ -188,6 +195,7 @@ window.MsiTables = (function () {
       '<td>' + fmt.percent(grandMsiShareThisWk, 1) + '</td>' +
       '<td>-</td>' +
       '<td class="' + yoyClass(grandYoyCap) + '">' + fmt.percentSigned(grandYoyCap, 1) + '</td>' +
+      '<td class="' + yoyClass(grandMktYoy) + '">' + fmt.percentSigned(grandMktYoy, 1) + '</td>' +
       '</tr>';
 
     html += '</tbody></table>';
