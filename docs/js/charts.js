@@ -619,82 +619,73 @@ window.MsiCharts = (function () {
     });
   }
 
-  // ===== Mini dual-bar: Top-N entity, This Period (colored) vs Last Year (gray) =====
-  // Dung cho scorecard card (Key Dealers / NV Report) - so sanh nhanh truc quan.
-  function renderDualMiniBar(canvasId, items, valueField, refField, labelField, color) {
+  // ===== Scorecard horizontal bar: Top-N brand, This Period (solid color) + LY (light bg) =====
+  // Matches the "Key Dealers - Volume" chart style: single solid bar + value label on the right.
+  // LY duoc the hien bang nen track (lighter color, chiều rộng = LY value).
+  function renderScorecardHBar(canvasId, items, valueField, refField, labelField, color) {
     destroyIfExists(canvasId);
     var ctx = document.getElementById(canvasId).getContext('2d');
 
-    // Overlap 50%: chi render 1 dataset (Last Year = gray) qua Chart.js de lay
-    // toa do bar chinh xac, sau do dung afterDraw plugin ve This Period len tren
-    // voi cung width nhung dich len 50% chieu cao bar -> 2 bars cung size, overlap 50%.
-    var colorVal = color;
     var itemsSnap = items;
     var vField = valueField;
     var rField = refField;
     var lField = labelField;
+    var barColor = color;
+
+    // Compute alpha color for LY track
+    function hexToRgba(hex, alpha) {
+      var r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+      return 'rgba('+r+','+g+','+b+','+alpha+')';
+    }
+    var lyColor = hexToRgba(barColor, 0.15);
+
+    // Max value across both TY and LY for x-scale
+    var maxVal = Math.max.apply(null, itemsSnap.map(function(d) {
+      return Math.max(d[vField]||0, d[rField]||0);
+    }));
+    if (!maxVal) maxVal = 1;
 
     charts[canvasId] = new Chart(ctx, {
       type: 'bar',
       data: {
-        labels: itemsSnap.map(function (d) { return window.MsiFormat.truncate(String(d[lField]), 14); }),
+        labels: itemsSnap.map(function(d) { return String(d[lField]); }),
         datasets: [
           {
             label: 'Last Year',
-            data: itemsSnap.map(function (d) { return d[rField] || 0; }),
-            backgroundColor: '#CBD5E1',
-            borderRadius: 2,
-            barThickness: 12
+            data: itemsSnap.map(function(d) { return d[rField] || 0; }),
+            backgroundColor: lyColor,
+            borderRadius: 4,
+            barThickness: 18
+          },
+          {
+            label: 'This Period',
+            data: itemsSnap.map(function(d) { return d[vField] || 0; }),
+            backgroundColor: barColor,
+            borderRadius: 4,
+            barThickness: 11
           }
         ]
       },
       plugins: [{
-        id: 'thisYearOverlay',
+        id: 'hBarValueLabels',
         afterDraw: function(chart) {
-          var meta = chart.getDatasetMeta(0);
+          var meta = chart.getDatasetMeta(1); // This Period dataset
           if (!meta || !meta.data || !meta.data.length) return;
-          var xScale = chart.scales.x;
           var canvasCtx = chart.ctx;
-          var barH = meta.data[0] ? meta.data[0].height : 12;
-          var halfH = barH / 2;
-
           canvasCtx.save();
-          // Clip to chart area
-          canvasCtx.beginPath();
-          canvasCtx.rect(chart.chartArea.left, chart.chartArea.top,
-            chart.chartArea.right - chart.chartArea.left,
-            chart.chartArea.bottom - chart.chartArea.top);
-          canvasCtx.clip();
-
+          canvasCtx.font = '700 10px var(--font-mono, monospace)';
+          canvasCtx.fillStyle = C.textSecondary;
+          canvasCtx.textAlign = 'left';
+          canvasCtx.textBaseline = 'middle';
+          var xScale = chart.scales.x;
           itemsSnap.forEach(function(d, i) {
             var bar = meta.data[i];
             if (!bar) return;
             var val = d[vField] || 0;
-            var barCenterY = bar.y;
-            var x0 = xScale.getPixelForValue(0);
             var x1 = xScale.getPixelForValue(val);
-            var barWidth = Math.max(0, x1 - x0);
-            var topY = barCenterY - halfH * 0.5;  // This Period: center = barCenterY - halfH*0.5 (shift up 50%)
-
-            canvasCtx.fillStyle = colorVal;
-            // Rounded rect cho This Period bar
-            var r = 2;
-            var h = halfH;
-            var x = x0, y = topY, w = barWidth;
-            if (w < r * 2) r = w / 2;
-            if (h < r * 2) r = h / 2;
-            canvasCtx.beginPath();
-            canvasCtx.moveTo(x + r, y);
-            canvasCtx.lineTo(x + w - r, y);
-            canvasCtx.quadraticCurveTo(x + w, y, x + w, y + r);
-            canvasCtx.lineTo(x + w, y + h - r);
-            canvasCtx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-            canvasCtx.lineTo(x + r, y + h);
-            canvasCtx.quadraticCurveTo(x, y + h, x, y + h - r);
-            canvasCtx.lineTo(x, y + r);
-            canvasCtx.quadraticCurveTo(x, y, x + r, y);
-            canvasCtx.closePath();
-            canvasCtx.fill();
+            var centerY = bar.y;
+            var labelText = window.MsiFormat ? window.MsiFormat.number(val) : val.toLocaleString();
+            canvasCtx.fillText(labelText, x1 + 5, centerY);
           });
           canvasCtx.restore();
         }
@@ -703,6 +694,7 @@ window.MsiCharts = (function () {
         indexAxis: 'y',
         responsive: true,
         maintainAspectRatio: false,
+        layout: { padding: { right: 52 } },
         plugins: {
           legend: { display: false },
           tooltip: {
@@ -711,12 +703,12 @@ window.MsiCharts = (function () {
             mode: 'index',
             intersect: false,
             callbacks: {
-              title: function (ctxArr) {
+              title: function(ctxArr) {
                 var idx = ctxArr[0].dataIndex;
                 return String(itemsSnap[idx][lField]);
               },
-              label: function () { return ''; },
-              afterBody: function (ctxArr) {
+              label: function() { return ''; },
+              afterBody: function(ctxArr) {
                 var idx = ctxArr[0].dataIndex;
                 var d = itemsSnap[idx];
                 var thisY = d[vField] || 0;
@@ -725,8 +717,8 @@ window.MsiCharts = (function () {
                 var fmt = window.MsiFormat;
                 var yoyStr = yoy === null ? '-' : (yoy >= 0 ? '+' : '') + (yoy * 100).toFixed(1) + '%';
                 return [
-                  'This Year : ' + fmt.number(thisY),
-                  'Last Year  : ' + fmt.number(lastY),
+                  'This Year : ' + (fmt ? fmt.number(thisY) : thisY),
+                  'Last Year  : ' + (fmt ? fmt.number(lastY) : lastY),
                   'YoY           : ' + yoyStr
                 ];
               }
@@ -734,14 +726,28 @@ window.MsiCharts = (function () {
           }
         },
         scales: {
-          x: { display: false, beginAtZero: true },
-          y: { grid: { display: false }, ticks: { color: C.textSecondary, font: { size: 10, weight: '600' } } }
+          x: {
+            display: false,
+            beginAtZero: true,
+            max: maxVal * 1.25,
+            stacked: false
+          },
+          y: {
+            grid: { display: false },
+            ticks: {
+              color: C.textSecondary,
+              font: { size: 10, weight: '600' },
+              padding: 4
+            },
+            stacked: false
+          }
         }
       }
     });
   }
 
   return {
+    renderMsiWeeklyTrend  return {
     renderMsiWeeklyTrend: renderMsiWeeklyTrend,
     renderDealersWeeklyBar: renderDealersWeeklyBar,
     renderMultiLineShare: renderMultiLineShare,
@@ -750,9 +756,10 @@ window.MsiCharts = (function () {
     renderQuarterlyTrendLine: renderQuarterlyTrendLine,
     renderWeeklyShareDualLine: renderWeeklyShareDualLine,
     renderGpuTierGroupedBar: renderGpuTierGroupedBar,
-    renderDualMiniBar: renderDualMiniBar
+    renderDualMiniBar: renderScorecardHBar
   };
 })();
+
 
 
 
