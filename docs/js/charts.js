@@ -511,6 +511,9 @@ window.MsiCharts = (function () {
     destroyIfExists(canvasId);
     var ctx = document.getElementById(canvasId).getContext('2d');
 
+    // Overlap 50%: Last Year (gray, wider/behind) + This Period (color, narrower/front)
+    // barThickness fixed so This Period bar is ~50% width of Last Year bar slot
+    // Order: Last Year first (index 0) = rendered behind; This Period (index 1) = on top
     charts[canvasId] = new Chart(ctx, {
       type: 'bar',
       data: {
@@ -521,14 +524,18 @@ window.MsiCharts = (function () {
             data: items.map(function (d) { return d[refField] || 0; }),
             backgroundColor: '#CBD5E1',
             borderRadius: 3,
-            maxBarThickness: 9
+            categoryPercentage: 0.8,
+            barPercentage: 1.0,
+            order: 2
           },
           {
             label: 'This Period',
             data: items.map(function (d) { return d[valueField] || 0; }),
             backgroundColor: color,
             borderRadius: 3,
-            maxBarThickness: 9
+            categoryPercentage: 0.8,
+            barPercentage: 0.5,
+            order: 1
           }
         ]
       },
@@ -539,9 +546,34 @@ window.MsiCharts = (function () {
         plugins: {
           legend: { display: false },
           tooltip: {
-            backgroundColor: '#0F172A', padding: 8, cornerRadius: 6,
-            titleFont: { size: 10 }, bodyFont: { size: 10 },
-            callbacks: { label: function (ctx) { return ctx.dataset.label + ': ' + window.MsiFormat.number(ctx.parsed.x); } }
+            backgroundColor: '#0F172A', padding: 10, cornerRadius: 6,
+            titleFont: { size: 11, weight: '700' }, bodyFont: { size: 10 },
+            mode: 'index',
+            intersect: false,
+            callbacks: {
+              title: function (ctxArr) {
+                // Full brand name (not truncated) from items
+                var idx = ctxArr[0].dataIndex;
+                return String(items[idx][labelField]);
+              },
+              label: function (ctx) {
+                return ''; // handled in afterBody
+              },
+              afterBody: function (ctxArr) {
+                var idx = ctxArr[0].dataIndex;
+                var d = items[idx];
+                var thisY = d[valueField] || 0;
+                var lastY = d[refField] || 0;
+                var yoy = lastY > 0 ? (thisY - lastY) / lastY : null;
+                var fmt = window.MsiFormat;
+                var yoyStr = yoy === null ? '-' : (yoy >= 0 ? '+' : '') + (yoy * 100).toFixed(1) + '%';
+                return [
+                  'This Year : ' + fmt.number(thisY),
+                  'Last Year  : ' + fmt.number(lastY),
+                  'YoY           : ' + yoyStr
+                ];
+              }
+            }
           }
         },
         scales: {
@@ -564,4 +596,5 @@ window.MsiCharts = (function () {
     renderDualMiniBar: renderDualMiniBar
   };
 })();
+
 
