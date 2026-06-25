@@ -19,12 +19,15 @@ window.MsiTables = (function () {
     var capField = showingBrand ? 'selectedBrandVolume' : 'capacity';
     var capHeader = showingBrand ? (activeBrand + ' Volume') : 'Capacity';
     var grandTotal = rows.reduce(function (a, r) { return a + (r[capField] || 0); }, 0);
+    var grandLastYear = rows.reduce(function (a, r) { return a + (r.lastYearCapacity || 0); }, 0);
+    var grandYoy = grandLastYear > 0 ? (grandTotal - grandLastYear) / grandLastYear : null;
     var has3 = rows.some(function (r) { return r.last3Wk !== null && r.last3Wk !== undefined; });
     var has2 = rows.some(function (r) { return r.last2Wk !== null && r.last2Wk !== undefined; });
     var has1 = rows.some(function (r) { return r.lastWk !== null && r.lastWk !== undefined; });
     var grand3 = has3 ? rows.reduce(function (a, r) { return a + (r.last3Wk || 0); }, 0) : null;
     var grand2 = has2 ? rows.reduce(function (a, r) { return a + (r.last2Wk || 0); }, 0) : null;
     var grand1 = has1 ? rows.reduce(function (a, r) { return a + (r.lastWk || 0); }, 0) : null;
+    var grandWow = (grand1 !== null && grand2 !== null && grand2 > 0) ? (grand1 - grand2) / grand2 : null;
     var wl = weekLabels || [];
     var h3 = wl[0] || 'Last 3 Wk', h2 = wl[1] || 'Last 2 Wk', h1 = wl[2] || 'Last Wk';
 
@@ -51,11 +54,12 @@ window.MsiTables = (function () {
     html += '<tr class="total-row">' +
       '<td>Grand total</td>' +
       '<td>' + fmt.number(grandTotal) + '</td>' +
-      '<td>-</td><td>-</td>' +
+      '<td class="' + yoyClass(grandYoy) + '">' + fmt.percentSigned(grandYoy, 1) + '</td>' +
+      '<td>-</td>' +
       '<td>' + fmt.number(grand3) + '</td>' +
       '<td>' + fmt.number(grand2) + '</td>' +
       '<td>' + fmt.number(grand1) + '</td>' +
-      '<td>-</td>' +
+      '<td class="' + yoyClass(grandWow) + '">' + fmt.percentSigned(grandWow, 0) + '</td>' +
       '</tr>';
 
     html += '</tbody></table>';
@@ -74,12 +78,15 @@ window.MsiTables = (function () {
     var el = document.getElementById(containerId);
     var grandTotal = rows.reduce(function (a, r) { return a + r.volume; }, 0);
     var grandShared = rows.reduce(function (a, r) { return a + r.shared; }, 0);
+    var grandLastYearVol = rows.reduce(function (a, r) { return a + (r.lastYearVol || 0); }, 0);
+    var grandYoy = grandLastYearVol > 0 ? (grandTotal - grandLastYearVol) / grandLastYearVol : null;
     var has3 = rows.some(function (r) { return r.last3Wk !== null && r.last3Wk !== undefined; });
     var has2 = rows.some(function (r) { return r.last2Wk !== null && r.last2Wk !== undefined; });
     var has1 = rows.some(function (r) { return r.lastWk !== null && r.lastWk !== undefined; });
     var grand3 = has3 ? rows.reduce(function (a, r) { return a + (r.last3Wk || 0); }, 0) : null;
     var grand2 = has2 ? rows.reduce(function (a, r) { return a + (r.last2Wk || 0); }, 0) : null;
     var grand1 = has1 ? rows.reduce(function (a, r) { return a + (r.lastWk || 0); }, 0) : null;
+    var grandWow = (grand1 !== null && grand2 !== null && grand2 > 0) ? (grand1 - grand2) / grand2 : null;
     var wl = weekLabels || [];
     var h3 = wl[0] || 'Last 3 Wk', h2 = wl[1] || 'Last 2 Wk', h1 = wl[2] || 'Last Wk';
 
@@ -107,11 +114,12 @@ window.MsiTables = (function () {
     html += '<tr class="total-row">' +
       '<td>Grand total</td>' +
       '<td>' + fmt.number(grandTotal) + '</td>' +
-      '<td>' + fmt.percent(grandShared, 1) + '</td><td>-</td>' +
+      '<td>' + fmt.percent(grandShared, 1) + '</td>' +
+      '<td class="' + yoyClass(grandYoy) + '">' + fmt.percentSigned(grandYoy, 1) + '</td>' +
       '<td>' + fmt.number(grand3) + '</td>' +
       '<td>' + fmt.number(grand2) + '</td>' +
       '<td>' + fmt.number(grand1) + '</td>' +
-      '<td>-</td>' +
+      '<td class="' + yoyClass(grandWow) + '">' + fmt.percentSigned(grandWow, 0) + '</td>' +
       '</tr>';
 
     html += '</tbody></table>';
@@ -136,6 +144,18 @@ window.MsiTables = (function () {
     var capHeader = showingBrand ? (activeBrand + ' Volume') : 'TTL Volume';
     var grandCap = rows.reduce(function (a, r) { return a + (r[capField] || 0); }, 0);
     var grandMsi = rows.reduce(function (a, r) { return a + r.msiCapacity; }, 0);
+    var grandMsiShareThisWk = (function() {
+      // Weighted average of shareThisWeek across channels (weighted by this-week vol)
+      var sumNum = 0, sumDen = 0;
+      rows.forEach(function(r) { if (r.shareThisWeek !== null && r.capacity > 0) { sumNum += r.shareThisWeek * r.capacity; sumDen += r.capacity; } });
+      return sumDen > 0 ? sumNum / sumDen : null;
+    })();
+    // Grand YoY: weighted MSI volume YoY across channels (use per-row yoy * capacity as proxy)
+    var grandYoyCap = (function() {
+      var sumVol = 0, sumLy = 0;
+      rows.forEach(function(r) { if (r.yoy !== null && r.capacity > 0) { sumVol += r.msiCapacity; sumLy += r.msiCapacity / (1 + r.yoy); } });
+      return sumLy > 0 ? (sumVol - sumLy) / sumLy : null;
+    })();
 
     var html = '<table class="data-table">';
     html += '<thead><tr>' +
@@ -158,7 +178,9 @@ window.MsiTables = (function () {
       '<td>Grand total</td>' +
       '<td>' + fmt.number(grandCap) + '</td>' +
       '<td>' + fmt.percent(grandCap > 0 ? grandMsi / grandCap : null, 1) + '</td>' +
-      '<td>-</td><td>-</td><td>-</td>' +
+      '<td>' + fmt.percent(grandMsiShareThisWk, 1) + '</td>' +
+      '<td>-</td>' +
+      '<td class="' + yoyClass(grandYoyCap) + '">' + fmt.percentSigned(grandYoyCap, 1) + '</td>' +
       '</tr>';
 
     html += '</tbody></table>';
@@ -328,4 +350,5 @@ window.MsiTables = (function () {
     renderAlertsPanel: renderAlertsPanel
   };
 })();
+
 
