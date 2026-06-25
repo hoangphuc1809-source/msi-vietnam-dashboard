@@ -592,32 +592,56 @@ window.MsiCharts = (function () {
         plugins: {
           legend: { display: false },
           tooltip: {
-            backgroundColor: '#0F172A', padding: 10, cornerRadius: 6,
-            titleFont: { size: 11, weight: '700' }, bodyFont: { size: 10 },
-            position: 'nearest',
-            mode: 'y',
-            intersect: false,
-            callbacks: {
-              title: function (ctxArr) {
-                // BUG FIX: dùng dataIndex từ dataset thực (index 0) để lookup itemsSnap
-                var idx = ctxArr[0].dataIndex;
-                return String(itemsSnap[idx][lField]);
-              },
-              label: function () { return ''; },
-              afterBody: function (ctxArr) {
-                var idx = ctxArr[0].dataIndex;
-                var d = itemsSnap[idx];
-                var thisY = d[vField] || 0;
-                var lastY = d[rField] || 0;
-                var yoy = lastY > 0 ? (thisY - lastY) / lastY : null;
-                var fmt = window.MsiFormat;
-                var yoyStr = yoy === null ? '-' : (yoy >= 0 ? '+' : '') + (yoy * 100).toFixed(1) + '%';
-                return [
-                  'This Year : ' + fmt.number(thisY),
-                  'Last Year  : ' + fmt.number(lastY),
-                  'YoY           : ' + yoyStr
-                ];
+            enabled: false,
+            external: function(context) {
+              // External tooltip: render ra div#chart-tooltip ngoài canvas
+              // → không bị clip bởi card container, không đè chart bên cạnh
+              var tooltipEl = document.getElementById('chart-tooltip');
+              if (!tooltipEl) {
+                tooltipEl = document.createElement('div');
+                tooltipEl.id = 'chart-tooltip';
+                tooltipEl.style.cssText = 'position:fixed;background:#0F172A;color:#F8FAFC;' +
+                  'padding:10px 12px;border-radius:8px;font-size:11px;line-height:1.7;' +
+                  'pointer-events:none;z-index:9999;white-space:nowrap;' +
+                  'box-shadow:0 4px 16px rgba(0,0,0,0.4);transition:opacity 0.1s;';
+                document.body.appendChild(tooltipEl);
               }
+              var tooltip = context.tooltip;
+              if (!tooltip || tooltip.opacity === 0) {
+                tooltipEl.style.opacity = '0';
+                return;
+              }
+              var dataPoints = tooltip.dataPoints;
+              if (!dataPoints || !dataPoints.length) { tooltipEl.style.opacity = '0'; return; }
+              var idx = dataPoints[0].dataIndex;
+              if (idx < 0 || idx >= itemsSnap.length) { tooltipEl.style.opacity = '0'; return; }
+              var d = itemsSnap[idx];
+              var thisY = d[vField] || 0;
+              var lastY = d[rField] || 0;
+              var yoy = lastY > 0 ? (thisY - lastY) / lastY : null;
+              var fmt = window.MsiFormat;
+              var yoyStr = yoy === null ? '-' : (yoy >= 0 ? '+' : '') + (yoy * 100).toFixed(1) + '%';
+              var yoyColor = yoy === null ? '#94A3B8' : (yoy >= 0 ? '#34D399' : '#F87171');
+              var label = String(d[lField]).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+              tooltipEl.innerHTML =
+                '<div style="font-weight:700;margin-bottom:4px;font-size:12px">' + label + '</div>' +
+                '<div>This Year&nbsp;: <b>' + fmt.number(thisY) + '</b></div>' +
+                '<div>Last Year&nbsp;&nbsp;: <b>' + fmt.number(lastY) + '</b></div>' +
+                '<div>YoY&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: <b style="color:' + yoyColor + '">' + yoyStr + '</b></div>';
+              var canvasRect = context.chart.canvas.getBoundingClientRect();
+              var ttW = tooltipEl.offsetWidth || 180;
+              var ttH = tooltipEl.offsetHeight || 80;
+              var left = canvasRect.left + tooltip.caretX + 14;
+              var top  = canvasRect.top  + tooltip.caretY - ttH / 2;
+              // Flip sang trái nếu sẽ tràn viewport phải
+              if (left + ttW > window.innerWidth - 8) {
+                left = canvasRect.left + tooltip.caretX - ttW - 14;
+              }
+              // Giữ trong viewport dọc
+              top = Math.max(8, Math.min(top, window.innerHeight - ttH - 8));
+              tooltipEl.style.left = left + 'px';
+              tooltipEl.style.top  = top + 'px';
+              tooltipEl.style.opacity = '1';
             }
           }
         },
@@ -626,6 +650,12 @@ window.MsiCharts = (function () {
           y: { grid: { display: false }, ticks: { color: C.textSecondary, font: { size: 10, weight: '600' } } }
         }
       }
+    });
+
+    // Hide external tooltip khi chuột rời canvas
+    ctx.canvas.addEventListener('mouseleave', function() {
+      var el = document.getElementById('chart-tooltip');
+      if (el) el.style.opacity = '0';
     });
   }
 
@@ -640,5 +670,6 @@ window.MsiCharts = (function () {
     renderDualMiniBar: renderDualMiniBar
   };
 })();
+
 
 
