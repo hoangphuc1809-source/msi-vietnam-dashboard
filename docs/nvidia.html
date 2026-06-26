@@ -456,7 +456,7 @@ select option{background:var(--bg2)}
 
         <!-- [0,0] Brand table -->
         <div class="bg-cell">
-          <div class="bg-head" style="display:flex;justify-content:space-between;align-items:center">Brands <span style="font-size:9px;font-weight:500;color:var(--text3);font-style:italic">IHS tracked dealers</span></div>
+          <div class="bg-head" style="display:flex;justify-content:space-between;align-items:center">Brands <span style="font-size:9px;font-weight:500;color:var(--text3);font-style:italic">Nvidia Report</span></div>
           <div class="bg-scroll">
             <table style="width:100%;border-collapse:collapse;font-size:12px" id="brand-table">
               <thead style="position:sticky;top:0;z-index:1">
@@ -1096,12 +1096,12 @@ function renderBrandGpu(nvR, weeks) {
     return {brand:b, vol:periodVol, share, vLast, vPrev, vW3, vW2, wow, color:BRAND_COLORS[b]};
   }).sort((a,b)=>b.vol-a.vol);
 
-  // Grand total row
-  const gtVol   = brandRows.reduce((s,r)=>s+r.vol,0);
-  const gtLast  = brandRows.reduce((s,r)=>s+r.vLast,0);
-  const gtPrev  = brandRows.reduce((s,r)=>s+r.vPrev,0);
-  const gtW3    = brandRows.reduce((s,r)=>s+r.vW3,0);
-  const gtW2    = brandRows.reduce((s,r)=>s+r.vW2,0);
+  // Grand total row — use NV total (not IHS sum)
+  const gtVol   = periodTtl;  // NV Report total
+  const gtLast  = brandTtlWeek(wLast);
+  const gtPrev  = brandTtlWeek(wPrev);
+  const gtW3    = brandTtlWeek(w3ago);
+  const gtW2    = brandTtlWeek(last13[last13.length-3]||latestW);
   const gtWoW   = gtPrev>0?(gtLast-gtPrev)/gtPrev*100:null;
 
   function wowHtml(v) {
@@ -1133,7 +1133,7 @@ function renderBrandGpu(nvR, weeks) {
         <td style="padding:7px 14px;text-align:right">${wowHtml(r.wow)}</td>
       </tr>`).join('') +
     `<tr style="border-top:2px solid var(--border);background:var(--bg3)">
-      <td style="padding:7px 14px;font-weight:600;color:var(--text)">Grand total <span style="font-size:9px;font-weight:400;color:var(--text3)">(IHS)</span></td>
+      <td style="padding:7px 14px;font-weight:600;color:var(--text)">Grand total <span style="font-size:9px;font-weight:400;color:var(--text3)">(Nvidia)</span></td>
       <td style="padding:7px 8px;text-align:right;font-weight:600;color:var(--text)">${gtVol.toLocaleString()}</td>
       <td style="padding:7px 8px;text-align:right;font-size:10px;color:var(--text3)">100%</td>
       <td style="padding:7px 8px;text-align:right;font-weight:600;color:var(--text)">${gtW3.toLocaleString()}</td>
