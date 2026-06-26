@@ -456,7 +456,7 @@ select option{background:var(--bg2)}
 
         <!-- [0,0] Brand table -->
         <div class="bg-cell">
-          <div class="bg-head">Brands</div>
+          <div class="bg-head" style="display:flex;justify-content:space-between;align-items:center">Brands <span style="font-size:9px;font-weight:500;color:var(--text3);font-style:italic">IHS tracked dealers</span></div>
           <div class="bg-scroll">
             <table style="width:100%;border-collapse:collapse;font-size:12px" id="brand-table">
               <thead style="position:sticky;top:0;z-index:1">
@@ -825,11 +825,17 @@ function renderPulse(nvRows, weeks, latestW, prevW) {
   setYoYFt('p1-yoy-ft','p1-yoy',yoy);
 
   // Sub-metrics
-  setText('p1-msi-vol', tmsi.toLocaleString());
+  // MSI Vol in NV card = Userbuy (Gaming only, period) — matches footer label
+  const skuMapP1={}; D.ub.skus.forEach(s=>{skuMapP1[s.sku]=s;});
+  const ubP1 = D.ub.facts.filter(f=>weeks.includes(f.w)).map(f=>({...f,...(skuMapP1[f.sku]||{})})).filter(f=>(f.sg||'')!=='Business& Productivity');
+  const ubP1total = ubP1.reduce((s,f)=>s+(f.qty||0),0);
+  setText('p1-msi-vol', ubP1total.toLocaleString());
+  // MSI share = userbuy / NV total
+  const msiShareUB = tvol>0 ? ubP1total/tvol*100 : 0;
   const shareEl=document.getElementById('p1-msi-share');
   if(shareEl){
-    shareEl.textContent=fmt1(msiShare)+'%';
-    shareEl.style.color=msiShare>=15?'var(--green)':msiShare>=8?'var(--amber)':'var(--red)';
+    shareEl.textContent=fmt1(msiShareUB)+'%';
+    shareEl.style.color=msiShareUB>=15?'var(--green)':msiShareUB>=8?'var(--amber)':'var(--red)';
   }
   setPulseClass('pc-msi-share', 'nv');  // always blue border
 
@@ -1009,7 +1015,12 @@ function renderPulse(nvRows, weeks, latestW, prevW) {
   const restTotalVol = Math.max(0, tvol - kaTotalVol);
 
   // MSI Rest = NV MSI total - KA MSI (IHS brandVol)
-  const restMSIVol   = Math.max(0, tmsi - kaMSIVol);
+  // MSI in Rest = Total Userbuy − MSI in KA (per sheet: hình 2)
+  // ubPeriodMsi = userbuy total (Gaming only, period)
+  const skuMapR={}; D.ub.skus.forEach(s=>{skuMapR[s.sku]=s;});
+  const ubPeriodAll = D.ub.facts.filter(f=>weeks.includes(f.w)).map(f=>({...f,...(skuMapR[f.sku]||{})})).filter(f=>(f.sg||'')!=='Business& Productivity');
+  const ubPeriodTotal = ubPeriodAll.reduce((s,f)=>s+(f.qty||0),0);
+  const restMSIVol   = Math.max(0, ubPeriodTotal - kaMSIVol);
   const restShare    = restTotalVol>0 ? restMSIVol/restTotalVol*100 : 0;
 
   // YoY Rest: NV LY total - KA LY total (both now using best-available derivation)
@@ -1122,7 +1133,7 @@ function renderBrandGpu(nvR, weeks) {
         <td style="padding:7px 14px;text-align:right">${wowHtml(r.wow)}</td>
       </tr>`).join('') +
     `<tr style="border-top:2px solid var(--border);background:var(--bg3)">
-      <td style="padding:7px 14px;font-weight:600;color:var(--text)">Grand total</td>
+      <td style="padding:7px 14px;font-weight:600;color:var(--text)">Grand total <span style="font-size:9px;font-weight:400;color:var(--text3)">(IHS)</span></td>
       <td style="padding:7px 8px;text-align:right;font-weight:600;color:var(--text)">${gtVol.toLocaleString()}</td>
       <td style="padding:7px 8px;text-align:right;font-size:10px;color:var(--text3)">100%</td>
       <td style="padding:7px 8px;text-align:right;font-weight:600;color:var(--text)">${gtW3.toLocaleString()}</td>
