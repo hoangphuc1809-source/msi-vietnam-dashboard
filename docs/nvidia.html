@@ -464,9 +464,9 @@ select option{background:var(--bg2)}
                   <th style="padding:6px 14px;text-align:left;font-size:10px;font-weight:600;color:var(--text3);letter-spacing:.04em;white-space:nowrap">Brand</th>
                   <th style="padding:6px 8px;text-align:right;font-size:10px;font-weight:600;color:var(--text3)">Volume</th>
                   <th style="padding:6px 8px;text-align:right;font-size:10px;font-weight:600;color:var(--text3)">Share</th>
-                  <th style="padding:6px 8px;text-align:right;font-size:10px;font-weight:600;color:var(--text3)">3Wk</th>
-                  <th style="padding:6px 8px;text-align:right;font-size:10px;font-weight:600;color:var(--text3)">2Wk</th>
-                  <th style="padding:6px 8px;text-align:right;font-size:10px;font-weight:600;color:var(--text3)">LstWk</th>
+                  <th id="brand-th-w3" style="padding:6px 8px;text-align:right;font-size:10px;font-weight:600;color:var(--text3)">3Wk</th>
+                  <th id="brand-th-w2" style="padding:6px 8px;text-align:right;font-size:10px;font-weight:600;color:var(--text3)">2Wk</th>
+                  <th id="brand-th-w1" style="padding:6px 8px;text-align:right;font-size:10px;font-weight:600;color:var(--text3)">LstWk</th>
                   <th style="padding:6px 14px;text-align:right;font-size:10px;font-weight:600;color:var(--text3)">WoW</th>
                 </tr>
               </thead>
@@ -491,9 +491,9 @@ select option{background:var(--bg2)}
                   <th style="padding:6px 14px;text-align:left;font-size:10px;font-weight:600;color:var(--text3);letter-spacing:.04em;white-space:nowrap">GPU</th>
                   <th style="padding:6px 8px;text-align:right;font-size:10px;font-weight:600;color:var(--text3)">Volume</th>
                   <th style="padding:6px 8px;text-align:right;font-size:10px;font-weight:600;color:var(--text3)">Share</th>
-                  <th style="padding:6px 8px;text-align:right;font-size:10px;font-weight:600;color:var(--text3)">3Wk</th>
-                  <th style="padding:6px 8px;text-align:right;font-size:10px;font-weight:600;color:var(--text3)">2Wk</th>
-                  <th style="padding:6px 8px;text-align:right;font-size:10px;font-weight:600;color:var(--text3)">LstWk</th>
+                  <th id="gpu-th-w3" style="padding:6px 8px;text-align:right;font-size:10px;font-weight:600;color:var(--text3)">3Wk</th>
+                  <th id="gpu-th-w2" style="padding:6px 8px;text-align:right;font-size:10px;font-weight:600;color:var(--text3)">2Wk</th>
+                  <th id="gpu-th-w1" style="padding:6px 8px;text-align:right;font-size:10px;font-weight:600;color:var(--text3)">LstWk</th>
                   <th style="padding:6px 14px;text-align:right;font-size:10px;font-weight:600;color:var(--text3)">WoW</th>
                 </tr>
               </thead>
@@ -781,9 +781,8 @@ function ihsRows(weeksArr) {
 function render() {
   const rows = nvRows();
   const weeks = nvWeeks(rows);
-  const wCur    = weeks[weeks.length-1];          // current incomplete week
-  const latestW = weeks[weeks.length-2]||wCur;    // LstWk = today-1 (complete)
-  const prevW   = weeks[weeks.length-3]||latestW; // for WoW
+  const latestW = weeks[weeks.length-1];           // LstWk = most recent complete week
+  const prevW   = weeks[weeks.length-2]||latestW; // for WoW
 
   // Update filter info
   document.getElementById('filter-info').textContent =
@@ -1066,16 +1065,10 @@ function renderPulse(nvRows, weeks, latestW, prevW) {
 ═══════════════════════════════════════ */
 function renderBrandGpu(nvR, weeks) {
   const last13 = weeks.slice(-13);
-  // LstWk = today-1 (current week is incomplete, anchor to previous complete week)
-  const wCur    = last13[last13.length-1];   // current (incomplete) week — used for chart only
-  const wLast1  = last13[last13.length-2]||wCur;  // LstWk  = today-1
-  const wLast2  = last13[last13.length-3]||wLast1; // 2Wk   = today-2
-  const wLast3  = last13[last13.length-4]||wLast2; // 3Wk   = today-3
-  const wLast4  = last13[last13.length-5]||wLast3; // for WoW prev
-  // Aliases used throughout
-  const latestW = wLast1;
-  const prevW   = wLast2;
-  const w3ago   = wLast3;
+  // LstWk = weeks[-1] (most recent complete week in data)
+  const latestW = last13[last13.length-1];          // LstWk
+  const prevW   = last13[last13.length-2]||latestW; // 2Wk (WoW prev)
+  const w3ago   = last13[last13.length-3]||latestW; // 3Wk
 
   // ── BRAND TABLE from NV Report (D.nv.brandRows) ──────────────
   // D.nv.brandRows: {y, q, w, brand, vol, lastYear} — "By Brands" rows from RAW-NV Report
@@ -1263,6 +1256,16 @@ function renderBrandGpu(nvR, weeks) {
       <td style="padding:7px 14px;text-align:right">${wowHtml(gtGpuWoW)}</td>
     </tr>`;
   }
+
+  // ── UPDATE TABLE COLUMN HEADERS with actual week labels ─────
+  ['brand','gpu'].forEach(pfx=>{
+    const el3=document.getElementById(pfx+'-th-w3');
+    const el2=document.getElementById(pfx+'-th-w2');
+    const el1=document.getElementById(pfx+'-th-w1');
+    if(el3) el3.textContent = w3ago;
+    if(el2) el2.textContent = prevW;
+    if(el1) el1.textContent = latestW;
+  });
 
   // ── GPU VOLUME LINE CHART ─────────────────────
   // Show top 6 GPUs by volume
@@ -1710,7 +1713,7 @@ function renderGpuList(nvR, latestW) {
 function selectGpu(gpu) {
   st.gpu=gpu;
   const rows=nvRows(), weeks=nvWeeks(rows);
-  renderGpuList(rows, weeks[weeks.length-2]||weeks[weeks.length-1]);
+  renderGpuList(rows, weeks[weeks.length-1]);
   renderDetail(rows, weeks, gpu);
   document.getElementById('detail-tag').textContent=gpu;
 }
@@ -1718,8 +1721,8 @@ function selectGpu(gpu) {
 function renderDetail(nvR, weeks, gpu) {
   if(!gpu) return;
   const gpuR = nvR.filter(r=>r.gpu===gpu);
-  const latestW = weeks[weeks.length-2]||weeks[weeks.length-1]; // LstWk = today-1
-  const prevW   = weeks[weeks.length-3]||latestW;
+  const latestW = weeks[weeks.length-1];
+  const prevW   = weeks[weeks.length-2]||latestW;
   const twRow = gpuR.find(r=>r.w===latestW)||{};
   const pwRow = gpuR.find(r=>r.w===prevW)||{};
 
