@@ -349,7 +349,10 @@ select option{background:var(--bg2)}
 
           <!-- Card 2: KA Channel -->
           <div class="pulse-card ka" id="pc-ka">
-            <div class="p-label">KA Channel</div>
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <div class="p-label">KA Channel</div>
+              <div style="font-size:9px;color:var(--text3);font-weight:500">MBW · FPT · CPS · PV</div>
+            </div>
             <div style="margin:6px 0 2px;text-align:center">
               <div style="font-size:36px;font-weight:800;color:var(--text);letter-spacing:-1.5px;line-height:1" id="p4-ka-vol">—</div>
             </div>
@@ -822,31 +825,41 @@ function renderPulse(nvRows, weeks, latestW, prevW) {
 
   // ── Sparklines for the 3 hero cards ────────────────
   // Each sparkline = weekly NV total vol, KA vol, Rest vol over last 13w
-  function drawHeroSpark(canvasId, data, color) {
+  // canvasId, data=weekly vols, color, weekLabels=week strings
+  function drawHeroSpark(canvasId, data, color, weekLabels) {
     const el = document.getElementById(canvasId);
     if(!el) return;
     const ck = 'sp-'+canvasId;
     if(charts[ck]){charts[ck].destroy();delete charts[ck];}
-    const bg = color.replace(')',',.1)').replace('rgb','rgba');
-    // Highlight last bar
     const colors = data.map((_,i)=> i===data.length-1
       ? color.replace('rgb','rgba').replace(')',',0.85)')
       : color.replace('rgb','rgba').replace(')',',0.35)'));
     charts[ck] = new Chart(el, {
       type:'bar',
       data:{
-        labels: data.map((_,i)=>i),
-        datasets:[{
-          data,
-          backgroundColor: colors,
-          borderColor: 'transparent',
-          borderRadius: 2,
-          borderSkipped: false
-        }]
+        labels: weekLabels || data.map((_,i)=>i),
+        datasets:[{data, backgroundColor:colors, borderColor:'transparent', borderRadius:2, borderSkipped:false}]
       },
       options:{
         responsive:true, maintainAspectRatio:false, animation:{duration:400},
-        plugins:{legend:{display:false},datalabels:{display:false},tooltip:{enabled:false}},
+        plugins:{
+          legend:{display:false},
+          datalabels:{display:false},
+          tooltip:{
+            enabled:true,
+            callbacks:{
+              title: items => items[0].label,
+              label: item => {
+                const vol = item.raw;
+                const prev = item.dataIndex>0 ? data[item.dataIndex-1] : null;
+                const wow = prev>0 ? ((vol-prev)/prev*100).toFixed(1) : null;
+                const lines = [` Vol: ${vol.toLocaleString()}`];
+                if(wow!==null) lines.push(` WoW: ${wow>=0?'+':''}${wow}%`);
+                return lines;
+              }
+            }
+          }
+        },
         scales:{
           x:{display:false, grid:{display:false}},
           y:{display:false, min:0, grid:{display:false}}
@@ -866,11 +879,12 @@ function renderPulse(nvRows, weeks, latestW, prevW) {
   });
   const spRestSeries = spWeeks2.map((w,i)=>Math.max(0,(spNVseries[i]||0)-(spKAseries[i]||0)));
 
-  // Draw after short delay to ensure canvas has dimensions
+  // Draw after short delay — pass week labels for tooltip
+  const spLabels = spWeeks2.map(w=>w.replace(/\d+W/,'W'));
   setTimeout(()=>{
-    drawHeroSpark('sp-nv',   spNVseries,   'rgb(37,99,235)');
-    drawHeroSpark('sp-ka',   spKAseries,   'rgb(217,119,6)');
-    drawHeroSpark('sp-rest', spRestSeries, 'rgb(107,114,128)');
+    drawHeroSpark('sp-nv',   spNVseries,   'rgb(37,99,235)',   spLabels);
+    drawHeroSpark('sp-ka',   spKAseries,   'rgb(217,119,6)',   spLabels);
+    drawHeroSpark('sp-rest', spRestSeries, 'rgb(107,114,128)', spLabels);
   }, 50);
 
   // P4 – WoW Summary card: 4 metrics × (TW value + WoW delta)
@@ -962,11 +976,22 @@ function renderPulse(nvRows, weeks, latestW, prevW) {
   const kaMSIVol  = ihsKAAll.filter(r=>r.brand==='MSI').reduce((s,r)=>s+(r.brandVol||0),0);
   const kaShare   = kaTotalVol>0 ? kaMSIVol/kaTotalVol*100 : 0;
 
-  // YoY: derive LY total same way using lastYear field on MSI rows
-  // LY implied = lastYear / same brandShare (approx)
-  const kaMSIRows = ihsKAAll.filter(r=>r.brand==='MSI'&&r.brandShare>0&&r.lastYear>0);
-  const kaLYVol   = Math.round(kaMSIRows.reduce((s,r)=>s+(r.lastYear/r.brandShare),0));
-  const kaYoY     = kaLYVol>0 ? (kaTotalVol-kaLYVol)/kaLYVol*100 : null;
+  // YoY: sum lastYear directly from ALL brand rows at KA dealers
+  // This is accurate — each IHS row has lastYear = that brand's vol same period LY
+  // We need total LY market vol at KA = sum all brands' lastYear at KA
+  // But lastYear per row = that brand at that dealer in same week LY
+  // Best estimate: derive from MSI rows via brandShare (same logic as current vol)
+  // HOWEVER — use IHS all-brand lastYear sum as a more direct estimate
+  // Method: for each dealer-week, take the max implied LY (= brandVol/brandShare for LY rows)
+  const kaLYRows = ihsKAAll.filter(r=>r.lastYear>0&&r.brandShare>0);
+  const dwtLY = {};
+  kaLYRows.forEach(r=>{
+    // implied LY dealer total = lastYear / brandShare (same ratio holds for LY)
+    const k=r.w+'|'+r.cust, imp=r.lastYear/r.brandShare;
+    if(!dwtLY[k]||imp>dwtLY[k]) dwtLY[k]=imp;
+  });
+  const kaLYVol = Math.round(Object.values(dwtLY).reduce((s,v)=>s+v,0));
+  const kaYoY   = kaLYVol>0 ? (kaTotalVol-kaLYVol)/kaLYVol*100 : null;
 
   // Hero vol + YoY badge
   setText('p4-ka-vol', kaTotalVol.toLocaleString());
@@ -1002,10 +1027,12 @@ function renderPulse(nvRows, weeks, latestW, prevW) {
   const restMSIVol   = Math.max(0, tmsi - kaMSIVol);
   const restShare    = restTotalVol>0 ? restMSIVol/restTotalVol*100 : 0;
 
-  // YoY: NV LY - KA LY
-  const nvLYAll = nvRows.reduce((s,r)=>s+(r.lastYear||0),0);
+  // YoY Rest: NV LY total - KA LY total (both now using best-available derivation)
+  const nvLYAll   = nvRows.reduce((s,r)=>s+(r.lastYear||0),0);
   const restLYVol = Math.max(0, nvLYAll - kaLYVol);
   const restYoY   = restLYVol>0 ? (restTotalVol-restLYVol)/restLYVol*100 : null;
+  // Debug: expose for verification
+  // console.log('Rest YoY debug:', {restTotalVol, restLYVol, nvLYAll, kaLYVol, restYoY});
 
   // Hero vol
   setText('p5-rest-vol', restTotalVol.toLocaleString());
