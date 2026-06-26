@@ -308,9 +308,9 @@ select option{background:var(--bg2)}
       <span class="fl">Year</span>
       <select id="f-year"></select>
       <span class="fl">Quarter</span>
-      <select id="f-quarter"><option value="all">All</option><option>Q1</option><option>Q2</option><option>Q3</option><option>Q4</option></select>
+      <select id="f-quarter"><option value="all">All</option><option>Q1</option><option selected>Q2</option><option>Q3</option><option>Q4</option></select>
       <span class="fl">Window</span>
-      <select id="f-weeks"><option value="13">Last 13w</option><option value="26">Last 26w</option><option value="52">Last 52w</option><option value="all">All</option></select>
+      <select id="f-weeks"><option value="13">Last 13w</option><option value="26">Last 26w</option><option value="52">Last 52w</option><option value="all" selected>All</option></select>
       <div class="fsep"></div>
       <button class="btn-tog" id="tog-gen5" onclick="toggleGen5()">RTX 50xx only</button>
       <button class="btn-rst" onclick="resetFilters()">↺ Reset</button>
@@ -1829,7 +1829,7 @@ function rrect(ctx,x,y,w,h,r){
 }
 function toggleGen5(){st.gen5=!st.gen5;document.getElementById('tog-gen5').classList.toggle('on',st.gen5);render();}
 function resetFilters(){
-  st.gen5=false;st.year=allYears[allYears.length-1];st.quarter='all';st.weeks=13;
+  st.gen5=false;st.year=allYears[allYears.length-1];st.quarter='Q2';st.weeks='all';
   document.getElementById('f-year').value=st.year;
   document.getElementById('f-quarter').value='all';
   document.getElementById('f-weeks').value='13';
