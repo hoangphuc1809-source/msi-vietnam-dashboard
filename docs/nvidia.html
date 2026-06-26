@@ -917,7 +917,7 @@ function renderPulse(nvRows, weeks, latestW, prevW) {
   const spRestSeries = spWeeks2.map((w,i)=>Math.max(0,(spNVseries[i]||0)-(spKAseries[i]||0)));
 
   // Draw after short delay — pass week labels for tooltip
-  const spLabels = spWeeks2.map(w=>w.replace(/\d+W/,'W'));
+  const spLabels = spWeeks2.map(w=>w);
   setTimeout(()=>{
     drawHeroSpark('sp-nv',   spNVseries,   'rgb(37,99,235)',   spLabels);
     drawHeroSpark('sp-ka',   spKAseries,   'rgb(217,119,6)',   spLabels);
@@ -1170,7 +1170,7 @@ function renderBrandGpu(nvR, weeks) {
 
   // ── BRAND SHARE LINE CHART ────────────────────
   const chartWeeks = last13;
-  const xLabels = chartWeeks.map(w=>w.replace(/\d+W/,''));
+  const xLabels = chartWeeks.map(w=>w);
 
   destroyChart('c-brand-share');
   charts['c-brand-share'] = new Chart(document.getElementById('c-brand-share'), {
@@ -1204,7 +1204,7 @@ function renderBrandGpu(nvR, weeks) {
           callbacks:{label:i=>` ${i.dataset.label}: ${i.raw}%`}}
       },
       scales:{
-        x:{grid:{display:false}, ticks:{font:{size:10}}},
+        x:{grid:{display:false}, ticks:{font:{size:9}, maxRotation:45, minRotation:30}},
         y:{grid:{color:'rgba(0,0,0,.04)'}, ticks:{callback:v=>v+'%', font:{size:10}}, min:0}
       }
     }
@@ -1309,7 +1309,7 @@ function renderBrandGpu(nvR, weeks) {
         tooltip:{mode:'index', intersect:false}
       },
       scales:{
-        x:{grid:{display:false}, ticks:{font:{size:10}}},
+        x:{grid:{display:false}, ticks:{font:{size:9}, maxRotation:45, minRotation:30}},
         y:{grid:{color:'rgba(0,0,0,.04)'}, ticks:{font:{size:10},callback:v=>v>=1000?(v/1000).toFixed(1)+'k':v}, min:0}
       }
     }
@@ -1756,7 +1756,7 @@ function renderDetail(nvR, weeks, gpu) {
   document.getElementById('detail-chart-title').textContent=`${gpu} — Weekly Nvidia Market`;
 
   const last13=weeks.slice(-13);
-  const labels=last13.map(w=>w.replace(/\d+W/,''));
+  const labels=last13.map(w=>w);
   const barData=last13.map(w=>{const r=gpuR.find(row=>row.w===w);return r?r.vol:0;});
   const mktShareLine=last13.map(w=>{
     const r=gpuR.find(row=>row.w===w);
@@ -1821,7 +1821,7 @@ function renderDetail(nvR, weeks, gpu) {
 
   // Trend chart 26w
   const last26=weeks.slice(-26);
-  const trendLabels=last26.map(w=>w.replace(/\d+W/,''));
+  const trendLabels=last26.map(w=>w);
   const msiTY=last26.map(w=>{const r=gpuR.find(row=>row.w===w);return (r&&r.vol>0)?+((r.msiVol/r.vol*100).toFixed(1)):null;});
 
   destroyChart('c-trend');
