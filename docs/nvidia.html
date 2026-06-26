@@ -287,25 +287,29 @@ select option{background:var(--bg2)}
       <div class="sec-head">
         <span class="sec-no">1</span>
         <span class="sec-title">CEO Pulse</span>
-        <span class="sec-tag">5 hero KPIs · latest week · IHS + Userbuy + NV data</span>
+        <span class="sec-tag">4 CEO KPIs · period total · IHS + Userbuy + NV data</span>
       </div>
       <div class="pulse-grid">
-        <!-- Card 1: MSI Market Share -->
+        <!-- Card 1: Nvidia Market Volume — hero card matching image mockup -->
         <div class="pulse-card info" id="pc-msi-share">
-          <div class="p-label">MSI Market Share</div>
-          <div class="p-value" id="p1">—</div>
-          <div class="p-sub">
-            <span class="delta" id="p1-d">—</span>
-            <span class="p-context">vs prev week</span>
+          <!-- top label -->
+          <div class="p-label">Nvidia Report</div>
+          <!-- hero number: total Nvidia market vol -->
+          <div style="display:flex;align-items:baseline;gap:10px;margin:2px 0 0">
+            <div style="font-size:30px;font-weight:700;color:var(--text);letter-spacing:-1px;line-height:1" id="p1-nv-vol">—</div>
+            <div id="p1-yoy" style="display:flex;align-items:center;gap:3px;font-size:13px;font-weight:600;white-space:nowrap"></div>
           </div>
-          <div style="display:flex;gap:12px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
+          <!-- sub: filter context -->
+          <div style="font-size:10px;color:var(--text3);margin:4px 0 8px" id="p1-ctx">Total market vol</div>
+          <!-- divider -->
+          <div style="border-top:1px solid var(--border);padding-top:8px;display:flex;gap:14px">
             <div style="flex:1">
-              <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">MSI Vol</div>
-              <div style="font-size:13px;font-weight:600;color:var(--text)" id="p1-msi-vol">—</div>
+              <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">MSI Vol</div>
+              <div style="font-size:14px;font-weight:700;color:var(--text)" id="p1-msi-vol">—</div>
             </div>
             <div style="flex:1">
-              <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">NV Market</div>
-              <div style="font-size:13px;font-weight:600;color:var(--text)" id="p1-nv-vol">—</div>
+              <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">MSI Share</div>
+              <div style="font-size:14px;font-weight:700" id="p1-msi-share">—</div>
             </div>
           </div>
         </div>
@@ -640,29 +644,43 @@ function renderPulse(nvRows, weeks, latestW, prevW) {
   const tw = nvRows.filter(r=>r.w===latestW);
   const pw = nvRows.filter(r=>r.w===prevW);
 
-  // P1 – MSI market share from NV data
-  const tvol  = tw.reduce((s,r)=>s+(r.vol||0),0);
-  const tmsi  = tw.reduce((s,r)=>s+(r.msiVol||0),0);
-  const tly   = tw.reduce((s,r)=>s+(r.lastYear||0),0);
-  const share = tvol>0 ? tmsi/tvol*100 : 0;
-  // LY same week share — we don't have msiVol for LY, so estimate from IHS
-  const ihsTW = D.ihs.rows.filter(r=>r.w===latestW&&r.sg==='Gaming'&&r.brand==='MSI');
-  const ihsShare = ihsTW.length>0 ? ihsTW.reduce((s,r)=>s+(r.brandShare||0),0)/ihsTW.length : 0;
-  const ihsTWLY = D.ihs.rows.filter(r=>r.w===latestW&&r.sg==='Gaming'&&r.brand==='MSI');
-  // IHS has brandShare per cust, take total brand level
-  const ihsTWTotal = D.ihs.rows.filter(r=>r.w===latestW&&r.sg==='Gaming'&&r.isTotal!==false);
-  const msiIHS = ihsTWTotal.find(r=>r.brand==='MSI');
-  const msiShare = msiIHS ? (msiIHS.brandShare||0)*100 : share;
+  // P1 — Nvidia Market Vol hero card
+  // Hero: total NV vol across ALL weeks in filtered window (period total)
+  const tvol  = nvRows.reduce((s,r)=>s+(r.vol||0),0);   // period total NV market
+  const tmsi  = nvRows.reduce((s,r)=>s+(r.msiVol||0),0); // period total MSI NV vol
+  const tlyAll = nvRows.reduce((s,r)=>s+(r.lastYear||0),0); // period total LY vol
+  // YoY: compare current period total vs lastYear total
+  const yoy = tlyAll>0 ? (tvol-tlyAll)/tlyAll*100 : null;
+  // MSI share over the full filtered period
+  const msiShare = tvol>0 ? tmsi/tvol*100 : 0;
+  // MSI vol from userbuy (period, Gaming only, cross-filter aligned)
+  const ubAll = ubFacts(weeks);
+  const ubPeriodMsi = ubAll.reduce((s,f)=>s+(f.qty||0),0);
 
-  const prevTW = nvRows.filter?nvRows.filter(r=>r.w===prevW):[];
-  const ptvol = prevTW.reduce?prevTW.reduce((s,r)=>s+(r.vol||0),0):0;
-  const ptmsi = prevTW.reduce?prevTW.reduce((s,r)=>s+(r.msiVol||0),0):0;
-  const prevShare2 = ptvol>0?ptmsi/ptvol*100:0;
-  const shareWoW = prevShare2>0?msiShare-prevShare2:null;
-  setText('p1', fmt1(msiShare)+'%');
-  setDelta('p1-d', shareWoW, 'pp');
-  setText('p1-msi-vol', tmsi.toLocaleString());
+  // Build filter context label
+  const ctxYear = st.year!=='all'?st.year:'All years';
+  const ctxQ = st.quarter!=='all'?` · ${st.quarter}`:'';
+  const ctxW = st.weeks!=='all'?` · Last ${st.weeks}w`:'';
   setText('p1-nv-vol', tvol.toLocaleString());
+  setText('p1-ctx', `${ctxYear}${ctxQ}${ctxW} · NV market vol`);
+
+  // YoY badge (arrow + % + "YoY") matching image style
+  const yoyEl = document.getElementById('p1-yoy');
+  if(yoyEl){
+    if(yoy!==null){
+      const up=yoy>=0;
+      yoyEl.innerHTML=`<span style="color:${up?'var(--green)':'var(--red)'}">
+        ${up?'▲':'▼'} ${Math.abs(yoy).toFixed(1)}% YoY</span>`;
+    } else { yoyEl.innerHTML=''; }
+  }
+
+  // Sub-metrics
+  setText('p1-msi-vol', tmsi.toLocaleString());
+  const shareEl=document.getElementById('p1-msi-share');
+  if(shareEl){
+    shareEl.textContent=fmt1(msiShare)+'%';
+    shareEl.style.color=msiShare>=15?'var(--green)':msiShare>=8?'var(--amber)':'var(--red)';
+  }
   setPulseClass('pc-msi-share', msiShare>=15?'ok':msiShare>=8?'warn':'risk');
 
   // P2 – MSI Userbuy: period total + latest week + WoW
