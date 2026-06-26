@@ -74,13 +74,16 @@ select option{background:var(--bg2)}
 .sec-tag{font-size:10px;padding:2px 7px;border-radius:4px;background:var(--bg4);color:var(--text3);border:1px solid var(--border)}
 
 /* ── PULSE STRIP (Zone 1) ── */
-.pulse-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.pulse-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
 .pulse-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:15px 16px;position:relative;overflow:hidden;transition:border-color .15s}
 .pulse-card:hover{border-color:var(--border2)}
-.pulse-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;border-radius:2px 2px 0 0}
+.pulse-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:3px 3px 0 0}
 .pulse-card.ok::before{background:var(--green)}
 .pulse-card.warn::before{background:var(--amber)}
 .pulse-card.risk::before{background:var(--red)}
+.pulse-card.nv::before{background:#2563eb}
+.pulse-card.ka::before{background:#d97706}
+.pulse-card.rest::before{background:#6b7280}
 .pulse-card.info::before{background:var(--nvidia)}
 .p-label{font-size:10px;color:var(--text2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .p-value{font-size:26px;font-weight:700;color:var(--text);letter-spacing:-.7px;line-height:1}
@@ -207,7 +210,7 @@ select option{background:var(--bg2)}
 .leg-bar{width:10px;height:10px;border-radius:2px}
 
 /* ── responsive ── */
-@media(max-width:1200px){
+@media(max-width:1400px){
   .pulse-grid{grid-template-columns:repeat(3,1fr)}
   .spark-grid{grid-template-columns:repeat(3,1fr)}
   .gauge-grid{grid-template-columns:repeat(2,1fr)}
@@ -287,11 +290,11 @@ select option{background:var(--bg2)}
       <div class="sec-head">
         <span class="sec-no">1</span>
         <span class="sec-title">CEO Pulse</span>
-        <span class="sec-tag">4 CEO KPIs · period total · IHS + Userbuy + NV data</span>
+        <span class="sec-tag">5 CEO KPIs · period total · IHS + Userbuy + NV data</span>
       </div>
       <div class="pulse-grid">
         <!-- Card 1: Nvidia Market Volume — hero card matching image mockup -->
-        <div class="pulse-card info" id="pc-msi-share">
+        <div class="pulse-card nv" id="pc-msi-share">
           <!-- top label -->
           <div class="p-label">Nvidia Report</div>
           <!-- hero number: total Nvidia market vol -->
@@ -314,7 +317,7 @@ select option{background:var(--bg2)}
           </div>
         </div>
         <!-- Card 2: KA Channel — hero vol style matching Card 1 -->
-        <div class="pulse-card" id="pc-ka">
+        <div class="pulse-card ka" id="pc-ka">
           <!-- top label -->
           <div class="p-label">KA Channel</div>
           <!-- hero: KA total vol (period) -->
@@ -333,6 +336,25 @@ select option{background:var(--bg2)}
             <div style="flex:1">
               <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">MSI Share</div>
               <div style="font-size:14px;font-weight:700" id="p4-msi-share">—</div>
+            </div>
+          </div>
+        </div>
+        <!-- Card 3: Rest Channel = Total NV − KA -->
+        <div class="pulse-card rest" id="pc-rest">
+          <div class="p-label">Rest Channel</div>
+          <div style="display:flex;align-items:baseline;gap:10px;margin:2px 0 0">
+            <div style="font-size:30px;font-weight:700;color:var(--text);letter-spacing:-1px;line-height:1" id="p5-rest-vol">—</div>
+            <div id="p5-yoy" style="display:flex;align-items:center;gap:3px;font-size:13px;font-weight:600;white-space:nowrap"></div>
+          </div>
+          <div style="font-size:10px;color:var(--text3);margin:4px 0 8px" id="p5-ctx">Rest channel vol</div>
+          <div style="border-top:1px solid var(--border);padding-top:8px;display:flex;gap:14px">
+            <div style="flex:1">
+              <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">MSI Vol</div>
+              <div style="font-size:14px;font-weight:700;color:var(--text)" id="p5-msi-vol">—</div>
+            </div>
+            <div style="flex:1">
+              <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">MSI Share</div>
+              <div style="font-size:14px;font-weight:700" id="p5-msi-share">—</div>
             </div>
           </div>
         </div>
@@ -685,7 +707,7 @@ function renderPulse(nvRows, weeks, latestW, prevW) {
     shareEl.textContent=fmt1(msiShare)+'%';
     shareEl.style.color=msiShare>=15?'var(--green)':msiShare>=8?'var(--amber)':'var(--red)';
   }
-  setPulseClass('pc-msi-share', msiShare>=15?'ok':msiShare>=8?'warn':'risk');
+  setPulseClass('pc-msi-share', 'nv');  // always blue border
 
   // P2 – MSI Userbuy: period total + latest week + WoW
   const ubFact = ubFacts(weeks);
@@ -758,6 +780,40 @@ function renderPulse(nvRows, weeks, latestW, prevW) {
     kaShareEl.style.color = kaShare>=20?'var(--green)':kaShare>=12?'var(--amber)':'var(--red)';
   }
   setPulseClass('pc-ka', kaShare>=20?'ok':kaShare>=12?'warn':'risk');
+
+  // P5 — Rest Channel = Total NV − KA (period)
+  // IHS all Gaming rows for window, exclude KA dealers
+  const ihsRestAll = D.ihs.rows.filter(r=>weeks.includes(r.w)&&r.sg==='Gaming'&&!KA_DEALERS.includes(r.cust));
+  const restTotalVol = ihsRestAll.reduce((s,r)=>s+(r.ttlVol||0),0);
+  const restMSIVol   = ihsRestAll.filter(r=>r.brand==='MSI').reduce((s,r)=>s+(r.brandVol||0),0);
+  const restShare    = restTotalVol>0 ? restMSIVol/restTotalVol*100 : 0;
+  // YoY via lastYear field
+  const restLYVol    = ihsRestAll.reduce((s,r)=>s+(r.lastYear||0),0);
+  const restYoY      = restLYVol>0 ? (restTotalVol-restLYVol)/restLYVol*100 : null;
+
+  // Hero vol
+  setText('p5-rest-vol', restTotalVol.toLocaleString());
+  const ctxYear5 = st.year!=='all'?st.year:'All years';
+  const ctxQ5    = st.quarter!=='all'?` · ${st.quarter}`:'';
+  setText('p5-ctx', `${ctxYear5}${ctxQ5} · Rest channel vol`);
+
+  // YoY badge
+  const yoyEl5 = document.getElementById('p5-yoy');
+  if(yoyEl5){
+    if(restYoY!==null){
+      const up5=restYoY>=0;
+      yoyEl5.innerHTML=`<span style="color:${up5?'var(--green)':'var(--red)'}">
+        ${up5?'▲':'▼'} ${Math.abs(restYoY).toFixed(1)}% YoY</span>`;
+    } else { yoyEl5.innerHTML=''; }
+  }
+
+  // Sub-metrics
+  setText('p5-msi-vol', restMSIVol.toLocaleString());
+  const restShareEl = document.getElementById('p5-msi-share');
+  if(restShareEl){
+    restShareEl.textContent = fmt1(restShare)+'%';
+    restShareEl.style.color = restShare>=15?'var(--green)':restShare>=8?'var(--amber)':'var(--red)';
+  }
 
 }
 
