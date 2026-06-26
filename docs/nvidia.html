@@ -246,7 +246,6 @@ select option{background:var(--bg2)}
   .wl-divider{display:none}
   .gpu-detail-wrap{grid-template-columns:1fr}
   .kpi-row{grid-template-columns:repeat(2,1fr)}
-  #section-brand-gpu .brand-gpu-row{grid-template-columns:1fr!important}
   .cf-mid-label,.cf-right-label{display:none}
 }
 @media(max-width:600px){
@@ -255,7 +254,6 @@ select option{background:var(--bg2)}
   .spark-grid{grid-template-columns:1fr 1fr}
   .page{padding:10px 10px}
   .tab-nav{padding:8px 10px 0}
-  #section-brand-gpu .brand-gpu-row{grid-template-columns:1fr!important}
   .card-spark{min-height:44px}
   .cf-mid-label,.cf-right-label{display:none}
 }
@@ -443,62 +441,63 @@ select option{background:var(--bg2)}
         <span class="sec-tag">Volume · Share · Weekly trend · IHS data</span>
       </div>
 
-      <!-- Row 1: Brand table + Brand share chart -->
-      <div class="brand-gpu-row" style="display:grid;grid-template-columns:minmax(280px,400px) 1fr;gap:12px;margin-bottom:12px">
+      <!-- 2×2 equal grid: Brand table | Brand chart / GPU table | GPU chart -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;grid-template-rows:320px 320px;gap:12px">
 
-        <!-- Brand table -->
-        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden">
-          <div style="padding:10px 14px;border-bottom:1px solid var(--border);font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.06em">Brands</div>
-          <table style="width:100%;border-collapse:collapse;font-size:12px" id="brand-table">
-            <thead>
-              <tr style="background:var(--bg3)">
-                <th style="padding:7px 14px;text-align:left;font-size:10px;font-weight:600;color:var(--text3);letter-spacing:.05em;white-space:nowrap">Brand</th>
-                <th style="padding:7px 8px;text-align:right;font-size:10px;font-weight:600;color:var(--text3)">Volume</th>
-                <th style="padding:7px 8px;text-align:right;font-size:10px;font-weight:600;color:var(--text3)">Share</th>
-                <th style="padding:7px 8px;text-align:right;font-size:10px;font-weight:600;color:var(--text3)">3Wk</th>
-                <th style="padding:7px 8px;text-align:right;font-size:10px;font-weight:600;color:var(--text3)">2Wk</th>
-                <th style="padding:7px 8px;text-align:right;font-size:10px;font-weight:600;color:var(--text3)">LstWk</th>
-                <th style="padding:7px 14px;text-align:right;font-size:10px;font-weight:600;color:var(--text3)">WoW</th>
-              </tr>
-            </thead>
-            <tbody id="brand-tbody"></tbody>
-          </table>
+        <!-- [0,0] Brand table -->
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);display:flex;flex-direction:column;overflow:hidden;min-height:0">
+          <div style="padding:9px 14px;border-bottom:1px solid var(--border);font-size:11px;font-weight:700;color:var(--text);letter-spacing:-.1px;flex-shrink:0">Brands</div>
+          <div style="overflow-y:auto;flex:1">
+            <table style="width:100%;border-collapse:collapse;font-size:12px" id="brand-table">
+              <thead style="position:sticky;top:0;z-index:1">
+                <tr style="background:var(--bg3)">
+                  <th style="padding:6px 14px;text-align:left;font-size:10px;font-weight:600;color:var(--text3);letter-spacing:.04em;white-space:nowrap">Brand</th>
+                  <th style="padding:6px 8px;text-align:right;font-size:10px;font-weight:600;color:var(--text3)">Volume</th>
+                  <th style="padding:6px 8px;text-align:right;font-size:10px;font-weight:600;color:var(--text3)">Share</th>
+                  <th style="padding:6px 8px;text-align:right;font-size:10px;font-weight:600;color:var(--text3)">3Wk</th>
+                  <th style="padding:6px 8px;text-align:right;font-size:10px;font-weight:600;color:var(--text3)">2Wk</th>
+                  <th style="padding:6px 8px;text-align:right;font-size:10px;font-weight:600;color:var(--text3)">LstWk</th>
+                  <th style="padding:6px 14px;text-align:right;font-size:10px;font-weight:600;color:var(--text3)">WoW</th>
+                </tr>
+              </thead>
+              <tbody id="brand-tbody"></tbody>
+            </table>
+          </div>
         </div>
 
-        <!-- Brand share line chart -->
-        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:14px">
-          <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Weekly Share % — by Brand</div>
-          <div style="position:relative;height:200px"><canvas id="c-brand-share"></canvas></div>
-        </div>
-      </div>
-
-      <!-- Row 2: GPU table + GPU share chart -->
-      <div class="brand-gpu-row" style="display:grid;grid-template-columns:minmax(280px,400px) 1fr;gap:12px">
-
-        <!-- GPU table -->
-        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden">
-          <div style="padding:10px 14px;border-bottom:1px solid var(--border);font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.06em">GPU</div>
-          <table style="width:100%;border-collapse:collapse;font-size:12px" id="gpu-table">
-            <thead>
-              <tr style="background:var(--bg3)">
-                <th style="padding:7px 14px;text-align:left;font-size:10px;font-weight:600;color:var(--text3);letter-spacing:.05em;white-space:nowrap">GPU</th>
-                <th style="padding:7px 8px;text-align:right;font-size:10px;font-weight:600;color:var(--text3)">Volume</th>
-                <th style="padding:7px 8px;text-align:right;font-size:10px;font-weight:600;color:var(--text3)">Share</th>
-                <th style="padding:7px 8px;text-align:right;font-size:10px;font-weight:600;color:var(--text3)">3Wk</th>
-                <th style="padding:7px 8px;text-align:right;font-size:10px;font-weight:600;color:var(--text3)">2Wk</th>
-                <th style="padding:7px 8px;text-align:right;font-size:10px;font-weight:600;color:var(--text3)">LstWk</th>
-                <th style="padding:7px 14px;text-align:right;font-size:10px;font-weight:600;color:var(--text3)">WoW</th>
-              </tr>
-            </thead>
-            <tbody id="gpu-tbody"></tbody>
-          </table>
+        <!-- [0,1] Brand share line chart -->
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;min-height:0">
+          <div style="font-size:11px;font-weight:700;color:var(--text);letter-spacing:-.1px;margin-bottom:10px;flex-shrink:0">Weekly Share % — by Brand</div>
+          <div style="position:relative;flex:1;min-height:0"><canvas id="c-brand-share"></canvas></div>
         </div>
 
-        <!-- GPU vol line chart -->
-        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:14px">
-          <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Weekly Volume — by GPU</div>
-          <div style="position:relative;height:200px"><canvas id="c-gpu-vol"></canvas></div>
+        <!-- [1,0] GPU table -->
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);display:flex;flex-direction:column;overflow:hidden;min-height:0">
+          <div style="padding:9px 14px;border-bottom:1px solid var(--border);font-size:11px;font-weight:700;color:var(--text);letter-spacing:-.1px;flex-shrink:0">GPU</div>
+          <div style="overflow-y:auto;flex:1">
+            <table style="width:100%;border-collapse:collapse;font-size:12px" id="gpu-table">
+              <thead style="position:sticky;top:0;z-index:1">
+                <tr style="background:var(--bg3)">
+                  <th style="padding:6px 14px;text-align:left;font-size:10px;font-weight:600;color:var(--text3);letter-spacing:.04em;white-space:nowrap">GPU</th>
+                  <th style="padding:6px 8px;text-align:right;font-size:10px;font-weight:600;color:var(--text3)">Volume</th>
+                  <th style="padding:6px 8px;text-align:right;font-size:10px;font-weight:600;color:var(--text3)">Share</th>
+                  <th style="padding:6px 8px;text-align:right;font-size:10px;font-weight:600;color:var(--text3)">3Wk</th>
+                  <th style="padding:6px 8px;text-align:right;font-size:10px;font-weight:600;color:var(--text3)">2Wk</th>
+                  <th style="padding:6px 8px;text-align:right;font-size:10px;font-weight:600;color:var(--text3)">LstWk</th>
+                  <th style="padding:6px 14px;text-align:right;font-size:10px;font-weight:600;color:var(--text3)">WoW</th>
+                </tr>
+              </thead>
+              <tbody id="gpu-tbody"></tbody>
+            </table>
+          </div>
         </div>
+
+        <!-- [1,1] GPU volume line chart -->
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;min-height:0">
+          <div style="font-size:11px;font-weight:700;color:var(--text);letter-spacing:-.1px;margin-bottom:10px;flex-shrink:0">Weekly Volume — by GPU</div>
+          <div style="position:relative;flex:1;min-height:0"><canvas id="c-gpu-vol"></canvas></div>
+        </div>
+
       </div>
     </div>
 
