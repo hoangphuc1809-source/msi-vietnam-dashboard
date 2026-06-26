@@ -90,7 +90,7 @@ select option{background:var(--bg2)}
 .pulse-card.rest::before{background:#6b7280}
 .pulse-card.info::before{background:var(--nvidia)}
 /* Sparkline inside hero cards */
-.card-spark{flex:1;min-height:36px;position:relative;margin:2px -16px 0}
+.card-spark{flex:1;min-height:40px;max-height:64px;position:relative;margin:4px -16px 0}
 .card-spark canvas{position:absolute;inset:0;width:100%!important;height:100%!important}
 /* Sub-footer: compact 1-line at bottom */
 .card-footer{display:flex;justify-content:space-between;align-items:center;padding:6px 16px 8px;margin:0 -16px;font-size:11px}
@@ -825,38 +825,40 @@ function renderPulse(nvRows, weeks, latestW, prevW) {
     if(!el) return;
     const ck = 'sp-'+canvasId;
     if(charts[ck]){charts[ck].destroy();delete charts[ck];}
+    const bg = color.replace(')',',.1)').replace('rgb','rgba');
     charts[ck] = new Chart(el, {
       type:'line',
       data:{
         labels: data.map((_,i)=>i),
         datasets:[{
-          data, borderColor: color,
-          backgroundColor: color.replace(')',',0.08)').replace('rgb','rgba'),
+          data, borderColor:color, backgroundColor:bg,
           borderWidth:1.5, pointRadius:0, tension:0.35, fill:true
         }]
       },
       options:{
-        responsive:false, animation:{duration:600},
+        responsive:true, maintainAspectRatio:false, animation:{duration:400},
         plugins:{legend:{display:false},datalabels:{display:false},tooltip:{enabled:false}},
         scales:{x:{display:false},y:{display:false,min:0}}
       }
     });
   }
 
-  // Build weekly series for sparklines
-  const spWeeks = nvWeeks(nvRows()).slice(-13);
-  const spNVseries  = spWeeks.map(w=>nvRows().filter(r=>r.w===w).reduce((s,r)=>s+(r.vol||0),0));
-  // KA weekly vol using same derivation
-  const spKAseries  = spWeeks.map(w=>{
-    const rows=D.ihs.rows.filter(r=>r.w===w&&r.sg==='Gaming'&&KA_DEALERS.includes(r.cust)&&r.brandShare>0&&r.brandVol>0);
-    const dw={}; rows.forEach(r=>{const k=r.cust,imp=r.brandVol/r.brandShare;if(!dw[k]||imp>dw[k])dw[k]=imp;});
+  // Build weekly series for sparklines — use weeks already in scope
+  const spWeeks2 = weeks.slice(-13);
+  const spNVseries  = spWeeks2.map(w=>nvRows.filter(r=>r.w===w).reduce((s,r)=>s+(r.vol||0),0));
+  const spKAseries  = spWeeks2.map(w=>{
+    const rws=D.ihs.rows.filter(r=>r.w===w&&r.sg==='Gaming'&&KA_DEALERS.includes(r.cust)&&r.brandShare>0&&r.brandVol>0);
+    const dw={}; rws.forEach(r=>{const k=r.cust,imp=r.brandVol/r.brandShare;if(!dw[k]||imp>dw[k])dw[k]=imp;});
     return Math.round(Object.values(dw).reduce((s,v)=>s+v,0));
   });
-  const spRestSeries = spWeeks.map((w,i)=>Math.max(0,(spNVseries[i]||0)-(spKAseries[i]||0)));
+  const spRestSeries = spWeeks2.map((w,i)=>Math.max(0,(spNVseries[i]||0)-(spKAseries[i]||0)));
 
-  drawHeroSpark('sp-nv',   spNVseries,   'rgb(37,99,235)');
-  drawHeroSpark('sp-ka',   spKAseries,   'rgb(217,119,6)');
-  drawHeroSpark('sp-rest', spRestSeries, 'rgb(107,114,128)');
+  // Draw after short delay to ensure canvas has dimensions
+  setTimeout(()=>{
+    drawHeroSpark('sp-nv',   spNVseries,   'rgb(37,99,235)');
+    drawHeroSpark('sp-ka',   spKAseries,   'rgb(217,119,6)');
+    drawHeroSpark('sp-rest', spRestSeries, 'rgb(107,114,128)');
+  }, 50);
 
   // P4 – WoW Summary card: 4 metrics × (TW value + WoW delta)
   const ubFact = ubFacts(weeks);
