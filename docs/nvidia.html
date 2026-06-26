@@ -772,8 +772,9 @@ function ihsRows(weeksArr) {
 function render() {
   const rows = nvRows();
   const weeks = nvWeeks(rows);
-  const latestW = weeks[weeks.length-1];
-  const prevW = weeks[weeks.length-2]||latestW;
+  const wCur    = weeks[weeks.length-1];          // current incomplete week
+  const latestW = weeks[weeks.length-2]||wCur;    // LstWk = today-1 (complete)
+  const prevW   = weeks[weeks.length-3]||latestW; // for WoW
 
   // Update filter info
   document.getElementById('filter-info').textContent =
@@ -1056,9 +1057,16 @@ function renderPulse(nvRows, weeks, latestW, prevW) {
 ═══════════════════════════════════════ */
 function renderBrandGpu(nvR, weeks) {
   const last13 = weeks.slice(-13);
-  const latestW = last13[last13.length-1];
-  const prevW   = last13[last13.length-2]||latestW;
-  const w3ago   = last13[last13.length-4]||latestW;
+  // LstWk = today-1 (current week is incomplete, anchor to previous complete week)
+  const wCur    = last13[last13.length-1];   // current (incomplete) week — used for chart only
+  const wLast1  = last13[last13.length-2]||wCur;  // LstWk  = today-1
+  const wLast2  = last13[last13.length-3]||wLast1; // 2Wk   = today-2
+  const wLast3  = last13[last13.length-4]||wLast2; // 3Wk   = today-3
+  const wLast4  = last13[last13.length-5]||wLast3; // for WoW prev
+  // Aliases used throughout
+  const latestW = wLast1;
+  const prevW   = wLast2;
+  const w3ago   = wLast3;
 
   // ── BRAND TABLE from NV Report (D.nv.brandRows) ──────────────
   // D.nv.brandRows: {y, q, w, brand, vol, lastYear} — "By Brands" rows from RAW-NV Report
@@ -1693,7 +1701,7 @@ function renderGpuList(nvR, latestW) {
 function selectGpu(gpu) {
   st.gpu=gpu;
   const rows=nvRows(), weeks=nvWeeks(rows);
-  renderGpuList(rows, weeks[weeks.length-1]);
+  renderGpuList(rows, weeks[weeks.length-2]||weeks[weeks.length-1]);
   renderDetail(rows, weeks, gpu);
   document.getElementById('detail-tag').textContent=gpu;
 }
@@ -1701,8 +1709,8 @@ function selectGpu(gpu) {
 function renderDetail(nvR, weeks, gpu) {
   if(!gpu) return;
   const gpuR = nvR.filter(r=>r.gpu===gpu);
-  const latestW = weeks[weeks.length-1];
-  const prevW = weeks[weeks.length-2]||latestW;
+  const latestW = weeks[weeks.length-2]||weeks[weeks.length-1]; // LstWk = today-1
+  const prevW   = weeks[weeks.length-3]||latestW;
   const twRow = gpuR.find(r=>r.w===latestW)||{};
   const pwRow = gpuR.find(r=>r.w===prevW)||{};
 
