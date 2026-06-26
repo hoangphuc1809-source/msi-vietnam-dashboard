@@ -1060,44 +1060,46 @@ function renderBrandGpu(nvR, weeks) {
   const prevW   = last13[last13.length-2]||latestW;
   const w3ago   = last13[last13.length-4]||latestW;
 
-  // ── BRAND TABLE from IHS ─────────────────────
-  const ihs = D.ihs.rows.filter(r=>weeks.includes(r.w)&&r.sg==='Gaming');
-  // Sum brandVol per brand across all weeks (period total)
-  const BRANDS = ['Asus','Lenovo','Acer','MSI','HP','Giga','Others'];
+  // ── BRAND TABLE from NV Report (D.nv.brandRows) ──────────────
+  // D.nv.brandRows: {y, q, w, brand, vol, lastYear} — "By Brands" rows from RAW-NV Report
+  const nvBR = (D.nv.brandRows||[]).filter(r=>weeks.includes(r.w));
   const BRAND_COLORS = {
     Asus:'#f59e0b', Lenovo:'#3b82f6', Acer:'#22c55e',
-    MSI:'#ef4444',  HP:'#a855f7',     Giga:'#6b7280', Others:'#94a3b8'
+    MSI:'#ef4444',  HP:'#a855f7',     Giga:'#6b7280', Others:'#94a3b8',
+    Dell:'#0ea5e9', Samsung:'#14b8a6'
   };
 
+  // Derive BRANDS list from NV data (dynamic, sorted by total vol)
+  const _brandTotals = {};
+  nvBR.forEach(r=>{ _brandTotals[r.brand] = (_brandTotals[r.brand]||0) + (r.vol||0); });
+  const BRANDS = Object.keys(_brandTotals).filter(b=>b&&b!=='TTL').sort((a,b)=>_brandTotals[b]-_brandTotals[a]);
+
   function brandVolWeek(brand, wk) {
-    return ihs.filter(r=>r.brand===brand&&r.w===wk).reduce((s,r)=>s+(r.brandVol||0),0);
+    return nvBR.filter(r=>r.brand===brand&&r.w===wk).reduce((s,r)=>s+(r.vol||0),0);
   }
   function brandTtlWeek(wk) {
-    // total market vol for that week from NV gpuRows
+    // NV total from gpuRows (consistent with all other NV calculations)
     return nvR.filter(r=>r.w===wk).reduce((s,r)=>s+(r.vol||0),0);
   }
 
   const periodTtl = nvR.reduce((s,r)=>s+(r.vol||0),0)||1;
   const wLast = latestW, wPrev = prevW;
-  const ttlLast = brandTtlWeek(wLast)||1;
-  const ttlPrev = brandTtlWeek(wPrev)||1;
-  const ttlW3   = brandTtlWeek(w3ago)||1;
-  const ttlW2   = brandTtlWeek(last13[last13.length-3]||latestW)||1;
 
-  // Build brand rows
+  // Build brand rows from NV brandRows
   const brandRows = BRANDS.map(b=>{
-    const periodVol = ihs.filter(r=>r.brand===b).reduce((s,r)=>s+(r.brandVol||0),0);
+    const periodVol = nvBR.filter(r=>r.brand===b).reduce((s,r)=>s+(r.vol||0),0);
     const share = periodVol/periodTtl*100;
     const vLast = brandVolWeek(b, wLast);
     const vPrev = brandVolWeek(b, wPrev);
     const vW3   = brandVolWeek(b, w3ago);
     const vW2   = brandVolWeek(b, last13[last13.length-3]||latestW);
     const wow   = vPrev>0 ? (vLast-vPrev)/vPrev*100 : null;
-    return {brand:b, vol:periodVol, share, vLast, vPrev, vW3, vW2, wow, color:BRAND_COLORS[b]};
-  }).sort((a,b)=>b.vol-a.vol);
+    const color = BRAND_COLORS[b]||'#94a3b8';
+    return {brand:b, vol:periodVol, share, vLast, vPrev, vW3, vW2, wow, color};
+  }).filter(r=>r.vol>0).sort((a,b)=>b.vol-a.vol);
 
-  // Grand total row — use NV total (not IHS sum)
-  const gtVol   = periodTtl;  // NV Report total
+  // Grand total row — NV gpuRows total (single source of truth)
+  const gtVol   = periodTtl;
   const gtLast  = brandTtlWeek(wLast);
   const gtPrev  = brandTtlWeek(wPrev);
   const gtW3    = brandTtlWeek(w3ago);
