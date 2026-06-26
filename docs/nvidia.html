@@ -74,8 +74,12 @@ select option{background:var(--bg2)}
 .sec-tag{font-size:10px;padding:2px 7px;border-radius:4px;background:var(--bg4);color:var(--text3);border:1px solid var(--border)}
 
 /* ── PULSE STRIP (Zone 1) ── */
-.pulse-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
-.pulse-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:15px 16px;position:relative;overflow:hidden;transition:border-color .15s}
+/* ── Pulse grid: 2-column layout ─────────────────
+   Left: 3 hero cards (equal height row)
+   Right: WoW card (spans full height) */
+.pulse-grid{display:grid;grid-template-columns:1fr 320px;grid-template-rows:auto;gap:10px;align-items:start}
+.pulse-heroes{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;align-items:stretch}
+.pulse-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px 0;position:relative;overflow:hidden;transition:border-color .15s;display:flex;flex-direction:column}
 .pulse-card:hover{border-color:var(--border2)}
 .pulse-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:3px 3px 0 0}
 .pulse-card.ok::before{background:var(--green)}
@@ -85,6 +89,16 @@ select option{background:var(--bg2)}
 .pulse-card.ka::before{background:#d97706}
 .pulse-card.rest::before{background:#6b7280}
 .pulse-card.info::before{background:var(--nvidia)}
+/* Sparkline inside hero cards */
+.card-spark{flex:1;min-height:36px;position:relative;margin:2px -16px 0}
+.card-spark canvas{position:absolute;inset:0;width:100%!important;height:100%!important}
+/* Sub-footer: compact 1-line at bottom */
+.card-footer{display:flex;justify-content:space-between;align-items:center;padding:6px 16px 8px;margin:0 -16px;font-size:11px}
+.cf-item{display:flex;flex-direction:column;gap:1px}
+.cf-label{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em}
+.cf-value{font-size:13px;font-weight:700;color:var(--text)}
+/* WoW card fills right column */
+.pulse-wow{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;grid-column:2;grid-row:1}
 .p-label{font-size:10px;color:var(--text2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .p-value{font-size:26px;font-weight:700;color:var(--text);letter-spacing:-.7px;line-height:1}
 .p-sub{margin-top:6px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
@@ -210,25 +224,32 @@ select option{background:var(--bg2)}
 .leg-bar{width:10px;height:10px;border-radius:2px}
 
 /* ── responsive ── */
-@media(max-width:1400px){
-  .pulse-grid{grid-template-columns:repeat(3,1fr)}
+@media(max-width:1200px){
+  .pulse-grid{grid-template-columns:1fr;grid-template-rows:auto auto}
+  .pulse-wow{grid-column:1;grid-row:2}
   .spark-grid{grid-template-columns:repeat(3,1fr)}
   .gauge-grid{grid-template-columns:repeat(2,1fr)}
   .signal-grid{grid-template-columns:1fr}
 }
 @media(max-width:900px){
-  .pulse-grid{grid-template-columns:repeat(2,1fr)}
+  .pulse-heroes{grid-template-columns:repeat(3,1fr)}
   .spark-grid{grid-template-columns:repeat(2,1fr)}
   .wl-grid{grid-template-columns:1fr}
   .wl-divider{display:none}
   .gpu-detail-wrap{grid-template-columns:1fr}
   .kpi-row{grid-template-columns:repeat(2,1fr)}
+  /* Brand/GPU section: stack on tablet */
+  #section-brand-gpu .brand-gpu-row{grid-template-columns:1fr!important}
 }
 @media(max-width:600px){
-  .pulse-grid{grid-template-columns:repeat(2,1fr)}
+  .pulse-heroes{grid-template-columns:1fr 1fr}
   .spark-grid{grid-template-columns:1fr 1fr}
-  .page{padding:12px}
-  .tab-nav{padding:10px 12px 0}
+  .page{padding:10px 12px}
+  .tab-nav{padding:8px 12px 0}
+  #section-brand-gpu .brand-gpu-row{grid-template-columns:1fr!important}
+}
+@media(max-width:380px){
+  .pulse-heroes{grid-template-columns:1fr}
 }
 </style>
 </head>
@@ -292,82 +313,84 @@ select option{background:var(--bg2)}
         <span class="sec-title">CEO Pulse</span>
         <span class="sec-tag">4 CEO KPIs · period total + WoW · IHS + Userbuy + NV data</span>
       </div>
+      <!-- 2-col layout: heroes left, WoW right -->
       <div class="pulse-grid">
-        <!-- Card 1: Nvidia Market Volume — hero card matching image mockup -->
-        <div class="pulse-card nv" id="pc-msi-share">
-          <!-- top label -->
-          <div class="p-label">Nvidia Report</div>
-          <!-- hero number: total Nvidia market vol -->
-          <div style="display:flex;align-items:baseline;gap:10px;margin:2px 0 0">
-            <div style="font-size:30px;font-weight:700;color:var(--text);letter-spacing:-1px;line-height:1" id="p1-nv-vol">—</div>
-            <div id="p1-yoy" style="display:flex;align-items:center;gap:3px;font-size:13px;font-weight:600;white-space:nowrap"></div>
-          </div>
-          <!-- sub: filter context -->
-          <div style="font-size:10px;color:var(--text3);margin:4px 0 8px" id="p1-ctx">Total market vol</div>
-          <div style="margin:0 -16px -15px;padding:8px 16px 10px;background:rgba(37,99,235,.06);border-top:1px solid rgba(37,99,235,.2)">
-            <div style="display:flex;gap:14px">
-              <div style="flex:1">
-                <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">MSI Vol</div>
-                <div style="font-size:14px;font-weight:700;color:var(--text)" id="p1-msi-vol">—</div>
+
+        <!-- LEFT: 3 hero cards equal height -->
+        <div class="pulse-heroes">
+
+          <!-- Card 1: Nvidia Report -->
+          <div class="pulse-card nv" id="pc-msi-share">
+            <div class="p-label">Nvidia Report</div>
+            <div style="display:flex;align-items:baseline;gap:8px;margin:2px 0 0">
+              <div style="font-size:28px;font-weight:700;color:var(--text);letter-spacing:-1px;line-height:1" id="p1-nv-vol">—</div>
+              <div id="p1-yoy" style="font-size:12px;font-weight:600;white-space:nowrap"></div>
+            </div>
+            <div style="font-size:10px;color:var(--text3);margin:3px 0 0" id="p1-ctx">NV market vol</div>
+            <!-- sparkline: fills available space -->
+            <div class="card-spark"><canvas id="sp-nv"></canvas></div>
+            <!-- compact footer -->
+            <div class="card-footer" style="background:rgba(37,99,235,.06);border-top:1px solid rgba(37,99,235,.18)">
+              <div class="cf-item">
+                <span class="cf-label">MSI Vol</span>
+                <span class="cf-value" id="p1-msi-vol">—</span>
               </div>
-              <div style="flex:1">
-                <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">MSI Share</div>
-                <div style="font-size:14px;font-weight:700" id="p1-msi-share">—</div>
+              <div class="cf-item" style="text-align:right">
+                <span class="cf-label">MSI Share</span>
+                <span class="cf-value" id="p1-msi-share">—</span>
               </div>
             </div>
           </div>
-        </div>
-        <!-- Card 2: KA Channel — hero vol style matching Card 1 -->
-        <div class="pulse-card ka" id="pc-ka">
-          <!-- top label -->
-          <div class="p-label">KA Channel</div>
-          <!-- hero: KA total vol (period) -->
-          <div style="display:flex;align-items:baseline;gap:10px;margin:2px 0 0">
-            <div style="font-size:30px;font-weight:700;color:var(--text);letter-spacing:-1px;line-height:1" id="p4-ka-vol">—</div>
-            <div id="p4-yoy" style="display:flex;align-items:center;gap:3px;font-size:13px;font-weight:600;white-space:nowrap"></div>
-          </div>
-          <!-- sub: filter context -->
-          <div style="font-size:10px;color:var(--text3);margin:4px 0 8px" id="p4-ctx">KA total vol</div>
-          <div style="margin:0 -16px -15px;padding:8px 16px 10px;background:rgba(217,119,6,.06);border-top:1px solid rgba(217,119,6,.2)">
-            <div style="display:flex;gap:14px">
-              <div style="flex:1">
-                <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">MSI Vol</div>
-                <div style="font-size:14px;font-weight:700;color:var(--text)" id="p4-msi-vol">—</div>
+
+          <!-- Card 2: KA Channel -->
+          <div class="pulse-card ka" id="pc-ka">
+            <div class="p-label">KA Channel</div>
+            <div style="display:flex;align-items:baseline;gap:8px;margin:2px 0 0">
+              <div style="font-size:28px;font-weight:700;color:var(--text);letter-spacing:-1px;line-height:1" id="p4-ka-vol">—</div>
+              <div id="p4-yoy" style="font-size:12px;font-weight:600;white-space:nowrap"></div>
+            </div>
+            <div style="font-size:10px;color:var(--text3);margin:3px 0 0" id="p4-ctx">KA total vol</div>
+            <div class="card-spark"><canvas id="sp-ka"></canvas></div>
+            <div class="card-footer" style="background:rgba(217,119,6,.06);border-top:1px solid rgba(217,119,6,.18)">
+              <div class="cf-item">
+                <span class="cf-label">MSI Vol</span>
+                <span class="cf-value" id="p4-msi-vol">—</span>
               </div>
-              <div style="flex:1">
-                <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">MSI Share</div>
-                <div style="font-size:14px;font-weight:700" id="p4-msi-share">—</div>
+              <div class="cf-item" style="text-align:right">
+                <span class="cf-label">MSI Share</span>
+                <span class="cf-value" id="p4-msi-share">—</span>
               </div>
             </div>
           </div>
-        </div>
-        <!-- Card 3: Rest Channel = Total NV − KA -->
-        <div class="pulse-card rest" id="pc-rest">
-          <div class="p-label">Rest Channel</div>
-          <div style="display:flex;align-items:baseline;gap:10px;margin:2px 0 0">
-            <div style="font-size:30px;font-weight:700;color:var(--text);letter-spacing:-1px;line-height:1" id="p5-rest-vol">—</div>
-            <div id="p5-yoy" style="display:flex;align-items:center;gap:3px;font-size:13px;font-weight:600;white-space:nowrap"></div>
-          </div>
-          <div style="font-size:10px;color:var(--text3);margin:4px 0 8px" id="p5-ctx">Rest channel vol</div>
-          <div style="margin:0 -16px -15px;padding:8px 16px 10px;background:rgba(107,114,128,.06);border-top:1px solid rgba(107,114,128,.2)">
-            <div style="display:flex;gap:14px">
-              <div style="flex:1">
-                <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">MSI Vol</div>
-                <div style="font-size:14px;font-weight:700;color:var(--text)" id="p5-msi-vol">—</div>
+
+          <!-- Card 3: Rest Channel -->
+          <div class="pulse-card rest" id="pc-rest">
+            <div class="p-label">Rest Channel</div>
+            <div style="display:flex;align-items:baseline;gap:8px;margin:2px 0 0">
+              <div style="font-size:28px;font-weight:700;color:var(--text);letter-spacing:-1px;line-height:1" id="p5-rest-vol">—</div>
+              <div id="p5-yoy" style="font-size:12px;font-weight:600;white-space:nowrap"></div>
+            </div>
+            <div style="font-size:10px;color:var(--text3);margin:3px 0 0" id="p5-ctx">Rest channel vol</div>
+            <div class="card-spark"><canvas id="sp-rest"></canvas></div>
+            <div class="card-footer" style="background:rgba(107,114,128,.06);border-top:1px solid rgba(107,114,128,.18)">
+              <div class="cf-item">
+                <span class="cf-label">MSI Vol</span>
+                <span class="cf-value" id="p5-msi-vol">—</span>
               </div>
-              <div style="flex:1">
-                <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">MSI Share</div>
-                <div style="font-size:14px;font-weight:700" id="p5-msi-share">—</div>
+              <div class="cf-item" style="text-align:right">
+                <span class="cf-label">MSI Share</span>
+                <span class="cf-value" id="p5-msi-share">—</span>
               </div>
             </div>
           </div>
-        </div>
-        <!-- Card 4: WoW Summary — 4 key metrics in 1 card -->
-        <div class="pulse-card" id="pc-wow">
+
+        </div><!-- /pulse-heroes -->
+
+        <!-- RIGHT: WoW card — full height -->
+        <div class="pulse-wow" id="pc-wow">
           <div class="p-label">Week-over-Week</div>
-          <div style="font-size:10px;color:var(--text3);margin:2px 0 8px" id="wow-ctx">—</div>
+          <div style="font-size:10px;color:var(--text3);margin:2px 0 10px" id="wow-ctx">—</div>
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0">
-            <!-- Row 1: Total market → MSI active → MSI share -->
             <div style="padding:0 10px 8px 0;border-bottom:1px solid var(--border);border-right:1px solid var(--border)">
               <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px">NV Market</div>
               <div style="font-size:15px;font-weight:700;color:var(--text);letter-spacing:-.4px" id="wow-nv-tw">—</div>
@@ -383,7 +406,6 @@ select option{background:var(--bg2)}
               <div style="font-size:15px;font-weight:700;color:var(--text);letter-spacing:-.4px" id="wow-share-tw">—</div>
               <div style="font-size:10px;font-weight:600;margin-top:2px" id="wow-share-wow"></div>
             </div>
-            <!-- Row 2: KA total → KA MSI vol → KA MSI share -->
             <div style="padding:8px 10px 0 0;border-right:1px solid var(--border)">
               <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px">KA Vol</div>
               <div style="font-size:15px;font-weight:700;color:var(--text);letter-spacing:-.4px" id="wow-ka-vol-tw">—</div>
@@ -400,8 +422,9 @@ select option{background:var(--bg2)}
               <div style="font-size:10px;font-weight:600;margin-top:2px" id="wow-ka-wow"></div>
             </div>
           </div>
-        </div>
-    </div>
+        </div><!-- /pulse-wow -->
+
+      </div><!-- /pulse-grid -->
 
 
     <!-- ★ BRAND & GPU ANALYSIS — table + line chart -->
@@ -413,7 +436,7 @@ select option{background:var(--bg2)}
       </div>
 
       <!-- Row 1: Brand table + Brand share chart -->
-      <div style="display:grid;grid-template-columns:360px 1fr;gap:12px;margin-bottom:12px">
+      <div class="brand-gpu-row" style="display:grid;grid-template-columns:minmax(280px,400px) 1fr;gap:12px;margin-bottom:12px">
 
         <!-- Brand table -->
         <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden">
@@ -442,7 +465,7 @@ select option{background:var(--bg2)}
       </div>
 
       <!-- Row 2: GPU table + GPU share chart -->
-      <div style="display:grid;grid-template-columns:360px 1fr;gap:12px">
+      <div class="brand-gpu-row" style="display:grid;grid-template-columns:minmax(280px,400px) 1fr;gap:12px">
 
         <!-- GPU table -->
         <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden">
@@ -795,6 +818,46 @@ function renderPulse(nvRows, weeks, latestW, prevW) {
   }
   setPulseClass('pc-msi-share', 'nv');  // always blue border
 
+  // ── Sparklines for the 3 hero cards ────────────────
+  // Each sparkline = weekly NV total vol, KA vol, Rest vol over last 13w
+  function drawHeroSpark(canvasId, data, color) {
+    const el = document.getElementById(canvasId);
+    if(!el) return;
+    const ck = 'sp-'+canvasId;
+    if(charts[ck]){charts[ck].destroy();delete charts[ck];}
+    charts[ck] = new Chart(el, {
+      type:'line',
+      data:{
+        labels: data.map((_,i)=>i),
+        datasets:[{
+          data, borderColor: color,
+          backgroundColor: color.replace(')',',0.08)').replace('rgb','rgba'),
+          borderWidth:1.5, pointRadius:0, tension:0.35, fill:true
+        }]
+      },
+      options:{
+        responsive:false, animation:{duration:600},
+        plugins:{legend:{display:false},datalabels:{display:false},tooltip:{enabled:false}},
+        scales:{x:{display:false},y:{display:false,min:0}}
+      }
+    });
+  }
+
+  // Build weekly series for sparklines
+  const spWeeks = nvWeeks(nvRows()).slice(-13);
+  const spNVseries  = spWeeks.map(w=>nvRows().filter(r=>r.w===w).reduce((s,r)=>s+(r.vol||0),0));
+  // KA weekly vol using same derivation
+  const spKAseries  = spWeeks.map(w=>{
+    const rows=D.ihs.rows.filter(r=>r.w===w&&r.sg==='Gaming'&&KA_DEALERS.includes(r.cust)&&r.brandShare>0&&r.brandVol>0);
+    const dw={}; rows.forEach(r=>{const k=r.cust,imp=r.brandVol/r.brandShare;if(!dw[k]||imp>dw[k])dw[k]=imp;});
+    return Math.round(Object.values(dw).reduce((s,v)=>s+v,0));
+  });
+  const spRestSeries = spWeeks.map((w,i)=>Math.max(0,(spNVseries[i]||0)-(spKAseries[i]||0)));
+
+  drawHeroSpark('sp-nv',   spNVseries,   'rgb(37,99,235)');
+  drawHeroSpark('sp-ka',   spKAseries,   'rgb(217,119,6)');
+  drawHeroSpark('sp-rest', spRestSeries, 'rgb(107,114,128)');
+
   // P4 – WoW Summary card: 4 metrics × (TW value + WoW delta)
   const ubFact = ubFacts(weeks);
   const ubTW   = ubFact.filter(f=>f.w===latestW);
@@ -861,7 +924,9 @@ function renderPulse(nvRows, weeks, latestW, prevW) {
   // Card border
   const ups = [nvWoW, ubWoW, shareWoW, kaShareWoW].filter(v=>v!==null&&v>0).length;
   const dns = [nvWoW, ubWoW, shareWoW, kaShareWoW].filter(v=>v!==null&&v<0).length;
-  setPulseClass('pc-wow', ups>dns?'ok':dns>ups?'warn':'info');
+  // WoW card border color
+  const wowEl=document.getElementById('pc-wow');
+  if(wowEl){wowEl.className='pulse-wow '+(ups>dns?'ok-wow':dns>ups?'warn-wow':'');}
 
   // P4 – KA Channel hero card
   // IHS ttlVol = 0 always; derive dealer total from brandVol/brandShare
