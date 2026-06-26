@@ -912,75 +912,56 @@ function drawSparkline(canvasId, data, color, fill) {
 
 /* ═══════════════════════════════════════
    ④ CHANNEL PENETRATION GAUGE
+   IHS data → dealer MSI vol × GPU ub share
 ═══════════════════════════════════════ */
 function renderGauges(weeks) {
   const last4w = weeks.slice(-4);
-  const ub = ubFacts(last4w);
-
-  // Top GPU tiers by userbuy volume (show top 8 that have data)
-  const gpuVols = {};
-  ub.forEach(f=>{ if(f.gpu) gpuVols[f.gpu]=(gpuVols[f.gpu]||0)+(f.qty||0); });
-  const topGpus = GPU_ORDER.filter(g=>g!=='RTX Others'&&(gpuVols[g]||0)>0)
-    .sort((a,b)=>(gpuVols[b]||0)-(gpuVols[a]||0))
-    .slice(0,8);
-
-  if(topGpus.length===0) {
-    // fallback: show top 4 from GPU_ORDER
-    topGpus.push(...GPU_ORDER.slice(2,6));
+  // IHS has cust field = dealer names, use MSI brandVol per dealer
+  const ihs4 = D.ihs.rows.filter(r=>last4w.includes(r.w)&&r.sg==='Gaming'&&r.brand==='MSI');
+  const CUST_MAP = {'Mobile World':'MBW','FPT RETAIL JSC':'FPT','CELLPHONES':'CPS','NGUYEN KIM':'NK'};
+  const DEALERS = ['MBW','FPT','CPS','NK'];
+  // MSI vol by dealer
+  const dealerMsiVol={};
+  ihs4.forEach(r=>{const s=CUST_MAP[r.cust];if(s){dealerMsiVol[s]=(dealerMsiVol[s]||0)+(r.brandVol||0);}});
+  // GPU distribution from userbuy
+  const ub4=ubFacts(last4w);
+  const gpuUbVol={};
+  ub4.forEach(f=>{if(f.gpu)gpuUbVol[f.gpu]=(gpuUbVol[f.gpu]||0)+(f.qty||0);});
+  const totalUbVol=Object.values(gpuUbVol).reduce((s,v)=>s+v,0)||1;
+  // Top GPUs
+  let topGpus=GPU_ORDER.filter(g=>g!=='RTX Others'&&(gpuUbVol[g]||0)>0)
+    .sort((a,b)=>(gpuUbVol[b]||0)-(gpuUbVol[a]||0)).slice(0,8);
+  if(!topGpus.length){
+    // fallback from NV data
+    const nvTW=nvRows().filter(r=>r.w===nvWeeks(nvRows()).slice(-1)[0]);
+    topGpus=GPU_ORDER.filter(g=>g!=='RTX Others')
+      .sort((a,b)=>(nvTW.find(r=>r.gpu===b)?.msiVol||0)-(nvTW.find(r=>r.gpu===a)?.msiVol||0)).slice(0,6);
   }
-
-  const container = document.getElementById('gauge-grid');
+  const container=document.getElementById('gauge-grid');
   container.innerHTML='';
-
   topGpus.forEach(gpu=>{
-    const gpuFacts = ub.filter(f=>f.gpu===gpu);
-    // Sum by dealer
-    const dealerVol = {};
-    gpuFacts.forEach(f=>{
-      const dealer = f.cust||f.customer||'Unknown';
-      const shortName = KA_DEALERS.includes(dealer)?KA_SHORT[dealer]:null;
-      if(shortName) dealerVol[shortName]=(dealerVol[shortName]||0)+(f.qty||0);
+    const gpuShr=totalUbVol>0?(gpuUbVol[gpu]||0)/totalUbVol:0;
+    const dv={};DEALERS.forEach(d=>{dv[d]=Math.round((dealerMsiVol[d]||0)*gpuShr);});
+    const total=DEALERS.reduce((s,d)=>s+(dv[d]||0),0);
+    const maxV=Math.max(...DEALERS.map(d=>dv[d]||0),1);
+    let rows='';
+    DEALERS.forEach(d=>{
+      const v=dv[d]||0,pct=total>0?v/total*100:0,bw=v/maxV*100;
+      const bc=pct>=35?'var(--green)':pct>=20?'var(--nvidia)':pct>=10?'var(--amber)':'var(--red)';
+      rows+=`<div class="gauge-row"><div class="gauge-dealer">${d}</div>
+        <div class="gauge-track"><div class="gauge-fill" style="width:${bw}%;background:${bc}"></div></div>
+        <div class="gauge-pct" style="color:${bc}">${total>0?fmt1(pct)+'%':'—'}</div></div>`;
     });
-
-    const totalKA = Object.values(dealerVol).reduce((s,v)=>s+v,0);
-    const dealers = ['MBW','FPT','CPS','NK'];
-    const maxVol = Math.max(...dealers.map(d=>dealerVol[d]||0),1);
-
-    let gaugeRows = '';
-    dealers.forEach(d=>{
-      const vol = dealerVol[d]||0;
-      const pct = totalKA>0 ? vol/totalKA*100 : 0;
-      const barW = maxVol>0 ? vol/maxVol*100 : 0;
-      const barColor = pct>=25?'var(--green)':pct>=15?'var(--nvidia)':pct>=8?'var(--amber)':'var(--red)';
-      const pctColor = pct>=25?'var(--green)':pct>=15?'var(--nvidia)':pct>=8?'var(--amber)':'var(--red)';
-      gaugeRows += `
-        <div class="gauge-row">
-          <div class="gauge-dealer">${d}</div>
-          <div class="gauge-track">
-            <div class="gauge-fill" style="width:${barW}%;background:${barColor}"></div>
-          </div>
-          <div class="gauge-pct" style="color:${pctColor}">${totalKA>0?fmt1(pct)+'%':'—'}</div>
-        </div>`;
-    });
-
-    const topDealer = dealers.reduce((top,d)=>(dealerVol[d]||0)>(dealerVol[top]||0)?d:top, dealers[0]);
-    const weakDealer = dealers.reduce((bot,d)=>(dealerVol[d]||0)<(dealerVol[bot]||0)?d:bot, dealers[0]);
-
-    container.insertAdjacentHTML('beforeend',`
-      <div class="gauge-card">
-        <div class="gauge-gpu-title">${gpu}</div>
-        <div class="gauge-gpu-sub">4w total: ${totalKA.toLocaleString()} units</div>
-        ${gaugeRows}
-        <div class="gauge-note">
-          Best: <strong style="color:var(--green)">${totalKA>0?topDealer:'—'}</strong> ·
-          Weak: <strong style="color:var(--red)">${totalKA>0?weakDealer:'—'}</strong>
-        </div>
-      </div>`);
+    const topD=total>0?DEALERS.reduce((t,d)=>dv[d]>dv[t]?d:t,DEALERS[0]):'—';
+    const lowD=total>0?DEALERS.reduce((b,d)=>dv[d]<dv[b]?d:b,DEALERS[0]):'—';
+    container.insertAdjacentHTML('beforeend',`<div class="gauge-card">
+      <div class="gauge-gpu-title">${gpu}</div>
+      <div class="gauge-gpu-sub">Est. 4w KA: ${total.toLocaleString()} units</div>
+      ${rows}
+      <div class="gauge-note">Best: <strong style="color:var(--green)">${topD}</strong> · Weak: <strong style="color:var(--red)">${lowD}</strong></div>
+    </div>`);
   });
-
-  if(container.innerHTML==='') {
-    container.innerHTML='<div style="color:var(--text3);font-size:12px;padding:16px">No userbuy data in current filter window</div>';
-  }
+  if(!container.innerHTML)container.innerHTML='<div style="color:var(--text3);font-size:12px;padding:16px">No data in current filter window</div>';
 }
 
 /* ═══════════════════════════════════════
