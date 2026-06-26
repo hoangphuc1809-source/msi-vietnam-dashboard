@@ -74,7 +74,7 @@ select option{background:var(--bg2)}
 .sec-tag{font-size:10px;padding:2px 7px;border-radius:4px;background:var(--bg4);color:var(--text3);border:1px solid var(--border)}
 
 /* ── PULSE STRIP (Zone 1) ── */
-.pulse-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+.pulse-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
 .pulse-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:15px 16px;position:relative;overflow:hidden;transition:border-color .15s}
 .pulse-card:hover{border-color:var(--border2)}
 .pulse-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:3px 3px 0 0}
@@ -290,7 +290,7 @@ select option{background:var(--bg2)}
       <div class="sec-head">
         <span class="sec-no">1</span>
         <span class="sec-title">CEO Pulse</span>
-        <span class="sec-tag">5 CEO KPIs · period total · IHS + Userbuy + NV data</span>
+        <span class="sec-tag">4 CEO KPIs · period total + WoW · IHS + Userbuy + NV data</span>
       </div>
       <div class="pulse-grid">
         <!-- Card 1: Nvidia Market Volume — hero card matching image mockup -->
@@ -358,30 +358,33 @@ select option{background:var(--bg2)}
             </div>
           </div>
         </div>
-        <!-- Card 3: MSI Userbuy (period total + TW + WoW) -->
-        <div class="pulse-card" id="pc-userbuy">
-          <div class="p-label">MSI Userbuy (Period Total)</div>
-          <div class="p-value" id="p2">—</div>
-          <div class="p-sub">
-            <span class="p-context" style="font-size:10px">Selected period · Gaming only</span>
-          </div>
-          <div style="display:flex;gap:12px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
-            <div style="flex:1">
-              <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">Latest Week</div>
-              <div style="font-size:13px;font-weight:600;color:var(--text)" id="p2-tw">—</div>
+        <!-- Card 4: WoW Summary — 4 key metrics in 1 card -->
+        <div class="pulse-card" id="pc-wow">
+          <div class="p-label">Week-over-Week</div>
+          <div style="font-size:10px;color:var(--text3);margin:2px 0 10px" id="wow-ctx">—</div>
+          <!-- row 1: NV Market + MSI Userbuy -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 12px">
+            <div style="padding-bottom:8px;border-bottom:1px solid var(--border)">
+              <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">NV Market</div>
+              <div style="font-size:16px;font-weight:700;color:var(--text);letter-spacing:-.5px" id="wow-nv-tw">—</div>
+              <div style="font-size:11px;font-weight:600;margin-top:2px" id="wow-nv-wow"></div>
             </div>
-            <div style="flex:1">
-              <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">WoW</div>
-              <div style="font-size:13px;font-weight:600" id="p2-wow">—</div>
+            <div style="padding-bottom:8px;border-bottom:1px solid var(--border)">
+              <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">MSI Userbuy</div>
+              <div style="font-size:16px;font-weight:700;color:var(--text);letter-spacing:-.5px" id="wow-ub-tw">—</div>
+              <div style="font-size:11px;font-weight:600;margin-top:2px" id="wow-ub-wow"></div>
             </div>
-          </div>
-        </div>
-        <!-- Card 4: WOI -->
-        <div class="pulse-card" id="pc-woi">
-          <div class="p-label">Avg WOI (KA Dealers)</div>
-          <div class="p-value" id="p3">—</div>
-          <div class="p-sub">
-            <span class="chip" id="p3-chip" style="font-size:10px">—</span>
+            <!-- row 2: MSI Share + KA Share -->
+            <div style="padding-top:8px">
+              <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">MSI Share</div>
+              <div style="font-size:16px;font-weight:700;color:var(--text);letter-spacing:-.5px" id="wow-share-tw">—</div>
+              <div style="font-size:11px;font-weight:600;margin-top:2px" id="wow-share-wow"></div>
+            </div>
+            <div style="padding-top:8px">
+              <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">KA Share</div>
+              <div style="font-size:16px;font-weight:700;color:var(--text);letter-spacing:-.5px" id="wow-ka-tw">—</div>
+              <div style="font-size:11px;font-weight:600;margin-top:2px" id="wow-ka-wow"></div>
+            </div>
           </div>
         </div>
     </div>
@@ -709,42 +712,60 @@ function renderPulse(nvRows, weeks, latestW, prevW) {
   }
   setPulseClass('pc-msi-share', 'nv');  // always blue border
 
-  // P2 – MSI Userbuy: period total + latest week + WoW
+  // P4 – WoW Summary card: 4 metrics × (TW value + WoW delta)
   const ubFact = ubFacts(weeks);
-  const ubTW = ubFact.filter(f=>f.w===latestW);
-  const ubPW = ubFact.filter(f=>f.w===prevW);
+  const ubTW   = ubFact.filter(f=>f.w===latestW);
+  const ubPW   = ubFact.filter(f=>f.w===prevW);
   const ubTWQty = ubTW.reduce((s,f)=>s+(f.qty||0),0);
   const ubPWQty = ubPW.reduce((s,f)=>s+(f.qty||0),0);
-  const ubTotalPeriod = ubFact.reduce((s,f)=>s+(f.qty||0),0);
-  const ubWoW = ubPWQty>0 ? (ubTWQty-ubPWQty)/ubPWQty*100 : null;
-  setText('p2', ubTotalPeriod.toLocaleString());  // period total
-  setText('p2-tw', ubTWQty.toLocaleString());     // latest week
-  const p2wow = document.getElementById('p2-wow');
-  if(p2wow){
-    if(ubWoW!==null){
-      p2wow.innerHTML = deltaHtml(ubWoW,'%');
-    } else { p2wow.textContent='—'; p2wow.style.color='var(--text3)'; }
+  const ubWoW   = ubPWQty>0 ? (ubTWQty-ubPWQty)/ubPWQty*100 : null;
+
+  // NV market TW vs PW
+  const nvTWVol = tw.reduce((s,r)=>s+(r.vol||0),0);
+  const nvPWVol = pw.reduce((s,r)=>s+(r.vol||0),0);
+  const nvWoW   = nvPWVol>0 ? (nvTWVol-nvPWVol)/nvPWVol*100 : null;
+
+  // MSI NV share TW vs PW
+  const nvTWMsi  = tw.reduce((s,r)=>s+(r.msiVol||0),0);
+  const nvPWMsi  = pw.reduce((s,r)=>s+(r.msiVol||0),0);
+  const msiShareTW = nvTWVol>0 ? nvTWMsi/nvTWVol*100 : 0;
+  const msiSharePW = nvPWVol>0 ? nvPWMsi/nvPWVol*100 : 0;
+  const shareWoW   = msiSharePW>0 ? msiShareTW-msiSharePW : null;
+
+  // KA share TW vs PW (from IHS)
+  const ihsKATW = D.ihs.rows.filter(r=>r.w===latestW&&r.sg==='Gaming'&&KA_DEALERS.includes(r.cust));
+  const ihsKAPW2 = D.ihs.rows.filter(r=>r.w===prevW&&r.sg==='Gaming'&&KA_DEALERS.includes(r.cust));
+  const kaTWVol2  = ihsKATW.reduce((s,r)=>s+(r.ttlVol||0),0);
+  const kaPWVol2  = ihsKAPW2.reduce((s,r)=>s+(r.ttlVol||0),0);
+  const kaTWMsi2  = ihsKATW.filter(r=>r.brand==='MSI').reduce((s,r)=>s+(r.brandVol||0),0);
+  const kaPWMsi2  = ihsKAPW2.filter(r=>r.brand==='MSI').reduce((s,r)=>s+(r.brandVol||0),0);
+  const kaShareTW = kaTWVol2>0 ? kaTWMsi2/kaTWVol2*100 : 0;
+  const kaSharePW2 = kaPWVol2>0 ? kaPWMsi2/kaPWVol2*100 : 0;
+  const kaShareWoW = kaSharePW2>0 ? kaShareTW-kaSharePW2 : null;
+
+  // Week context label
+  setText('wow-ctx', `${latestW} vs ${prevW}`);
+
+  // Helper: set a WoW metric pair
+  function setWowMetric(valId, wowId, val, wow, isShare) {
+    const valEl = document.getElementById(valId);
+    const wowEl = document.getElementById(wowId);
+    if(valEl) valEl.textContent = isShare ? fmt1(val)+'%' : val.toLocaleString();
+    if(wowEl && wow!==null) {
+      const up=wow>=0, clr=up?'var(--green)':'var(--red)';
+      wowEl.innerHTML=`<span style="color:${clr}">${up?'▲':'▼'} ${Math.abs(wow).toFixed(1)}${isShare?'pp':'%'} WoW</span>`;
+    } else if(wowEl) { wowEl.textContent='—'; wowEl.style.color='var(--text3)'; }
   }
-  setPulseClass('pc-userbuy', ubWoW===null?'info':ubWoW>5?'ok':ubWoW>-5?'warn':'risk');
 
-  // P3 – Avg WOI from monthlysales byDealer (KA)
-  // We don't have direct WOI from API — compute approximation:
-  // WOI = onHand / (avg weekly userbuy last 4w)
-  const last4w = weeks.slice(-4);
-  const ubLast4 = ubFact.filter(f=>last4w.includes(f.w));
-  const ubAvgWeekly = ubLast4.reduce((s,f)=>s+(f.qty||0),0)/4;
+  setWowMetric('wow-nv-tw',    'wow-nv-wow',    nvTWVol,     nvWoW,      false);
+  setWowMetric('wow-ub-tw',    'wow-ub-wow',    ubTWQty,     ubWoW,      false);
+  setWowMetric('wow-share-tw', 'wow-share-wow', msiShareTW,  shareWoW,   true);
+  setWowMetric('wow-ka-tw',    'wow-ka-wow',    kaShareTW,   kaShareWoW, true);
 
-  // Get onHand from monthlysales — we'll fetch asynchronously or use estimate
-  // For now use IHS onhand proxy via vol trends
-  const woi = ubAvgWeekly>0 ? (ubTWQty/ubAvgWeekly).toFixed(1) : '—';
-  const woiNum = parseFloat(woi);
-  const woiLabel = isNaN(woiNum)?'N/A':woiNum<=12?'Optimal':woiNum<=20?'Monitor':'Overstock';
-  const woiColor = isNaN(woiNum)?'chip-neutral':woiNum<=12?'chip-g':woiNum<=20?'chip-a':'chip-r';
-  setText('p3', isNaN(woiNum)?'—':woi+'w');
-  const p3chip = document.getElementById('p3-chip');
-  p3chip.className='chip '+woiColor;
-  p3chip.textContent=woiLabel;
-  setPulseClass('pc-woi', isNaN(woiNum)?'info':woiNum<=12?'ok':woiNum<=20?'warn':'risk');
+  // Card border: green if most metrics up, red if most down
+  const ups = [nvWoW, ubWoW, shareWoW, kaShareWoW].filter(v=>v!==null&&v>0).length;
+  const dns = [nvWoW, ubWoW, shareWoW, kaShareWoW].filter(v=>v!==null&&v<0).length;
+  setPulseClass('pc-wow', ups>dns?'ok':dns>ups?'warn':'info');
 
   // P4 – KA Channel hero card (period total, same style as Card 1)
   // Sum ALL weeks in window for KA total vol + MSI vol
