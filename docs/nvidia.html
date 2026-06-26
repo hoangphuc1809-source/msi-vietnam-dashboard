@@ -991,14 +991,7 @@ function renderPulse(nvRows, weeks, latestW, prevW) {
   const ctxQ4    = st.quarter!=='all'?` · ${st.quarter}`:'';
   setText('p4-ctx', `MBW · FPT · CPS · PV${ctxQ4?'  '+ctxQ4:''}`);
 
-  const yoyEl4 = document.getElementById('p4-yoy');
-  if(yoyEl4){
-    if(kaYoY!==null){
-      const up=kaYoY>=0;
-      yoyEl4.innerHTML=`<span style="color:${up?'var(--green)':'var(--red)'}">
-        ${up?'▲':'▼'} ${Math.abs(kaYoY).toFixed(1)}% YoY</span>`;
-    } else { yoyEl4.innerHTML=''; }
-  }
+  setYoYFt('p4-yoy-ft','p4-yoy', kaYoY);
 
   // Sub-metrics: MSI vol + MSI share (color-coded)
   setText('p4-msi-vol', kaMSIVol.toLocaleString());
