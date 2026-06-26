@@ -78,9 +78,9 @@ select option{background:var(--bg2)}
    Left: 3 hero cards (equal height row)
    Right: WoW card (spans full height) */
 /* ── 4-card row: all equal height ─── */
-.pulse-grid{display:grid;grid-template-columns:1fr 1fr 1fr minmax(220px,1fr);gap:10px;align-items:stretch}
+.pulse-grid{display:grid;grid-template-columns:1fr 1fr 1fr minmax(220px,1fr);gap:10px;align-items:stretch;grid-auto-rows:1fr}
 /* Hero cards */
-.pulse-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px 0;position:relative;overflow:hidden;transition:border-color .15s;display:flex;flex-direction:column;height:100%}
+.pulse-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px 0;position:relative;overflow:hidden;transition:border-color .15s;display:flex;flex-direction:column;align-self:stretch;min-height:0}
 .pulse-card:hover{border-color:var(--border2)}
 .pulse-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:3px 3px 0 0}
 .pulse-card.ok::before{background:var(--green)}
@@ -103,7 +103,7 @@ select option{background:var(--bg2)}
 .cf-right-label{font-size:9px;font-style:italic;color:var(--text3)}
 .cf-right-val{font-size:12px;font-weight:700}
 /* WoW card — same grid cell, flex column */
-.pulse-wow{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;display:flex;flex-direction:column}
+.pulse-wow{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;display:flex;flex-direction:column;align-self:stretch;min-height:0}
 .pulse-wow-body{flex:1;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:0}
 .p-label{font-size:10px;color:var(--text2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .p-value{font-size:26px;font-weight:700;color:var(--text);letter-spacing:-.7px;line-height:1}
