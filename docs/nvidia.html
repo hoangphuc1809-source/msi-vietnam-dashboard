@@ -874,9 +874,8 @@ function renderPulse(nvRows, weeks, latestW, prevW) {
   const spWeeks2 = weeks.slice(-13);
   const spNVseries  = spWeeks2.map(w=>nvRows.filter(r=>r.w===w).reduce((s,r)=>s+(r.vol||0),0));
   const spKAseries  = spWeeks2.map(w=>{
-    const rws=D.ihs.rows.filter(r=>r.w===w&&r.sg==='Gaming'&&KA_DEALERS.includes(r.cust)&&r.brandShare>0&&r.brandVol>0);
-    const dw={}; rws.forEach(r=>{const k=r.cust,imp=r.brandVol/r.brandShare;if(!dw[k]||imp>dw[k])dw[k]=imp;});
-    return Math.round(Object.values(dw).reduce((s,v)=>s+v,0));
+    // sum all brandVol at KA dealers (same method as P4 card)
+    return D.ihs.rows.filter(r=>r.w===w&&r.sg==='Gaming'&&KA_DEALERS.includes(r.cust)&&r.brand!=='TTL Gaming').reduce((s,r)=>s+(r.brandVol||0),0);
   });
   const spRestSeries = spWeeks2.map((w,i)=>Math.max(0,(spNVseries[i]||0)-(spKAseries[i]||0)));
 
@@ -910,10 +909,8 @@ function renderPulse(nvRows, weeks, latestW, prevW) {
 
   // KA share TW vs PW (from IHS) — derive vol from brandVol/brandShare
   function deriveKAVol(wk) {
-    const rows = D.ihs.rows.filter(r=>r.w===wk&&r.sg==='Gaming'&&KA_DEALERS.includes(r.cust)&&r.brandShare>0&&r.brandVol>0);
-    const dwt = {};
-    rows.forEach(r=>{ const k=r.cust; const imp=r.brandVol/r.brandShare; if(!dwt[k]||imp>dwt[k])dwt[k]=imp; });
-    return Math.round(Object.values(dwt).reduce((s,v)=>s+v,0));
+    // sum brandVol at KA dealers — consistent with P4 total method
+    return D.ihs.rows.filter(r=>r.w===wk&&r.sg==='Gaming'&&KA_DEALERS.includes(r.cust)&&r.brand!=='TTL Gaming').reduce((s,r)=>s+(r.brandVol||0),0);
   }
   const kaTWVol2  = deriveKAVol(latestW);
   const kaPWVol2  = deriveKAVol(prevW);
@@ -963,15 +960,9 @@ function renderPulse(nvRows, weeks, latestW, prevW) {
   // KA_DEALERS in IHS: Mobile World, FPT RETAIL JSC, CELLPHONES (NK missing)
   const ihsKAAll = D.ihs.rows.filter(r=>weeks.includes(r.w)&&r.sg==='Gaming'&&KA_DEALERS.includes(r.cust));
 
-  // Compute implied dealer-week total: brandVol / brandShare per row
-  // Take max across brands per dealer-week (most stable estimate)
-  const dealerWkTtl = {};
-  ihsKAAll.filter(r=>r.brandShare>0&&r.brandVol>0).forEach(r=>{
-    const key = r.w+'|'+r.cust;
-    const implied = r.brandVol / r.brandShare;
-    if(!dealerWkTtl[key] || implied > dealerWkTtl[key]) dealerWkTtl[key] = implied;
-  });
-  const kaTotalVol = Math.round(Object.values(dealerWkTtl).reduce((s,v)=>s+v,0));
+  // KA total = sum of all brandVol at KA dealers (excl TTL Gaming row)
+  // Verified: this matches sheet exactly (e.g. Q2 2026 = 20,839)
+  const kaTotalVol = ihsKAAll.filter(r=>r.brand!=='TTL Gaming').reduce((s,r)=>s+(r.brandVol||0),0);
 
   // MSI vol at KA: direct brandVol sum (accurate)
   const kaMSIVol  = ihsKAAll.filter(r=>r.brand==='MSI').reduce((s,r)=>s+(r.brandVol||0),0);
@@ -981,7 +972,7 @@ function renderPulse(nvRows, weeks, latestW, prevW) {
   // lastYear = that brand's vol at that dealer same period LY — direct sum is correct
   // Do NOT divide by brandShare (that gives implied total, not brand LY)
   const kaLYVol = D.ihs.rows
-    .filter(r=>weeks.includes(r.w)&&r.sg==='Gaming'&&KA_DEALERS.includes(r.cust)&&(r.lastYear||0)>0)
+    .filter(r=>weeks.includes(r.w)&&r.sg==='Gaming'&&KA_DEALERS.includes(r.cust)&&r.brand!=='TTL Gaming'&&(r.lastYear||0)>0)
     .reduce((s,r)=>s+(r.lastYear||0),0);
   const kaYoY   = kaLYVol>0 ? (kaTotalVol-kaLYVol)/kaLYVol*100 : null;
 
