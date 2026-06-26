@@ -90,13 +90,17 @@ select option{background:var(--bg2)}
 .pulse-card.rest::before{background:#6b7280}
 .pulse-card.info::before{background:var(--nvidia)}
 /* Sparkline inside hero cards */
-.card-spark{flex:1;min-height:40px;max-height:64px;position:relative;margin:4px -16px 0}
+.card-spark{flex:1;min-height:80px;position:relative;margin:4px -16px 0}
 .card-spark canvas{position:absolute;inset:0;width:100%!important;height:100%!important}
-/* Sub-footer: compact 1-line at bottom */
-.card-footer{display:flex;justify-content:space-between;align-items:center;padding:6px 16px 8px;margin:0 -16px;font-size:11px}
-.cf-item{display:flex;flex-direction:column;gap:1px}
-.cf-label{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em}
-.cf-value{font-size:13px;font-weight:700;color:var(--text)}
+/* Sub-footer: single line with styled labels */
+.card-footer{display:flex;align-items:center;justify-content:space-between;padding:7px 14px 9px;margin:0 -16px;font-size:11px;gap:6px}
+.cf-yoy{font-size:11px;font-weight:700;flex-shrink:0}
+.cf-mid{display:flex;align-items:baseline;gap:4px;flex:1;justify-content:center}
+.cf-mid-label{font-size:10px;font-style:italic;color:var(--text3)}
+.cf-mid-val{font-size:12px;font-weight:700;color:var(--text)}
+.cf-right{display:flex;align-items:baseline;gap:4px;flex-shrink:0}
+.cf-right-label{font-size:10px;font-style:italic;color:var(--text3)}
+.cf-right-val{font-size:12px;font-weight:700}
 /* WoW card fills right column */
 .pulse-wow{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;grid-column:2;grid-row:1}
 .p-label{font-size:10px;color:var(--text2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -322,22 +326,20 @@ select option{background:var(--bg2)}
           <!-- Card 1: Nvidia Report -->
           <div class="pulse-card nv" id="pc-msi-share">
             <div class="p-label">Nvidia Report</div>
-            <div style="display:flex;align-items:baseline;gap:8px;margin:2px 0 0">
-              <div style="font-size:28px;font-weight:700;color:var(--text);letter-spacing:-1px;line-height:1" id="p1-nv-vol">—</div>
-              <div id="p1-yoy" style="font-size:12px;font-weight:600;white-space:nowrap"></div>
+            <div style="margin:6px 0 2px;text-align:center">
+              <div style="font-size:36px;font-weight:800;color:var(--text);letter-spacing:-1.5px;line-height:1" id="p1-nv-vol">—</div>
             </div>
-            <div style="font-size:10px;color:var(--text3);margin:3px 0 0" id="p1-ctx">NV market vol</div>
             <!-- sparkline: fills available space -->
             <div class="card-spark"><canvas id="sp-nv"></canvas></div>
-            <!-- compact footer -->
-            <div class="card-footer" style="background:rgba(37,99,235,.06);border-top:1px solid rgba(37,99,235,.18)">
-              <div class="cf-item">
-                <span class="cf-label">MSI Vol</span>
-                <span class="cf-value" id="p1-msi-vol">—</span>
+            <div class="card-footer" style="background:rgba(37,99,235,.05);border-top:1px solid rgba(37,99,235,.15)">
+              <span class="cf-yoy" id="p1-yoy-ft" style="color:var(--red)">—</span>
+              <div class="cf-mid">
+                <span class="cf-mid-label">MSI Vol <em style="font-style:italic;color:var(--text3)">(Userbuy)</em></span>
+                <span class="cf-mid-val" id="p1-msi-vol">—</span>
               </div>
-              <div class="cf-item" style="text-align:right">
-                <span class="cf-label">MSI Share</span>
-                <span class="cf-value" id="p1-msi-share">—</span>
+              <div class="cf-right">
+                <span class="cf-right-label">Share <em style="font-style:italic;color:var(--text3)">(Nvidia)</em></span>
+                <span class="cf-right-val" id="p1-msi-share" style="color:#d97706">—</span>
               </div>
             </div>
           </div>
@@ -345,20 +347,19 @@ select option{background:var(--bg2)}
           <!-- Card 2: KA Channel -->
           <div class="pulse-card ka" id="pc-ka">
             <div class="p-label">KA Channel</div>
-            <div style="display:flex;align-items:baseline;gap:8px;margin:2px 0 0">
-              <div style="font-size:28px;font-weight:700;color:var(--text);letter-spacing:-1px;line-height:1" id="p4-ka-vol">—</div>
-              <div id="p4-yoy" style="font-size:12px;font-weight:600;white-space:nowrap"></div>
+            <div style="margin:6px 0 2px;text-align:center">
+              <div style="font-size:36px;font-weight:800;color:var(--text);letter-spacing:-1.5px;line-height:1" id="p4-ka-vol">—</div>
             </div>
-            <div style="font-size:10px;color:var(--text3);margin:3px 0 0" id="p4-ctx">KA total vol</div>
             <div class="card-spark"><canvas id="sp-ka"></canvas></div>
-            <div class="card-footer" style="background:rgba(217,119,6,.06);border-top:1px solid rgba(217,119,6,.18)">
-              <div class="cf-item">
-                <span class="cf-label">MSI Vol</span>
-                <span class="cf-value" id="p4-msi-vol">—</span>
+            <div class="card-footer" style="background:rgba(217,119,6,.05);border-top:1px solid rgba(217,119,6,.15)">
+              <span class="cf-yoy" id="p4-yoy-ft" style="color:var(--red)">—</span>
+              <div class="cf-mid">
+                <span class="cf-mid-label">MSI Vol <em style="font-style:italic;color:var(--text3)">(Userbuy)</em></span>
+                <span class="cf-mid-val" id="p4-msi-vol">—</span>
               </div>
-              <div class="cf-item" style="text-align:right">
-                <span class="cf-label">MSI Share</span>
-                <span class="cf-value" id="p4-msi-share">—</span>
+              <div class="cf-right">
+                <span class="cf-right-label">Share <em style="font-style:italic;color:var(--text3)">(Nvidia)</em></span>
+                <span class="cf-right-val" id="p4-msi-share" style="color:#d97706">—</span>
               </div>
             </div>
           </div>
@@ -366,20 +367,19 @@ select option{background:var(--bg2)}
           <!-- Card 3: Rest Channel -->
           <div class="pulse-card rest" id="pc-rest">
             <div class="p-label">Rest Channel</div>
-            <div style="display:flex;align-items:baseline;gap:8px;margin:2px 0 0">
-              <div style="font-size:28px;font-weight:700;color:var(--text);letter-spacing:-1px;line-height:1" id="p5-rest-vol">—</div>
-              <div id="p5-yoy" style="font-size:12px;font-weight:600;white-space:nowrap"></div>
+            <div style="margin:6px 0 2px;text-align:center">
+              <div style="font-size:36px;font-weight:800;color:var(--text);letter-spacing:-1.5px;line-height:1" id="p5-rest-vol">—</div>
             </div>
-            <div style="font-size:10px;color:var(--text3);margin:3px 0 0" id="p5-ctx">Rest channel vol</div>
             <div class="card-spark"><canvas id="sp-rest"></canvas></div>
-            <div class="card-footer" style="background:rgba(107,114,128,.06);border-top:1px solid rgba(107,114,128,.18)">
-              <div class="cf-item">
-                <span class="cf-label">MSI Vol</span>
-                <span class="cf-value" id="p5-msi-vol">—</span>
+            <div class="card-footer" style="background:rgba(107,114,128,.05);border-top:1px solid rgba(107,114,128,.15)">
+              <span class="cf-yoy" id="p5-yoy-ft" style="color:var(--red)">—</span>
+              <div class="cf-mid">
+                <span class="cf-mid-label">MSI Vol <em style="font-style:italic;color:var(--text3)">(Userbuy)</em></span>
+                <span class="cf-mid-val" id="p5-msi-vol">—</span>
               </div>
-              <div class="cf-item" style="text-align:right">
-                <span class="cf-label">MSI Share</span>
-                <span class="cf-value" id="p5-msi-share">—</span>
+              <div class="cf-right">
+                <span class="cf-right-label">Share <em style="font-style:italic;color:var(--text3)">(Nvidia)</em></span>
+                <span class="cf-right-val" id="p5-msi-share" style="color:#d97706">—</span>
               </div>
             </div>
           </div>
@@ -799,15 +799,13 @@ function renderPulse(nvRows, weeks, latestW, prevW) {
   setText('p1-nv-vol', tvol.toLocaleString());
   setText('p1-ctx', `${ctxYear}${ctxQ}${ctxW} · NV market vol`);
 
-  // YoY badge (arrow + % + "YoY") matching image style
-  const yoyEl = document.getElementById('p1-yoy');
-  if(yoyEl){
-    if(yoy!==null){
-      const up=yoy>=0;
-      yoyEl.innerHTML=`<span style="color:${up?'var(--green)':'var(--red)'}">
-        ${up?'▲':'▼'} ${Math.abs(yoy).toFixed(1)}% YoY</span>`;
-    } else { yoyEl.innerHTML=''; }
+  // YoY → footer span (card 1)
+  function setYoYFt(ftId,inlineId,yoy){
+    const ft=document.getElementById(ftId),il=document.getElementById(inlineId);
+    if(il)il.innerHTML="";
+    if(ft&&yoy!==null){const up=yoy>=0;ft.style.color=up?"var(--green)":"var(--red)";ft.textContent=(up?"▲":"▼")+" "+Math.abs(yoy).toFixed(1)+"% YoY";}else if(ft)ft.textContent="";
   }
+  setYoYFt('p1-yoy-ft','p1-yoy',yoy);
 
   // Sub-metrics
   setText('p1-msi-vol', tmsi.toLocaleString());
@@ -826,19 +824,30 @@ function renderPulse(nvRows, weeks, latestW, prevW) {
     const ck = 'sp-'+canvasId;
     if(charts[ck]){charts[ck].destroy();delete charts[ck];}
     const bg = color.replace(')',',.1)').replace('rgb','rgba');
+    // Highlight last bar
+    const colors = data.map((_,i)=> i===data.length-1
+      ? color.replace('rgb','rgba').replace(')',',0.85)')
+      : color.replace('rgb','rgba').replace(')',',0.35)'));
     charts[ck] = new Chart(el, {
-      type:'line',
+      type:'bar',
       data:{
         labels: data.map((_,i)=>i),
         datasets:[{
-          data, borderColor:color, backgroundColor:bg,
-          borderWidth:1.5, pointRadius:0, tension:0.35, fill:true
+          data,
+          backgroundColor: colors,
+          borderColor: 'transparent',
+          borderRadius: 2,
+          borderSkipped: false
         }]
       },
       options:{
         responsive:true, maintainAspectRatio:false, animation:{duration:400},
         plugins:{legend:{display:false},datalabels:{display:false},tooltip:{enabled:false}},
-        scales:{x:{display:false},y:{display:false,min:0}}
+        scales:{
+          x:{display:false, grid:{display:false}},
+          y:{display:false, min:0, grid:{display:false}}
+        },
+        layout:{padding:{left:0,right:0,top:4,bottom:0}}
       }
     });
   }
@@ -1001,14 +1010,7 @@ function renderPulse(nvRows, weeks, latestW, prevW) {
   setText('p5-ctx', `${ctxYear5}${ctxQ5} · Rest channel vol`);
 
   // YoY badge
-  const yoyEl5 = document.getElementById('p5-yoy');
-  if(yoyEl5){
-    if(restYoY!==null){
-      const up5=restYoY>=0;
-      yoyEl5.innerHTML=`<span style="color:${up5?'var(--green)':'var(--red)'}">
-        ${up5?'▲':'▼'} ${Math.abs(restYoY).toFixed(1)}% YoY</span>`;
-    } else { yoyEl5.innerHTML=''; }
-  }
+  setYoYFt('p5-yoy-ft','p5-yoy', restYoY);
 
   // Sub-metrics
   setText('p5-msi-vol', restMSIVol.toLocaleString());
