@@ -313,22 +313,26 @@ select option{background:var(--bg2)}
             </div>
           </div>
         </div>
-        <!-- Card 2: KA Channel Share (moved to position 2) -->
+        <!-- Card 2: KA Channel — hero vol style matching Card 1 -->
         <div class="pulse-card" id="pc-ka">
-          <div class="p-label">KA Channel Share</div>
-          <div class="p-value" id="p4">—</div>
-          <div class="p-sub">
-            <span class="delta" id="p4-d">—</span>
-            <span class="p-context">vs prev week</span>
+          <!-- top label -->
+          <div class="p-label">KA Channel</div>
+          <!-- hero: KA total vol (period) -->
+          <div style="display:flex;align-items:baseline;gap:10px;margin:2px 0 0">
+            <div style="font-size:30px;font-weight:700;color:var(--text);letter-spacing:-1px;line-height:1" id="p4-ka-vol">—</div>
+            <div id="p4-yoy" style="display:flex;align-items:center;gap:3px;font-size:13px;font-weight:600;white-space:nowrap"></div>
           </div>
-          <div style="display:flex;gap:12px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
+          <!-- sub: filter context -->
+          <div style="font-size:10px;color:var(--text3);margin:4px 0 8px" id="p4-ctx">KA total vol</div>
+          <!-- divider -->
+          <div style="border-top:1px solid var(--border);padding-top:8px;display:flex;gap:14px">
             <div style="flex:1">
-              <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">MSI Vol</div>
-              <div style="font-size:13px;font-weight:600;color:var(--text)" id="p4-msi-vol">—</div>
+              <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">MSI Vol</div>
+              <div style="font-size:14px;font-weight:700;color:var(--text)" id="p4-msi-vol">—</div>
             </div>
             <div style="flex:1">
-              <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">KA Total</div>
-              <div style="font-size:13px;font-weight:600;color:var(--text)" id="p4-ka-vol">—</div>
+              <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">MSI Share</div>
+              <div style="font-size:14px;font-weight:700" id="p4-msi-share">—</div>
             </div>
           </div>
         </div>
@@ -720,22 +724,39 @@ function renderPulse(nvRows, weeks, latestW, prevW) {
   p3chip.textContent=woiLabel;
   setPulseClass('pc-woi', isNaN(woiNum)?'info':woiNum<=12?'ok':woiNum<=20?'warn':'risk');
 
-  // P4 – KA channel share from IHS
-  const ihsAllTW = D.ihs.rows.filter(r=>r.w===latestW&&r.sg==='Gaming'); // Gaming only
-  const ihsKA = ihsAllTW.filter(r=>KA_DEALERS.includes(r.cust));
-  const kaTotalVol = ihsKA.reduce((s,r)=>s+(r.ttlVol||0),0);
-  const kaMSIVol = ihsKA.filter(r=>r.brand==='MSI').reduce((s,r)=>s+(r.brandVol||0),0);
-  const kaShare = kaTotalVol>0 ? kaMSIVol/kaTotalVol*100 : 0;
-  // LY
-  const ihsKAPW = D.ihs.rows.filter(r=>r.w===prevW&&r.sg==='Gaming'&&KA_DEALERS.includes(r.cust));
-  const kaTotalVolPW = ihsKAPW.reduce((s,r)=>s+(r.ttlVol||0),0);
-  const kaMSIVolPW = ihsKAPW.filter(r=>r.brand==='MSI').reduce((s,r)=>s+(r.brandVol||0),0);
-  const kaSharePW = kaTotalVolPW>0 ? kaMSIVolPW/kaTotalVolPW*100 : 0;
-  const kaShareDelta = kaSharePW>0 ? kaShare-kaSharePW : null;
-  setText('p4', fmt1(kaShare)+'%');
-  setDelta('p4-d', kaShareDelta, 'pp');
-  setText('p4-msi-vol', kaMSIVol.toLocaleString());
+  // P4 – KA Channel hero card (period total, same style as Card 1)
+  // Sum ALL weeks in window for KA total vol + MSI vol
+  const ihsKAAll = D.ihs.rows.filter(r=>weeks.includes(r.w)&&r.sg==='Gaming'&&KA_DEALERS.includes(r.cust));
+  const kaTotalVol = ihsKAAll.reduce((s,r)=>s+(r.ttlVol||0),0);
+  const kaMSIVol  = ihsKAAll.filter(r=>r.brand==='MSI').reduce((s,r)=>s+(r.brandVol||0),0);
+  const kaShare   = kaTotalVol>0 ? kaMSIVol/kaTotalVol*100 : 0;
+
+  // YoY: sum lastYear field across KA IHS rows
+  const kaLYVol = ihsKAAll.reduce((s,r)=>s+(r.lastYear||0),0);
+  const kaYoY   = kaLYVol>0 ? (kaTotalVol-kaLYVol)/kaLYVol*100 : null;
+
+  // Hero vol + YoY badge
   setText('p4-ka-vol', kaTotalVol.toLocaleString());
+  const ctxYear4 = st.year!=='all'?st.year:'All years';
+  const ctxQ4    = st.quarter!=='all'?` · ${st.quarter}`:'';
+  setText('p4-ctx', `${ctxYear4}${ctxQ4} · KA total vol`);
+
+  const yoyEl4 = document.getElementById('p4-yoy');
+  if(yoyEl4){
+    if(kaYoY!==null){
+      const up=kaYoY>=0;
+      yoyEl4.innerHTML=`<span style="color:${up?'var(--green)':'var(--red)'}">
+        ${up?'▲':'▼'} ${Math.abs(kaYoY).toFixed(1)}% YoY</span>`;
+    } else { yoyEl4.innerHTML=''; }
+  }
+
+  // Sub-metrics: MSI vol + MSI share (color-coded)
+  setText('p4-msi-vol', kaMSIVol.toLocaleString());
+  const kaShareEl = document.getElementById('p4-msi-share');
+  if(kaShareEl){
+    kaShareEl.textContent = fmt1(kaShare)+'%';
+    kaShareEl.style.color = kaShare>=20?'var(--green)':kaShare>=12?'var(--amber)':'var(--red)';
+  }
   setPulseClass('pc-ka', kaShare>=20?'ok':kaShare>=12?'warn':'risk');
 
 }
