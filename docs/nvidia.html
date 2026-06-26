@@ -9,15 +9,15 @@
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#0d0d0f;--bg2:#141418;--bg3:#1a1a20;--bg4:#22222a;--bg5:#2a2a34;
-  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
-  --text:#e2e2e8;--text2:#9090a0;--text3:#52526a;
-  --green:#22c55e;--green-bg:rgba(34,197,94,.13);--green-dim:rgba(34,197,94,.06);
-  --red:#ef4444;--red-bg:rgba(239,68,68,.13);--red-dim:rgba(239,68,68,.06);
-  --amber:#f59e0b;--amber-bg:rgba(245,158,11,.13);--amber-dim:rgba(245,158,11,.06);
-  --blue:#3b82f6;--blue-bg:rgba(59,130,246,.13);
-  --nvidia:#76b900;--nvidia-dim:rgba(118,185,0,.13);--nvidia-line:rgba(118,185,0,.4);
-  --msi:#e53935;--msi-dim:rgba(229,57,53,.15);
+  --bg:#f5f6f8;--bg2:#ffffff;--bg3:#f0f1f4;--bg4:#e8eaed;--bg5:#dde0e5;
+  --border:rgba(0,0,0,0.09);--border2:rgba(0,0,0,0.16);
+  --text:#1a1a22;--text2:#4a4a5a;--text3:#8a8a9a;
+  --green:#16a34a;--green-bg:rgba(22,163,74,.1);--green-dim:rgba(22,163,74,.06);
+  --red:#dc2626;--red-bg:rgba(220,38,38,.1);--red-dim:rgba(220,38,38,.06);
+  --amber:#d97706;--amber-bg:rgba(217,119,6,.1);--amber-dim:rgba(217,119,6,.06);
+  --blue:#2563eb;--blue-bg:rgba(37,99,235,.1);
+  --nvidia:#5a8f00;--nvidia-dim:rgba(90,143,0,.12);--nvidia-line:rgba(90,143,0,.35);
+  --msi:#c62828;--msi-dim:rgba(198,40,40,.12);
   --r:10px;--rs:6px;
 }
 html{font-size:14px}
@@ -27,7 +27,7 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,Bl
 .tab-nav{display:flex;gap:2px;padding:12px 24px 0;background:var(--bg2);border-bottom:1px solid var(--border)}
 .tab-nav-item{padding:8px 18px;font-size:13px;color:var(--text2);text-decoration:none;border-radius:8px 8px 0 0;border:1px solid transparent;border-bottom:none;transition:all .15s}
 .tab-nav-item:hover{color:var(--text);background:var(--bg3)}
-.tab-nav-item.active{color:var(--text);background:var(--bg);border-color:var(--border);border-bottom-color:var(--bg)}
+.tab-nav-item.active{color:var(--text);background:var(--bg);border-color:var(--border);border-bottom-color:var(--bg);font-weight:600}
 
 /* ── PAGE ── */
 .page{max-width:1440px;margin:0 auto;padding:20px 24px}
@@ -45,7 +45,7 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,Bl
 .chip-a{background:var(--amber-bg);color:var(--amber)}
 .chip-b{background:var(--blue-bg);color:var(--blue)}
 .chip-nv{background:var(--nvidia-dim);color:var(--nvidia)}
-.chip-neutral{background:var(--bg4);color:var(--text2)}
+.chip-neutral{background:var(--bg4);color:var(--text2);border:1px solid var(--border)}
 
 /* ── LOADING ── */
 #loading{display:flex;flex-direction:column;align-items:center;justify-content:center;height:320px;gap:14px;color:var(--text2)}
@@ -60,7 +60,7 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,Bl
 .fl{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap}
 select,.btn-tog{background:var(--bg4);border:1px solid var(--border);color:var(--text);font-size:12px;border-radius:var(--rs);padding:5px 10px;cursor:pointer;outline:none;transition:border-color .15s;font-family:inherit}
 select:hover,.btn-tog:hover{border-color:var(--border2)}
-select option{background:var(--bg4)}
+select option{background:var(--bg2)}
 .btn-tog.on{background:var(--nvidia-dim);border-color:var(--nvidia);color:var(--nvidia)}
 .fsep{width:1px;height:18px;background:var(--border);margin:0 2px}
 .btn-rst{font-size:11px;color:var(--text3);cursor:pointer;padding:4px 8px;border:none;background:none;transition:color .15s;font-family:inherit}
@@ -69,12 +69,12 @@ select option{background:var(--bg4)}
 /* ── SECTION ── */
 .section{margin-bottom:18px}
 .sec-head{display:flex;align-items:center;gap:8px;margin-bottom:10px}
-.sec-no{width:20px;height:20px;border-radius:50%;background:var(--nvidia-dim);color:var(--nvidia);font-size:10px;font-weight:700;display:grid;place-items:center;flex-shrink:0}
+.sec-no{width:20px;height:20px;border-radius:50%;background:var(--nvidia-dim);color:var(--nvidia);font-size:10px;font-weight:700;display:grid;place-items:center;flex-shrink:0;border:1px solid var(--nvidia-line)}
 .sec-title{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.08em}
-.sec-tag{font-size:10px;padding:2px 7px;border-radius:4px;background:var(--bg4);color:var(--text3)}
+.sec-tag{font-size:10px;padding:2px 7px;border-radius:4px;background:var(--bg4);color:var(--text3);border:1px solid var(--border)}
 
 /* ── PULSE STRIP (Zone 1) ── */
-.pulse-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+.pulse-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
 .pulse-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:15px 16px;position:relative;overflow:hidden;transition:border-color .15s}
 .pulse-card:hover{border-color:var(--border2)}
 .pulse-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;border-radius:2px 2px 0 0}
@@ -290,45 +290,70 @@ select option{background:var(--bg4)}
         <span class="sec-tag">5 hero KPIs · latest week · IHS + Userbuy + NV data</span>
       </div>
       <div class="pulse-grid">
+        <!-- Card 1: MSI Market Share -->
         <div class="pulse-card info" id="pc-msi-share">
           <div class="p-label">MSI Market Share</div>
           <div class="p-value" id="p1">—</div>
           <div class="p-sub">
             <span class="delta" id="p1-d">—</span>
-            <span class="p-context">vs LY (IHS)</span>
+            <span class="p-context">vs prev week</span>
+          </div>
+          <div style="display:flex;gap:12px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
+            <div style="flex:1">
+              <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">MSI Vol</div>
+              <div style="font-size:13px;font-weight:600;color:var(--text)" id="p1-msi-vol">—</div>
+            </div>
+            <div style="flex:1">
+              <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">NV Market</div>
+              <div style="font-size:13px;font-weight:600;color:var(--text)" id="p1-nv-vol">—</div>
+            </div>
           </div>
         </div>
-        <div class="pulse-card" id="pc-userbuy">
-          <div class="p-label">MSI Userbuy (TW)</div>
-          <div class="p-value" id="p2">—</div>
-          <div class="p-sub">
-            <span class="delta" id="p2-d">—</span>
-            <span class="p-context">WoW</span>
-          </div>
-        </div>
-        <div class="pulse-card" id="pc-woi">
-          <div class="p-label">Avg WOI (KA dealers)</div>
-          <div class="p-value" id="p3">—</div>
-          <div class="p-sub">
-            <span class="chip" id="p3-chip" style="font-size:10px">—</span>
-          </div>
-        </div>
+        <!-- Card 2: KA Channel Share (moved to position 2) -->
         <div class="pulse-card" id="pc-ka">
           <div class="p-label">KA Channel Share</div>
           <div class="p-value" id="p4">—</div>
           <div class="p-sub">
             <span class="delta" id="p4-d">—</span>
-            <span class="p-context">vs LY</span>
+            <span class="p-context">vs prev week</span>
+          </div>
+          <div style="display:flex;gap:12px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
+            <div style="flex:1">
+              <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">MSI Vol</div>
+              <div style="font-size:13px;font-weight:600;color:var(--text)" id="p4-msi-vol">—</div>
+            </div>
+            <div style="flex:1">
+              <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">KA Total</div>
+              <div style="font-size:13px;font-weight:600;color:var(--text)" id="p4-ka-vol">—</div>
+            </div>
           </div>
         </div>
-        <div class="pulse-card" id="pc-oos">
-          <div class="p-label">OOS Risk SKUs</div>
-          <div class="p-value" id="p5" style="color:var(--red)">—</div>
+        <!-- Card 3: MSI Userbuy (period total + TW + WoW) -->
+        <div class="pulse-card" id="pc-userbuy">
+          <div class="p-label">MSI Userbuy (Period Total)</div>
+          <div class="p-value" id="p2">—</div>
           <div class="p-sub">
-            <span class="p-context" id="p5-detail">—</span>
+            <span class="p-context" style="font-size:10px">Selected period · Gaming only</span>
+          </div>
+          <div style="display:flex;gap:12px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
+            <div style="flex:1">
+              <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">Latest Week</div>
+              <div style="font-size:13px;font-weight:600;color:var(--text)" id="p2-tw">—</div>
+            </div>
+            <div style="flex:1">
+              <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">WoW</div>
+              <div style="font-size:13px;font-weight:600" id="p2-wow">—</div>
+            </div>
           </div>
         </div>
-      </div>
+        <!-- Card 4: WOI -->
+        <div class="pulse-card" id="pc-woi">
+          <div class="p-label">Avg WOI (KA Dealers)</div>
+          <div class="p-value" id="p3">—</div>
+          <div class="p-sub">
+            <span class="chip" id="p3-chip" style="font-size:10px">—</span>
+          </div>
+        </div>
     </div>
 
     <!-- ② WIN/LOSE MATRIX -->
@@ -576,16 +601,14 @@ function ubFacts(weeksArr) {
   const wSet = new Set(weeksArr);
   return D.ub.facts
     .filter(f=>wSet.has(f.w))
-    .map(f=>({...f,...(skuMap[f.sku]||{})}));
+    .map(f=>({...f,...(skuMap[f.sku]||{})}))
+    .filter(f=>(f.sg||'')!=='Business& Productivity'); // Gaming only
 }
 
-// IHS rows for latest window
+// IHS rows for latest window — Gaming only
 function ihsRows(weeksArr) {
-  // IHS weeks might not perfectly align with NV weeks (use closest)
-  const allIhsWeeks = [...new Set(D.ihs.rows.map(r=>r.w))].sort();
   const wSet = new Set(weeksArr);
-  // Use direct match or fallback to last available IHS weeks
-  return D.ihs.rows.filter(r=>wSet.has(r.w));
+  return D.ihs.rows.filter(r=>wSet.has(r.w)&&r.sg==='Gaming');
 }
 
 /* ═══════════════════════════════════════
@@ -631,20 +654,33 @@ function renderPulse(nvRows, weeks, latestW, prevW) {
   const msiIHS = ihsTWTotal.find(r=>r.brand==='MSI');
   const msiShare = msiIHS ? (msiIHS.brandShare||0)*100 : share;
 
+  const prevTW = nvRows.filter?nvRows.filter(r=>r.w===prevW):[];
+  const ptvol = prevTW.reduce?prevTW.reduce((s,r)=>s+(r.vol||0),0):0;
+  const ptmsi = prevTW.reduce?prevTW.reduce((s,r)=>s+(r.msiVol||0),0):0;
+  const prevShare2 = ptvol>0?ptmsi/ptvol*100:0;
+  const shareWoW = prevShare2>0?msiShare-prevShare2:null;
   setText('p1', fmt1(msiShare)+'%');
-  const lyShareApprox = 0; // would need LY IHS data
-  setDelta('p1-d', null); // no LY delta available cleanly
+  setDelta('p1-d', shareWoW, 'pp');
+  setText('p1-msi-vol', tmsi.toLocaleString());
+  setText('p1-nv-vol', tvol.toLocaleString());
   setPulseClass('pc-msi-share', msiShare>=15?'ok':msiShare>=8?'warn':'risk');
 
-  // P2 – MSI Userbuy this week
+  // P2 – MSI Userbuy: period total + latest week + WoW
   const ubFact = ubFacts(weeks);
   const ubTW = ubFact.filter(f=>f.w===latestW);
   const ubPW = ubFact.filter(f=>f.w===prevW);
   const ubTWQty = ubTW.reduce((s,f)=>s+(f.qty||0),0);
   const ubPWQty = ubPW.reduce((s,f)=>s+(f.qty||0),0);
+  const ubTotalPeriod = ubFact.reduce((s,f)=>s+(f.qty||0),0);
   const ubWoW = ubPWQty>0 ? (ubTWQty-ubPWQty)/ubPWQty*100 : null;
-  setText('p2', ubTWQty.toLocaleString());
-  setDelta('p2-d', ubWoW, '%');
+  setText('p2', ubTotalPeriod.toLocaleString());  // period total
+  setText('p2-tw', ubTWQty.toLocaleString());     // latest week
+  const p2wow = document.getElementById('p2-wow');
+  if(p2wow){
+    if(ubWoW!==null){
+      p2wow.innerHTML = deltaHtml(ubWoW,'%');
+    } else { p2wow.textContent='—'; p2wow.style.color='var(--text3)'; }
+  }
   setPulseClass('pc-userbuy', ubWoW===null?'info':ubWoW>5?'ok':ubWoW>-5?'warn':'risk');
 
   // P3 – Avg WOI from monthlysales byDealer (KA)
@@ -667,7 +703,7 @@ function renderPulse(nvRows, weeks, latestW, prevW) {
   setPulseClass('pc-woi', isNaN(woiNum)?'info':woiNum<=12?'ok':woiNum<=20?'warn':'risk');
 
   // P4 – KA channel share from IHS
-  const ihsAllTW = D.ihs.rows.filter(r=>r.w===latestW&&r.sg==='Gaming');
+  const ihsAllTW = D.ihs.rows.filter(r=>r.w===latestW&&r.sg==='Gaming'); // Gaming only
   const ihsKA = ihsAllTW.filter(r=>KA_DEALERS.includes(r.cust));
   const kaTotalVol = ihsKA.reduce((s,r)=>s+(r.ttlVol||0),0);
   const kaMSIVol = ihsKA.filter(r=>r.brand==='MSI').reduce((s,r)=>s+(r.brandVol||0),0);
@@ -680,29 +716,10 @@ function renderPulse(nvRows, weeks, latestW, prevW) {
   const kaShareDelta = kaSharePW>0 ? kaShare-kaSharePW : null;
   setText('p4', fmt1(kaShare)+'%');
   setDelta('p4-d', kaShareDelta, 'pp');
+  setText('p4-msi-vol', kaMSIVol.toLocaleString());
+  setText('p4-ka-vol', kaTotalVol.toLocaleString());
   setPulseClass('pc-ka', kaShare>=20?'ok':kaShare>=12?'warn':'risk');
 
-  // P5 – OOS Risk SKUs (WOI < 3w from userbuy)
-  // Group userbuy by sku last 4w
-  const skuQty = {};
-  ubLast4.forEach(f=>{ skuQty[f.sku]=(skuQty[f.sku]||0)+(f.qty||0); });
-  const avgBySkuWeekly = Object.fromEntries(
-    Object.entries(skuQty).map(([sku,q])=>[sku,q/4])
-  );
-  // Find skus where we'd project OOS < 3w (simplified: low recent trend)
-  const risky = D.ub.skus
-    .filter(s=>s.status!=='EOL')
-    .filter(s=>{
-      const avg4 = avgBySkuWeekly[s.sku]||0;
-      const tw2 = ubTW.filter(f=>f.sku===s.sku).reduce((a,f)=>a+(f.qty||0),0);
-      return avg4>2 && tw2<avg4*0.3; // sold <30% of 4w avg this week
-    })
-    .slice(0,5);
-
-  setText('p5', risky.length.toString());
-  const topRisky = risky.slice(0,2).map(s=>s.sku.split(' ').slice(0,3).join(' ')).join(', ');
-  setText('p5-detail', risky.length>0 ? topRisky : 'No OOS risk detected');
-  setPulseClass('pc-oos', risky.length===0?'ok':risky.length<=3?'warn':'risk');
 }
 
 /* ═══════════════════════════════════════
@@ -784,14 +801,14 @@ function renderWinLose(nvR, weeks, latestW) {
   const topLose = losing[0];
   let insight = '';
   if (topWin && topLose) {
-    insight = `<strong>${topWin.gpu}</strong> dẫn đầu với +${fmt1(topWin.delta)}pp 4-week share trend — `;
-    insight += `tiếp tục push tại MBW/FPT. `;
-    insight += `<strong>${topLose.gpu}</strong> mất ${fmt1(Math.abs(topLose.delta))}pp — `;
-    insight += `kiểm tra price competitiveness và tồn kho tại các KA dealers.`;
+    insight = `<strong>${topWin.gpu}</strong> leads with +${fmt1(topWin.delta)}pp 4-week share trend — `;
+    insight += `Continue push at MBW/FPT. `;
+    insight += `<strong>${topLose.gpu}</strong> lost ${fmt1(Math.abs(topLose.delta))}pp — `;
+    insight += `Check price competitiveness and inventory at KA dealers.`;
   } else if (gaining.length===0) {
-    insight = 'MSI đang mất share ở tất cả GPU tiers trong window hiện tại — cần review pricing strategy ngay.';
+    insight = 'MSI đang lost share ở tất cả GPU tiers trong window hiện tại — cần review pricing strategy ngay.';
   } else {
-    insight = 'MSI đang tăng share ở hầu hết GPU tiers. Duy trì momentum và theo dõi inventory.';
+    insight = 'MSI gaining share across most GPU tiers. Maintain momentum and monitor inventory.';
   }
   document.getElementById('wl-insight').innerHTML = insight;
 }
@@ -988,10 +1005,10 @@ function renderSignals(nvR, weeks, latestW) {
   const shareDelta = prevShare>0?msiShare-prevShare:null;
   if(shareDelta!==null) {
     if(shareDelta>0.5) signals.push({type:'ok',title:`MSI Overall: +${fmt1(shareDelta)}pp vs prev week`,
-      desc:`MSI chiếm ${fmt1(msiShare)}% tổng Nvidia market tuần ${latestW}. Momentum tốt — duy trì stock tại các KA.`,
+      desc:`MSI holds ${fmt1(msiShare)}% of total Nvidia market — week ${latestW}. Good momentum — maintain stock at KA dealers.`,
       action:'Maintain','act-cls':'act-green'});
     else if(shareDelta < -0.5) signals.push({type:'risk',title:`MSI Share giảm ${fmt1(Math.abs(shareDelta))}pp WoW`,
-      desc:`Từ ${fmt1(prevShare)}% xuống ${fmt1(msiShare)}% — kiểm tra pricing và availability tại Mobile World, FPT.`,
+      desc:`Down from ${fmt1(prevShare)}% to ${fmt1(msiShare)}% — check pricing and availability at Mobile World, FPT.`,
       action:'Review urgently','act-cls':'act-red'});
   }
 
@@ -1013,21 +1030,21 @@ function renderSignals(nvR, weeks, latestW) {
 
     if(nvVol>80 && mktGrowth>15 && msiNow<prevVol*0.02 && ubGPU<3) {
       signals.push({type:'warn',title:`${gpu}: Market ↑${fmt1(mktGrowth)}% nhưng MSI Userbuy thấp`,
-        desc:`Nvidia market ${gpu} tăng mạnh nhưng MSI chỉ có ${msiNow} units NV share. Kiểm tra inventory và promotion tại dealers.`,
+        desc:`Nvidia market ${gpu} surging but MSI only holds ${msiNow} units NV share. Review inventory and dealer promotion.`,
         action:'Check stock & pricing','act-cls':'act-amber'});
     }
 
     // OOS signal for active GPU
     if(nvVol>50 && shareNow<3 && ubGPU===0) {
       signals.push({type:'risk',title:`${gpu}: MSI có thể OOS`,
-        desc:`Market vol ${nvVol.toLocaleString()} units nhưng MSI NV share chỉ ${fmt1(shareNow)}% và userbuy = 0. Kiểm tra tồn kho ngay.`,
+        desc:`Market vol ${nvVol.toLocaleString()} units but MSI NV share only ${fmt1(shareNow)}% and userbuy = 0. Check stock immediately.`,
         action:'Check OOS immediately','act-cls':'act-red'});
     }
 
     // Strong performer
     if(shareNow>20 && nvVol>50) {
       signals.push({type:'ok',title:`${gpu}: MSI dominates với ${fmt1(shareNow)}% share`,
-        desc:`Strong performance — tiếp tục push ${gpu} tại KA channel. Cân nhắc featured placement.`,
+        desc:`Strong performance — continue push of ${gpu} at KA channel. Consider featured placement.`,
         action:'Push marketing','act-cls':'act-green'});
     }
   });
@@ -1038,10 +1055,10 @@ function renderSignals(nvR, weeks, latestW) {
   if(ubPW>0) {
     const ubGrowth = (ubTW-ubPW)/ubPW*100;
     if(ubGrowth>10) signals.push({type:'ok',title:`Userbuy ↑${fmt1(ubGrowth)}% WoW`,
-      desc:`Tổng MSI userbuy tăng từ ${ubPW.toLocaleString()} lên ${ubTW.toLocaleString()} units tuần này. Strong sell-through momentum.`,
+      desc:`Total MSI userbuy up from ${ubPW.toLocaleString()} to ${ubTW.toLocaleString()} units this week. Strong sell-through momentum.`,
       action:'Forecast restock','act-cls':'act-green'});
     else if(ubGrowth < -10) signals.push({type:'warn',title:`Userbuy ↓${fmt1(Math.abs(ubGrowth))}% WoW`,
-      desc:`Sell-through giảm — có thể do cuối tuần hoặc stock constraints. Verify với dealers.`,
+      desc:`Sell-through declined — possible end-of-week effect or stock constraints. Verify with dealers.`,
       action:'Verify with dealers','act-cls':'act-amber'});
   }
 
@@ -1050,7 +1067,7 @@ function renderSignals(nvR, weeks, latestW) {
 
   if(sorted.length===0) {
     sorted.push({type:'ok',title:'No critical signals this week',
-      desc:`Mọi chỉ số đang trong ngưỡng bình thường. Tiếp tục theo dõi tuần tới.`,
+      desc:`All indicators within normal range. Continue monitoring next week.`,
       action:'Monitor','act-cls':'act-green'});
   }
 
@@ -1163,7 +1180,7 @@ function renderDetail(nvR, weeks, gpu) {
     data:{labels, datasets:[
       {label:'Market Vol',type:'bar',
         data:barData,
-        backgroundColor:barData.map((_,i)=>i===barData.length-1?'rgba(200,200,215,.6)':'rgba(160,160,175,.3)'),
+        backgroundColor:barData.map((_,i)=>i===barData.length-1?'rgba(60,80,140,.55)':'rgba(100,120,160,.25)'),
         yAxisID:'yVol',
         datalabels:{display:true,anchor:'end',align:'top',color:'#7070808',font:{size:9},formatter:v=>v>0?v.toLocaleString():''}},
       {label:'Mkt share %',type:'line',
@@ -1197,7 +1214,7 @@ function renderDetail(nvR, weeks, gpu) {
           const txt=fmt1(s)+'%';
           const tw2=ctx.measureText(txt).width+10;
           const bw=Math.max(tw2,26),bh=15;
-          ctx.fillStyle='rgba(200,30,30,.88)';
+          ctx.fillStyle='rgba(180,20,20,.9)';
           rrect(ctx,x-bw/2,y,bw,bh,3);ctx.fill();
           ctx.fillStyle='#fff';ctx.font='bold 9px Inter,sans-serif';
           ctx.textAlign='center';ctx.textBaseline='middle';
