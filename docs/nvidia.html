@@ -304,15 +304,16 @@ select option{background:var(--bg2)}
           </div>
           <!-- sub: filter context -->
           <div style="font-size:10px;color:var(--text3);margin:4px 0 8px" id="p1-ctx">Total market vol</div>
-          <!-- divider -->
-          <div style="border-top:1px solid var(--border);padding-top:8px;display:flex;gap:14px">
-            <div style="flex:1">
-              <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">MSI Vol</div>
-              <div style="font-size:14px;font-weight:700;color:var(--text)" id="p1-msi-vol">—</div>
-            </div>
-            <div style="flex:1">
-              <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">MSI Share</div>
-              <div style="font-size:14px;font-weight:700" id="p1-msi-share">—</div>
+          <div style="margin:0 -16px -15px;padding:8px 16px 10px;background:rgba(37,99,235,.06);border-top:1px solid rgba(37,99,235,.2)">
+            <div style="display:flex;gap:14px">
+              <div style="flex:1">
+                <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">MSI Vol</div>
+                <div style="font-size:14px;font-weight:700;color:var(--text)" id="p1-msi-vol">—</div>
+              </div>
+              <div style="flex:1">
+                <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">MSI Share</div>
+                <div style="font-size:14px;font-weight:700" id="p1-msi-share">—</div>
+              </div>
             </div>
           </div>
         </div>
@@ -327,15 +328,16 @@ select option{background:var(--bg2)}
           </div>
           <!-- sub: filter context -->
           <div style="font-size:10px;color:var(--text3);margin:4px 0 8px" id="p4-ctx">KA total vol</div>
-          <!-- divider -->
-          <div style="border-top:1px solid var(--border);padding-top:8px;display:flex;gap:14px">
-            <div style="flex:1">
-              <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">MSI Vol</div>
-              <div style="font-size:14px;font-weight:700;color:var(--text)" id="p4-msi-vol">—</div>
-            </div>
-            <div style="flex:1">
-              <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">MSI Share</div>
-              <div style="font-size:14px;font-weight:700" id="p4-msi-share">—</div>
+          <div style="margin:0 -16px -15px;padding:8px 16px 10px;background:rgba(217,119,6,.06);border-top:1px solid rgba(217,119,6,.2)">
+            <div style="display:flex;gap:14px">
+              <div style="flex:1">
+                <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">MSI Vol</div>
+                <div style="font-size:14px;font-weight:700;color:var(--text)" id="p4-msi-vol">—</div>
+              </div>
+              <div style="flex:1">
+                <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">MSI Share</div>
+                <div style="font-size:14px;font-weight:700" id="p4-msi-share">—</div>
+              </div>
             </div>
           </div>
         </div>
@@ -347,14 +349,16 @@ select option{background:var(--bg2)}
             <div id="p5-yoy" style="display:flex;align-items:center;gap:3px;font-size:13px;font-weight:600;white-space:nowrap"></div>
           </div>
           <div style="font-size:10px;color:var(--text3);margin:4px 0 8px" id="p5-ctx">Rest channel vol</div>
-          <div style="border-top:1px solid var(--border);padding-top:8px;display:flex;gap:14px">
-            <div style="flex:1">
-              <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">MSI Vol</div>
-              <div style="font-size:14px;font-weight:700;color:var(--text)" id="p5-msi-vol">—</div>
-            </div>
-            <div style="flex:1">
-              <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">MSI Share</div>
-              <div style="font-size:14px;font-weight:700" id="p5-msi-share">—</div>
+          <div style="margin:0 -16px -15px;padding:8px 16px 10px;background:rgba(107,114,128,.06);border-top:1px solid rgba(107,114,128,.2)">
+            <div style="display:flex;gap:14px">
+              <div style="flex:1">
+                <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">MSI Vol</div>
+                <div style="font-size:14px;font-weight:700;color:var(--text)" id="p5-msi-vol">—</div>
+              </div>
+              <div style="flex:1">
+                <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">MSI Share</div>
+                <div style="font-size:14px;font-weight:700" id="p5-msi-share">—</div>
+              </div>
             </div>
           </div>
         </div>
@@ -397,6 +401,74 @@ select option{background:var(--bg2)}
             </div>
           </div>
         </div>
+    </div>
+
+
+    <!-- ★ BRAND & GPU ANALYSIS — table + line chart -->
+    <div class="section" id="section-brand-gpu">
+      <div class="sec-head">
+        <span class="sec-no" style="background:var(--bg4);color:var(--text2)">★</span>
+        <span class="sec-title">Brand & GPU Breakdown</span>
+        <span class="sec-tag">Volume · Share · Weekly trend · IHS data</span>
+      </div>
+
+      <!-- Row 1: Brand table + Brand share chart -->
+      <div style="display:grid;grid-template-columns:360px 1fr;gap:12px;margin-bottom:12px">
+
+        <!-- Brand table -->
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden">
+          <div style="padding:10px 14px;border-bottom:1px solid var(--border);font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.06em">Brands</div>
+          <table style="width:100%;border-collapse:collapse;font-size:12px" id="brand-table">
+            <thead>
+              <tr style="background:var(--bg3)">
+                <th style="padding:7px 14px;text-align:left;font-size:10px;font-weight:600;color:var(--text3);letter-spacing:.05em;white-space:nowrap">Brand</th>
+                <th style="padding:7px 8px;text-align:right;font-size:10px;font-weight:600;color:var(--text3)">Volume</th>
+                <th style="padding:7px 8px;text-align:right;font-size:10px;font-weight:600;color:var(--text3)">Share</th>
+                <th style="padding:7px 8px;text-align:right;font-size:10px;font-weight:600;color:var(--text3)">3Wk</th>
+                <th style="padding:7px 8px;text-align:right;font-size:10px;font-weight:600;color:var(--text3)">2Wk</th>
+                <th style="padding:7px 8px;text-align:right;font-size:10px;font-weight:600;color:var(--text3)">LstWk</th>
+                <th style="padding:7px 14px;text-align:right;font-size:10px;font-weight:600;color:var(--text3)">WoW</th>
+              </tr>
+            </thead>
+            <tbody id="brand-tbody"></tbody>
+          </table>
+        </div>
+
+        <!-- Brand share line chart -->
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:14px">
+          <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Weekly Share % — by Brand</div>
+          <div style="position:relative;height:200px"><canvas id="c-brand-share"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Row 2: GPU table + GPU share chart -->
+      <div style="display:grid;grid-template-columns:360px 1fr;gap:12px">
+
+        <!-- GPU table -->
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden">
+          <div style="padding:10px 14px;border-bottom:1px solid var(--border);font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.06em">GPU</div>
+          <table style="width:100%;border-collapse:collapse;font-size:12px" id="gpu-table">
+            <thead>
+              <tr style="background:var(--bg3)">
+                <th style="padding:7px 14px;text-align:left;font-size:10px;font-weight:600;color:var(--text3);letter-spacing:.05em;white-space:nowrap">GPU</th>
+                <th style="padding:7px 8px;text-align:right;font-size:10px;font-weight:600;color:var(--text3)">Volume</th>
+                <th style="padding:7px 8px;text-align:right;font-size:10px;font-weight:600;color:var(--text3)">Share</th>
+                <th style="padding:7px 8px;text-align:right;font-size:10px;font-weight:600;color:var(--text3)">3Wk</th>
+                <th style="padding:7px 8px;text-align:right;font-size:10px;font-weight:600;color:var(--text3)">2Wk</th>
+                <th style="padding:7px 8px;text-align:right;font-size:10px;font-weight:600;color:var(--text3)">LstWk</th>
+                <th style="padding:7px 14px;text-align:right;font-size:10px;font-weight:600;color:var(--text3)">WoW</th>
+              </tr>
+            </thead>
+            <tbody id="gpu-tbody"></tbody>
+          </table>
+        </div>
+
+        <!-- GPU vol line chart -->
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:14px">
+          <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Weekly Volume — by GPU</div>
+          <div style="position:relative;height:200px"><canvas id="c-gpu-vol"></canvas></div>
+        </div>
+      </div>
     </div>
 
     <!-- ② WIN/LOSE MATRIX -->
@@ -668,6 +740,7 @@ function render() {
     `${weeks.length} weeks · ${rows.length} rows · latest: ${latestW}`;
 
   renderPulse(rows, weeks, latestW, prevW);
+  renderBrandGpu(rows, weeks);
   renderWinLose(rows, weeks, latestW);
   renderSparklines(rows, weeks);
   renderGauges(weeks);
@@ -878,6 +951,239 @@ function renderPulse(nvRows, weeks, latestW, prevW) {
     restShareEl.style.color = restShare>=15?'var(--green)':restShare>=8?'var(--amber)':'var(--red)';
   }
 
+}
+
+
+/* ═══════════════════════════════════════
+   ★ BRAND & GPU ANALYSIS
+   Brand table + line chart (share %)
+   GPU table + line chart (volume)
+═══════════════════════════════════════ */
+function renderBrandGpu(nvR, weeks) {
+  const last13 = weeks.slice(-13);
+  const latestW = last13[last13.length-1];
+  const prevW   = last13[last13.length-2]||latestW;
+  const w3ago   = last13[last13.length-4]||latestW;
+
+  // ── BRAND TABLE from IHS ─────────────────────
+  const ihs = D.ihs.rows.filter(r=>weeks.includes(r.w)&&r.sg==='Gaming');
+  // Sum brandVol per brand across all weeks (period total)
+  const BRANDS = ['Asus','Lenovo','Acer','MSI','HP','Giga','Others'];
+  const BRAND_COLORS = {
+    Asus:'#f59e0b', Lenovo:'#3b82f6', Acer:'#22c55e',
+    MSI:'#ef4444',  HP:'#a855f7',     Giga:'#6b7280', Others:'#94a3b8'
+  };
+
+  function brandVolWeek(brand, wk) {
+    return ihs.filter(r=>r.brand===brand&&r.w===wk).reduce((s,r)=>s+(r.brandVol||0),0);
+  }
+  function brandTtlWeek(wk) {
+    // total market vol for that week from NV gpuRows
+    return nvR.filter(r=>r.w===wk).reduce((s,r)=>s+(r.vol||0),0);
+  }
+
+  const periodTtl = nvR.reduce((s,r)=>s+(r.vol||0),0)||1;
+  const wLast = latestW, wPrev = prevW;
+  const ttlLast = brandTtlWeek(wLast)||1;
+  const ttlPrev = brandTtlWeek(wPrev)||1;
+  const ttlW3   = brandTtlWeek(w3ago)||1;
+  const ttlW2   = brandTtlWeek(last13[last13.length-3]||latestW)||1;
+
+  // Build brand rows
+  const brandRows = BRANDS.map(b=>{
+    const periodVol = ihs.filter(r=>r.brand===b).reduce((s,r)=>s+(r.brandVol||0),0);
+    const share = periodVol/periodTtl*100;
+    const vLast = brandVolWeek(b, wLast);
+    const vPrev = brandVolWeek(b, wPrev);
+    const vW3   = brandVolWeek(b, w3ago);
+    const vW2   = brandVolWeek(b, last13[last13.length-3]||latestW);
+    const wow   = vPrev>0 ? (vLast-vPrev)/vPrev*100 : null;
+    return {brand:b, vol:periodVol, share, vLast, vPrev, vW3, vW2, wow, color:BRAND_COLORS[b]};
+  }).sort((a,b)=>b.vol-a.vol);
+
+  // Grand total row
+  const gtVol   = brandRows.reduce((s,r)=>s+r.vol,0);
+  const gtLast  = brandRows.reduce((s,r)=>s+r.vLast,0);
+  const gtPrev  = brandRows.reduce((s,r)=>s+r.vPrev,0);
+  const gtW3    = brandRows.reduce((s,r)=>s+r.vW3,0);
+  const gtW2    = brandRows.reduce((s,r)=>s+r.vW2,0);
+  const gtWoW   = gtPrev>0?(gtLast-gtPrev)/gtPrev*100:null;
+
+  function wowHtml(v) {
+    if(v===null) return '<span style="color:var(--text3)">—</span>';
+    const up=v>=0, clr=up?'#16a34a':'#dc2626';
+    return `<span style="color:${clr};font-weight:600">${up?'+':''}${v.toFixed(0)}%</span>`;
+  }
+  function shareBar(pct, color) {
+    return `<div style="display:flex;align-items:center;gap:5px">
+      <div style="width:50px;height:5px;background:var(--bg4);border-radius:3px;overflow:hidden">
+        <div style="width:${Math.min(100,pct*3)}%;height:100%;background:${color};border-radius:3px"></div>
+      </div>
+      <span style="color:var(--text)">${pct.toFixed(1)}%</span></div>`;
+  }
+
+  const tbody = document.getElementById('brand-tbody');
+  if(tbody) {
+    tbody.innerHTML = brandRows.map(r=>`
+      <tr style="border-top:1px solid var(--border)">
+        <td style="padding:7px 14px;display:flex;align-items:center;gap:6px">
+          <div style="width:8px;height:8px;border-radius:50%;background:${r.color};flex-shrink:0"></div>
+          <span style="font-weight:500;color:var(--text)">${r.brand}</span>
+        </td>
+        <td style="padding:7px 8px;text-align:right;color:var(--text)">${r.vol.toLocaleString()}</td>
+        <td style="padding:7px 8px;text-align:right">${shareBar(r.share,r.color)}</td>
+        <td style="padding:7px 8px;text-align:right;color:var(--text2)">${r.vW3.toLocaleString()}</td>
+        <td style="padding:7px 8px;text-align:right;color:var(--text2)">${r.vW2.toLocaleString()}</td>
+        <td style="padding:7px 8px;text-align:right;font-weight:600;color:var(--text)">${r.vLast.toLocaleString()}</td>
+        <td style="padding:7px 14px;text-align:right">${wowHtml(r.wow)}</td>
+      </tr>`).join('') +
+    `<tr style="border-top:2px solid var(--border);background:var(--bg3)">
+      <td style="padding:7px 14px;font-weight:600;color:var(--text)">Grand total</td>
+      <td style="padding:7px 8px;text-align:right;font-weight:600;color:var(--text)">${gtVol.toLocaleString()}</td>
+      <td style="padding:7px 8px;text-align:right;font-size:10px;color:var(--text3)">100%</td>
+      <td style="padding:7px 8px;text-align:right;font-weight:600;color:var(--text)">${gtW3.toLocaleString()}</td>
+      <td style="padding:7px 8px;text-align:right;font-weight:600;color:var(--text)">${gtW2.toLocaleString()}</td>
+      <td style="padding:7px 8px;text-align:right;font-weight:600;color:var(--text)">${gtLast.toLocaleString()}</td>
+      <td style="padding:7px 14px;text-align:right">${wowHtml(gtWoW)}</td>
+    </tr>`;
+  }
+
+  // ── BRAND SHARE LINE CHART ────────────────────
+  const chartWeeks = last13;
+  const xLabels = chartWeeks.map(w=>w.replace(/\d+W/,''));
+
+  destroyChart('c-brand-share');
+  charts['c-brand-share'] = new Chart(document.getElementById('c-brand-share'), {
+    type:'line',
+    data:{
+      labels: xLabels,
+      datasets: BRANDS.filter(b=>b!=='Others').map(b=>({
+        label: b,
+        data: chartWeeks.map(w=>{
+          const bv = brandVolWeek(b,w);
+          const tv = brandTtlWeek(w)||1;
+          return +(bv/tv*100).toFixed(1);
+        }),
+        borderColor: BRAND_COLORS[b],
+        backgroundColor: BRAND_COLORS[b]+'22',
+        borderWidth: b==='MSI'?2.5:1.5,
+        pointRadius: b==='MSI'?4:2.5,
+        pointBackgroundColor: BRAND_COLORS[b],
+        tension: 0.3,
+        fill: false,
+        datalabels:{display:false}
+      }))
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{display:true, position:'top',
+          labels:{boxWidth:10, boxHeight:10, padding:12, font:{size:10}, usePointStyle:true, pointStyleWidth:8}},
+        datalabels:{display:false},
+        tooltip:{mode:'index', intersect:false,
+          callbacks:{label:i=>` ${i.dataset.label}: ${i.raw}%`}}
+      },
+      scales:{
+        x:{grid:{display:false}, ticks:{font:{size:10}}},
+        y:{grid:{color:'rgba(0,0,0,.04)'}, ticks:{callback:v=>v+'%', font:{size:10}}, min:0}
+      }
+    }
+  });
+
+  // ── GPU TABLE from NV gpuRows ─────────────────
+  const GPU_COLORS = {
+    'RTX 3050':'#3b82f6','RTX 4050':'#f59e0b','RTX 5050':'#22c55e',
+    'RTX 5060':'#8b5cf6','RTX 2050':'#ef4444','RTX 5070':'#f97316',
+    'RTX 4060':'#06b6d4','RTX 4070':'#ec4899','RTX 5070Ti':'#84cc16',
+    'RTX 5080':'#10b981','RTX 5090':'#6366f1','RTX 4080':'#f43f5e',
+    'RTX 4090':'#0ea5e9','RTX Others':'#94a3b8'
+  };
+
+  function gpuVolWeek(gpu, wk) {
+    return nvR.filter(r=>r.gpu===gpu&&r.w===wk).reduce((s,r)=>s+(r.vol||0),0);
+  }
+
+  const gpuList2 = [...new Set(nvR.map(r=>r.gpu))].filter(g=>g&&g!=='RTX Others');
+  const gpuRows2 = gpuList2.map(g=>{
+    const periodVol = nvR.filter(r=>r.gpu===g).reduce((s,r)=>s+(r.vol||0),0);
+    const share = periodVol/periodTtl*100;
+    const vLast = gpuVolWeek(g, wLast);
+    const vPrev = gpuVolWeek(g, wPrev);
+    const vW3   = gpuVolWeek(g, w3ago);
+    const vW2   = gpuVolWeek(g, last13[last13.length-3]||latestW);
+    const wow   = vPrev>0?(vLast-vPrev)/vPrev*100:null;
+    return {gpu:g, vol:periodVol, share, vLast, vPrev, vW3, vW2, wow};
+  }).filter(r=>r.vol>0).sort((a,b)=>b.vol-a.vol);
+
+  const gtGpuVol  = gpuRows2.reduce((s,r)=>s+r.vol,0);
+  const gtGpuLast = gpuRows2.reduce((s,r)=>s+r.vLast,0);
+  const gtGpuW3   = gpuRows2.reduce((s,r)=>s+r.vW3,0);
+  const gtGpuW2   = gpuRows2.reduce((s,r)=>s+r.vW2,0);
+  const gtGpuPrev = gpuRows2.reduce((s,r)=>s+r.vPrev,0);
+  const gtGpuWoW  = gtGpuPrev>0?(gtGpuLast-gtGpuPrev)/gtGpuPrev*100:null;
+
+  const gpuTbody = document.getElementById('gpu-tbody');
+  if(gpuTbody) {
+    gpuTbody.innerHTML = gpuRows2.map(r=>{
+      const clr = GPU_COLORS[r.gpu]||'#94a3b8';
+      return `<tr style="border-top:1px solid var(--border)">
+        <td style="padding:7px 14px;display:flex;align-items:center;gap:6px">
+          <div style="width:8px;height:8px;border-radius:2px;background:${clr};flex-shrink:0"></div>
+          <span style="font-weight:500;color:var(--text)">${r.gpu}</span>
+        </td>
+        <td style="padding:7px 8px;text-align:right;color:var(--text)">${r.vol.toLocaleString()}</td>
+        <td style="padding:7px 8px;text-align:right">${shareBar(r.share,clr)}</td>
+        <td style="padding:7px 8px;text-align:right;color:var(--text2)">${r.vW3.toLocaleString()}</td>
+        <td style="padding:7px 8px;text-align:right;color:var(--text2)">${r.vW2.toLocaleString()}</td>
+        <td style="padding:7px 8px;text-align:right;font-weight:600;color:var(--text)">${r.vLast.toLocaleString()}</td>
+        <td style="padding:7px 14px;text-align:right">${wowHtml(r.wow)}</td>
+      </tr>`;
+    }).join('') +
+    `<tr style="border-top:2px solid var(--border);background:var(--bg3)">
+      <td style="padding:7px 14px;font-weight:600;color:var(--text)">Grand total</td>
+      <td style="padding:7px 8px;text-align:right;font-weight:600;color:var(--text)">${gtGpuVol.toLocaleString()}</td>
+      <td style="padding:7px 8px;text-align:right;font-size:10px;color:var(--text3)">100%</td>
+      <td style="padding:7px 8px;text-align:right;font-weight:600;color:var(--text)">${gtGpuW3.toLocaleString()}</td>
+      <td style="padding:7px 8px;text-align:right;font-weight:600;color:var(--text)">${gtGpuW2.toLocaleString()}</td>
+      <td style="padding:7px 8px;text-align:right;font-weight:600;color:var(--text)">${gtGpuLast.toLocaleString()}</td>
+      <td style="padding:7px 14px;text-align:right">${wowHtml(gtGpuWoW)}</td>
+    </tr>`;
+  }
+
+  // ── GPU VOLUME LINE CHART ─────────────────────
+  // Show top 6 GPUs by volume
+  const topGpus = gpuRows2.slice(0,6);
+  destroyChart('c-gpu-vol');
+  charts['c-gpu-vol'] = new Chart(document.getElementById('c-gpu-vol'), {
+    type:'line',
+    data:{
+      labels: xLabels,
+      datasets: topGpus.map(g=>({
+        label: g.gpu,
+        data: chartWeeks.map(w=>gpuVolWeek(g.gpu,w)),
+        borderColor: GPU_COLORS[g.gpu]||'#94a3b8',
+        backgroundColor: (GPU_COLORS[g.gpu]||'#94a3b8')+'18',
+        borderWidth:1.5,
+        pointRadius:2.5,
+        pointBackgroundColor: GPU_COLORS[g.gpu]||'#94a3b8',
+        tension:0.3, fill:false,
+        datalabels:{display:false}
+      }))
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{display:true, position:'top',
+          labels:{boxWidth:10, boxHeight:10, padding:10, font:{size:10}, usePointStyle:true, pointStyleWidth:8}},
+        datalabels:{display:false},
+        tooltip:{mode:'index', intersect:false}
+      },
+      scales:{
+        x:{grid:{display:false}, ticks:{font:{size:10}}},
+        y:{grid:{color:'rgba(0,0,0,.04)'}, ticks:{font:{size:10},callback:v=>v>=1000?(v/1000).toFixed(1)+'k':v}, min:0}
+      }
+    }
+  });
 }
 
 /* ═══════════════════════════════════════
