@@ -732,13 +732,17 @@ function renderPulse(nvRows, weeks, latestW, prevW) {
   const msiSharePW = nvPWVol>0 ? nvPWMsi/nvPWVol*100 : 0;
   const shareWoW   = msiSharePW>0 ? msiShareTW-msiSharePW : null;
 
-  // KA share TW vs PW (from IHS)
-  const ihsKATW = D.ihs.rows.filter(r=>r.w===latestW&&r.sg==='Gaming'&&KA_DEALERS.includes(r.cust));
-  const ihsKAPW2 = D.ihs.rows.filter(r=>r.w===prevW&&r.sg==='Gaming'&&KA_DEALERS.includes(r.cust));
-  const kaTWVol2  = ihsKATW.reduce((s,r)=>s+(r.ttlVol||0),0);
-  const kaPWVol2  = ihsKAPW2.reduce((s,r)=>s+(r.ttlVol||0),0);
-  const kaTWMsi2  = ihsKATW.filter(r=>r.brand==='MSI').reduce((s,r)=>s+(r.brandVol||0),0);
-  const kaPWMsi2  = ihsKAPW2.filter(r=>r.brand==='MSI').reduce((s,r)=>s+(r.brandVol||0),0);
+  // KA share TW vs PW (from IHS) — derive vol from brandVol/brandShare
+  function deriveKAVol(wk) {
+    const rows = D.ihs.rows.filter(r=>r.w===wk&&r.sg==='Gaming'&&KA_DEALERS.includes(r.cust)&&r.brandShare>0&&r.brandVol>0);
+    const dwt = {};
+    rows.forEach(r=>{ const k=r.cust; const imp=r.brandVol/r.brandShare; if(!dwt[k]||imp>dwt[k])dwt[k]=imp; });
+    return Math.round(Object.values(dwt).reduce((s,v)=>s+v,0));
+  }
+  const kaTWVol2  = deriveKAVol(latestW);
+  const kaPWVol2  = deriveKAVol(prevW);
+  const kaTWMsi2  = D.ihs.rows.filter(r=>r.w===latestW&&r.sg==='Gaming'&&KA_DEALERS.includes(r.cust)&&r.brand==='MSI').reduce((s,r)=>s+(r.brandVol||0),0);
+  const kaPWMsi2  = D.ihs.rows.filter(r=>r.w===prevW&&r.sg==='Gaming'&&KA_DEALERS.includes(r.cust)&&r.brand==='MSI').reduce((s,r)=>s+(r.brandVol||0),0);
   const kaShareTW = kaTWVol2>0 ? kaTWMsi2/kaTWVol2*100 : 0;
   const kaSharePW2 = kaPWVol2>0 ? kaPWMsi2/kaPWVol2*100 : 0;
   const kaShareWoW = kaSharePW2>0 ? kaShareTW-kaSharePW2 : null;
@@ -767,22 +771,36 @@ function renderPulse(nvRows, weeks, latestW, prevW) {
   const dns = [nvWoW, ubWoW, shareWoW, kaShareWoW].filter(v=>v!==null&&v<0).length;
   setPulseClass('pc-wow', ups>dns?'ok':dns>ups?'warn':'info');
 
-  // P4 – KA Channel hero card (period total, same style as Card 1)
-  // Sum ALL weeks in window for KA total vol + MSI vol
+  // P4 – KA Channel hero card
+  // IHS ttlVol = 0 always; derive dealer total from brandVol/brandShare
+  // KA_DEALERS in IHS: Mobile World, FPT RETAIL JSC, CELLPHONES (NK missing)
   const ihsKAAll = D.ihs.rows.filter(r=>weeks.includes(r.w)&&r.sg==='Gaming'&&KA_DEALERS.includes(r.cust));
-  const kaTotalVol = ihsKAAll.reduce((s,r)=>s+(r.ttlVol||0),0);
+
+  // Compute implied dealer-week total: brandVol / brandShare per row
+  // Take max across brands per dealer-week (most stable estimate)
+  const dealerWkTtl = {};
+  ihsKAAll.filter(r=>r.brandShare>0&&r.brandVol>0).forEach(r=>{
+    const key = r.w+'|'+r.cust;
+    const implied = r.brandVol / r.brandShare;
+    if(!dealerWkTtl[key] || implied > dealerWkTtl[key]) dealerWkTtl[key] = implied;
+  });
+  const kaTotalVol = Math.round(Object.values(dealerWkTtl).reduce((s,v)=>s+v,0));
+
+  // MSI vol at KA: direct brandVol sum (accurate)
   const kaMSIVol  = ihsKAAll.filter(r=>r.brand==='MSI').reduce((s,r)=>s+(r.brandVol||0),0);
   const kaShare   = kaTotalVol>0 ? kaMSIVol/kaTotalVol*100 : 0;
 
-  // YoY: sum lastYear field across KA IHS rows
-  const kaLYVol = ihsKAAll.reduce((s,r)=>s+(r.lastYear||0),0);
-  const kaYoY   = kaLYVol>0 ? (kaTotalVol-kaLYVol)/kaLYVol*100 : null;
+  // YoY: derive LY total same way using lastYear field on MSI rows
+  // LY implied = lastYear / same brandShare (approx)
+  const kaMSIRows = ihsKAAll.filter(r=>r.brand==='MSI'&&r.brandShare>0&&r.lastYear>0);
+  const kaLYVol   = Math.round(kaMSIRows.reduce((s,r)=>s+(r.lastYear/r.brandShare),0));
+  const kaYoY     = kaLYVol>0 ? (kaTotalVol-kaLYVol)/kaLYVol*100 : null;
 
   // Hero vol + YoY badge
   setText('p4-ka-vol', kaTotalVol.toLocaleString());
   const ctxYear4 = st.year!=='all'?st.year:'All years';
   const ctxQ4    = st.quarter!=='all'?` · ${st.quarter}`:'';
-  setText('p4-ctx', `${ctxYear4}${ctxQ4} · KA total vol`);
+  setText('p4-ctx', `${ctxYear4}${ctxQ4} · KA vol (MBW+FPT+CPS)`);  // NK pending GAS fix
 
   const yoyEl4 = document.getElementById('p4-yoy');
   if(yoyEl4){
@@ -803,14 +821,19 @@ function renderPulse(nvRows, weeks, latestW, prevW) {
   setPulseClass('pc-ka', kaShare>=20?'ok':kaShare>=12?'warn':'risk');
 
   // P5 — Rest Channel = Total NV − KA (period)
-  // IHS all Gaming rows for window, exclude KA dealers
-  const ihsRestAll = D.ihs.rows.filter(r=>weeks.includes(r.w)&&r.sg==='Gaming'&&!KA_DEALERS.includes(r.cust));
-  const restTotalVol = ihsRestAll.reduce((s,r)=>s+(r.ttlVol||0),0);
-  const restMSIVol   = ihsRestAll.filter(r=>r.brand==='MSI').reduce((s,r)=>s+(r.brandVol||0),0);
+  // Derive from NV gpuRows total minus KA total (already computed above)
+  // NV total = tvol (from gpuRows, accurate)
+  // KA total = kaTotalVol (derived above)
+  const restTotalVol = Math.max(0, tvol - kaTotalVol);
+
+  // MSI Rest = NV MSI total - KA MSI (IHS brandVol)
+  const restMSIVol   = Math.max(0, tmsi - kaMSIVol);
   const restShare    = restTotalVol>0 ? restMSIVol/restTotalVol*100 : 0;
-  // YoY via lastYear field
-  const restLYVol    = ihsRestAll.reduce((s,r)=>s+(r.lastYear||0),0);
-  const restYoY      = restLYVol>0 ? (restTotalVol-restLYVol)/restLYVol*100 : null;
+
+  // YoY: NV LY - KA LY
+  const nvLYAll = nvRows.reduce((s,r)=>s+(r.lastYear||0),0);
+  const restLYVol = Math.max(0, nvLYAll - kaLYVol);
+  const restYoY   = restLYVol>0 ? (restTotalVol-restLYVol)/restLYVol*100 : null;
 
   // Hero vol
   setText('p5-rest-vol', restTotalVol.toLocaleString());
