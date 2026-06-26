@@ -361,29 +361,39 @@ select option{background:var(--bg2)}
         <!-- Card 4: WoW Summary — 4 key metrics in 1 card -->
         <div class="pulse-card" id="pc-wow">
           <div class="p-label">Week-over-Week</div>
-          <div style="font-size:10px;color:var(--text3);margin:2px 0 10px" id="wow-ctx">—</div>
-          <!-- row 1: NV Market + MSI Userbuy -->
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 12px">
-            <div style="padding-bottom:8px;border-bottom:1px solid var(--border)">
-              <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">NV Market</div>
-              <div style="font-size:16px;font-weight:700;color:var(--text);letter-spacing:-.5px" id="wow-nv-tw">—</div>
-              <div style="font-size:11px;font-weight:600;margin-top:2px" id="wow-nv-wow"></div>
+          <div style="font-size:10px;color:var(--text3);margin:2px 0 8px" id="wow-ctx">—</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0">
+            <!-- Row 1: Total market → MSI active → MSI share -->
+            <div style="padding:0 10px 8px 0;border-bottom:1px solid var(--border);border-right:1px solid var(--border)">
+              <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px">NV Market</div>
+              <div style="font-size:15px;font-weight:700;color:var(--text);letter-spacing:-.4px" id="wow-nv-tw">—</div>
+              <div style="font-size:10px;font-weight:600;margin-top:2px" id="wow-nv-wow"></div>
             </div>
-            <div style="padding-bottom:8px;border-bottom:1px solid var(--border)">
-              <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">MSI Userbuy</div>
-              <div style="font-size:16px;font-weight:700;color:var(--text);letter-spacing:-.5px" id="wow-ub-tw">—</div>
-              <div style="font-size:11px;font-weight:600;margin-top:2px" id="wow-ub-wow"></div>
+            <div style="padding:0 10px 8px 10px;border-bottom:1px solid var(--border);border-right:1px solid var(--border)">
+              <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px">MSI Userbuy</div>
+              <div style="font-size:15px;font-weight:700;color:var(--text);letter-spacing:-.4px" id="wow-ub-tw">—</div>
+              <div style="font-size:10px;font-weight:600;margin-top:2px" id="wow-ub-wow"></div>
             </div>
-            <!-- row 2: MSI Share + KA Share -->
-            <div style="padding-top:8px">
-              <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">MSI Share</div>
-              <div style="font-size:16px;font-weight:700;color:var(--text);letter-spacing:-.5px" id="wow-share-tw">—</div>
-              <div style="font-size:11px;font-weight:600;margin-top:2px" id="wow-share-wow"></div>
+            <div style="padding:0 0 8px 10px;border-bottom:1px solid var(--border)">
+              <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px">MSI Share</div>
+              <div style="font-size:15px;font-weight:700;color:var(--text);letter-spacing:-.4px" id="wow-share-tw">—</div>
+              <div style="font-size:10px;font-weight:600;margin-top:2px" id="wow-share-wow"></div>
             </div>
-            <div style="padding-top:8px">
-              <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">KA Share</div>
-              <div style="font-size:16px;font-weight:700;color:var(--text);letter-spacing:-.5px" id="wow-ka-tw">—</div>
-              <div style="font-size:11px;font-weight:600;margin-top:2px" id="wow-ka-wow"></div>
+            <!-- Row 2: KA total → KA MSI vol → KA MSI share -->
+            <div style="padding:8px 10px 0 0;border-right:1px solid var(--border)">
+              <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px">KA Vol</div>
+              <div style="font-size:15px;font-weight:700;color:var(--text);letter-spacing:-.4px" id="wow-ka-vol-tw">—</div>
+              <div style="font-size:10px;font-weight:600;margin-top:2px" id="wow-ka-vol-wow"></div>
+            </div>
+            <div style="padding:8px 10px 0 10px;border-right:1px solid var(--border)">
+              <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px">KA MSI Vol</div>
+              <div style="font-size:15px;font-weight:700;color:var(--text);letter-spacing:-.4px" id="wow-ka-msi-tw">—</div>
+              <div style="font-size:10px;font-weight:600;margin-top:2px" id="wow-ka-msi-wow"></div>
+            </div>
+            <div style="padding:8px 0 0 10px">
+              <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px">KA Share</div>
+              <div style="font-size:15px;font-weight:700;color:var(--text);letter-spacing:-.4px" id="wow-ka-tw">—</div>
+              <div style="font-size:10px;font-weight:600;margin-top:2px" id="wow-ka-wow"></div>
             </div>
           </div>
         </div>
@@ -523,8 +533,8 @@ Chart.register(ChartDataLabels);
 const GAS = 'https://script.google.com/macros/s/AKfycbwA403Z2FAYM_qyq0sGNqTfWuRiJc9rhSrb7RoZRFKzYD45YWFBF1y08L3Y_H3iQmC3/exec';
 const GPU_ORDER = ['RTX 2050','RTX 3050','RTX 4050','RTX 4060','RTX 4070','RTX 4080','RTX 4090','RTX 5050','RTX 5060','RTX 5070','RTX 5070Ti','RTX 5080','RTX 5090','RTX Others'];
 const GEN5 = new Set(['RTX 5050','RTX 5060','RTX 5070','RTX 5070Ti','RTX 5080','RTX 5090']);
-const KA_DEALERS = ['Mobile World','FPT RETAIL JSC','CELLPHONES','NGUYEN KIM'];
-const KA_SHORT = {'Mobile World':'MBW','FPT RETAIL JSC':'FPT','CELLPHONES':'CPS','NGUYEN KIM':'NK'};
+const KA_DEALERS = ['Mobile World','FPT RETAIL JSC','CELLPHONES','PHONG VU'];
+const KA_SHORT = {'Mobile World':'MBW','FPT RETAIL JSC':'FPT','CELLPHONES':'CPS','PHONG VU':'PV'};
 // GPU → segment label from NV data
 const GPU_TO_SEG = {
   'RTX 2050':'Entry','RTX 3050':'Value','RTX 4050':'Mid',
@@ -761,12 +771,21 @@ function renderPulse(nvRows, weeks, latestW, prevW) {
     } else if(wowEl) { wowEl.textContent='—'; wowEl.style.color='var(--text3)'; }
   }
 
-  setWowMetric('wow-nv-tw',    'wow-nv-wow',    nvTWVol,     nvWoW,      false);
-  setWowMetric('wow-ub-tw',    'wow-ub-wow',    ubTWQty,     ubWoW,      false);
-  setWowMetric('wow-share-tw', 'wow-share-wow', msiShareTW,  shareWoW,   true);
-  setWowMetric('wow-ka-tw',    'wow-ka-wow',    kaShareTW,   kaShareWoW, true);
+  // KA Vol WoW
+  const kaVolWoW = kaPWVol2>0 ? (kaTWVol2-kaPWVol2)/kaPWVol2*100 : null;
+  // KA MSI Vol WoW
+  const kaMsiVolWoW = kaPWMsi2>0 ? (kaTWMsi2-kaPWMsi2)/kaPWMsi2*100 : null;
 
-  // Card border: green if most metrics up, red if most down
+  // Row 1: NV Market | MSI Userbuy | MSI Share
+  setWowMetric('wow-nv-tw',     'wow-nv-wow',     nvTWVol,    nvWoW,      false);
+  setWowMetric('wow-ub-tw',     'wow-ub-wow',     ubTWQty,    ubWoW,      false);
+  setWowMetric('wow-share-tw',  'wow-share-wow',  msiShareTW, shareWoW,   true);
+  // Row 2: KA Vol | KA MSI Vol | KA Share
+  setWowMetric('wow-ka-vol-tw', 'wow-ka-vol-wow', kaTWVol2,   kaVolWoW,   false);
+  setWowMetric('wow-ka-msi-tw', 'wow-ka-msi-wow', kaTWMsi2,   kaMsiVolWoW,false);
+  setWowMetric('wow-ka-tw',     'wow-ka-wow',     kaShareTW,  kaShareWoW, true);
+
+  // Card border
   const ups = [nvWoW, ubWoW, shareWoW, kaShareWoW].filter(v=>v!==null&&v>0).length;
   const dns = [nvWoW, ubWoW, shareWoW, kaShareWoW].filter(v=>v!==null&&v<0).length;
   setPulseClass('pc-wow', ups>dns?'ok':dns>ups?'warn':'info');
@@ -800,7 +819,7 @@ function renderPulse(nvRows, weeks, latestW, prevW) {
   setText('p4-ka-vol', kaTotalVol.toLocaleString());
   const ctxYear4 = st.year!=='all'?st.year:'All years';
   const ctxQ4    = st.quarter!=='all'?` · ${st.quarter}`:'';
-  setText('p4-ctx', `${ctxYear4}${ctxQ4} · KA vol (MBW+FPT+CPS)`);  // NK pending GAS fix
+  setText('p4-ctx', `${ctxYear4}${ctxQ4} · KA vol (MBW+FPT+CPS+PV)`);
 
   const yoyEl4 = document.getElementById('p4-yoy');
   if(yoyEl4){
@@ -1074,7 +1093,7 @@ function renderGauges(weeks) {
   const last4w = weeks.slice(-4);
   // IHS has cust field = dealer names, use MSI brandVol per dealer
   const ihs4 = D.ihs.rows.filter(r=>last4w.includes(r.w)&&r.sg==='Gaming'&&r.brand==='MSI');
-  const CUST_MAP = {'Mobile World':'MBW','FPT RETAIL JSC':'FPT','CELLPHONES':'CPS','NGUYEN KIM':'NK'};
+  const CUST_MAP = {'Mobile World':'MBW','FPT RETAIL JSC':'FPT','CELLPHONES':'CPS','PHONG VU':'PV'};
   const DEALERS = ['MBW','FPT','CPS','NK'];
   // MSI vol by dealer
   const dealerMsiVol={};
