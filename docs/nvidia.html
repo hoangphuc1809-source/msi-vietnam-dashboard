@@ -77,9 +77,10 @@ select option{background:var(--bg2)}
 /* ── Pulse grid: 2-column layout ─────────────────
    Left: 3 hero cards (equal height row)
    Right: WoW card (spans full height) */
-.pulse-grid{display:grid;grid-template-columns:1fr 320px;grid-template-rows:auto;gap:10px;align-items:start}
-.pulse-heroes{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;align-items:stretch}
-.pulse-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px 0;position:relative;overflow:hidden;transition:border-color .15s;display:flex;flex-direction:column}
+/* ── 4-card row: all equal height ─── */
+.pulse-grid{display:grid;grid-template-columns:1fr 1fr 1fr minmax(220px,1fr);gap:10px;align-items:stretch}
+/* Hero cards */
+.pulse-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px 0;position:relative;overflow:hidden;transition:border-color .15s;display:flex;flex-direction:column;height:100%}
 .pulse-card:hover{border-color:var(--border2)}
 .pulse-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:3px 3px 0 0}
 .pulse-card.ok::before{background:var(--green)}
@@ -89,20 +90,21 @@ select option{background:var(--bg2)}
 .pulse-card.ka::before{background:#d97706}
 .pulse-card.rest::before{background:#6b7280}
 .pulse-card.info::before{background:var(--nvidia)}
-/* Sparkline inside hero cards */
-.card-spark{flex:1;min-height:80px;position:relative;margin:4px -16px 0}
+/* Sparkline fills remaining vertical space */
+.card-spark{flex:1;min-height:60px;position:relative;margin:6px -16px 0}
 .card-spark canvas{position:absolute;inset:0;width:100%!important;height:100%!important}
-/* Sub-footer: single line with styled labels */
-.card-footer{display:flex;align-items:center;justify-content:space-between;padding:7px 14px 9px;margin:0 -16px;font-size:11px;gap:6px}
-.cf-yoy{font-size:11px;font-weight:700;flex-shrink:0}
-.cf-mid{display:flex;align-items:baseline;gap:4px;flex:1;justify-content:center}
-.cf-mid-label{font-size:10px;font-style:italic;color:var(--text3)}
-.cf-mid-val{font-size:12px;font-weight:700;color:var(--text)}
-.cf-right{display:flex;align-items:baseline;gap:4px;flex-shrink:0}
-.cf-right-label{font-size:10px;font-style:italic;color:var(--text3)}
+/* Footer: single line, no wrap, overflow hidden */
+.card-footer{display:flex;align-items:center;gap:8px;padding:6px 12px 8px;margin:0 -16px;overflow:hidden;white-space:nowrap}
+.cf-yoy{font-size:11px;font-weight:700;flex-shrink:0;min-width:80px}
+.cf-mid{display:flex;align-items:baseline;gap:3px;flex:1;overflow:hidden;min-width:0}
+.cf-mid-label{font-size:9px;font-style:italic;color:var(--text3);flex-shrink:0}
+.cf-mid-val{font-size:12px;font-weight:700;color:var(--text);flex-shrink:0}
+.cf-right{display:flex;align-items:baseline;gap:3px;flex-shrink:0}
+.cf-right-label{font-size:9px;font-style:italic;color:var(--text3)}
 .cf-right-val{font-size:12px;font-weight:700}
-/* WoW card fills right column */
-.pulse-wow{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;grid-column:2;grid-row:1}
+/* WoW card — same grid cell, flex column */
+.pulse-wow{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;display:flex;flex-direction:column}
+.pulse-wow-body{flex:1;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:0}
 .p-label{font-size:10px;color:var(--text2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .p-value{font-size:26px;font-weight:700;color:var(--text);letter-spacing:-.7px;line-height:1}
 .p-sub{margin-top:6px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
@@ -229,31 +231,35 @@ select option{background:var(--bg2)}
 
 /* ── responsive ── */
 @media(max-width:1200px){
-  .pulse-grid{grid-template-columns:1fr;grid-template-rows:auto auto}
-  .pulse-wow{grid-column:1;grid-row:2}
+  /* Tablet: 2x2 grid for pulse */
+  .pulse-grid{grid-template-columns:1fr 1fr}
   .spark-grid{grid-template-columns:repeat(3,1fr)}
   .gauge-grid{grid-template-columns:repeat(2,1fr)}
   .signal-grid{grid-template-columns:1fr}
 }
 @media(max-width:900px){
-  .pulse-heroes{grid-template-columns:repeat(3,1fr)}
+  /* Phablet: still 2x2 */
+  .pulse-grid{grid-template-columns:1fr 1fr}
   .spark-grid{grid-template-columns:repeat(2,1fr)}
   .wl-grid{grid-template-columns:1fr}
   .wl-divider{display:none}
   .gpu-detail-wrap{grid-template-columns:1fr}
   .kpi-row{grid-template-columns:repeat(2,1fr)}
-  /* Brand/GPU section: stack on tablet */
   #section-brand-gpu .brand-gpu-row{grid-template-columns:1fr!important}
+  .cf-mid-label,.cf-right-label{display:none}
 }
 @media(max-width:600px){
-  .pulse-heroes{grid-template-columns:1fr 1fr}
+  /* Mobile: 2x2, tighter */
+  .pulse-grid{grid-template-columns:1fr 1fr}
   .spark-grid{grid-template-columns:1fr 1fr}
-  .page{padding:10px 12px}
-  .tab-nav{padding:8px 12px 0}
+  .page{padding:10px 10px}
+  .tab-nav{padding:8px 10px 0}
   #section-brand-gpu .brand-gpu-row{grid-template-columns:1fr!important}
+  .card-spark{min-height:44px}
+  .cf-mid-label,.cf-right-label{display:none}
 }
 @media(max-width:380px){
-  .pulse-heroes{grid-template-columns:1fr}
+  .pulse-grid{grid-template-columns:1fr}
 }
 </style>
 </head>
@@ -317,11 +323,8 @@ select option{background:var(--bg2)}
         <span class="sec-title">CEO Pulse</span>
         <span class="sec-tag">4 CEO KPIs · period total + WoW · IHS + Userbuy + NV data</span>
       </div>
-      <!-- 2-col layout: heroes left, WoW right -->
+      <!-- 4-card row: all equal height, direct grid children -->
       <div class="pulse-grid">
-
-        <!-- LEFT: 3 hero cards equal height -->
-        <div class="pulse-heroes">
 
           <!-- Card 1: Nvidia Report -->
           <div class="pulse-card nv" id="pc-msi-share">
@@ -384,42 +387,43 @@ select option{background:var(--bg2)}
             </div>
           </div>
 
-        </div><!-- /pulse-heroes -->
-
-        <!-- RIGHT: WoW card — full height -->
+        <!-- WoW card -->
         <div class="pulse-wow" id="pc-wow">
           <div class="p-label">Week-over-Week</div>
           <div style="font-size:10px;color:var(--text3);margin:2px 0 10px" id="wow-ctx">—</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0">
-            <div style="padding:0 10px 8px 0;border-bottom:1px solid var(--border);border-right:1px solid var(--border)">
+          <div class="pulse-wow-body">
+            <div style="padding:0 8px 8px 0;border-bottom:1px solid var(--border);border-right:1px solid var(--border)">
               <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px">NV Market</div>
-              <div style="font-size:15px;font-weight:700;color:var(--text);letter-spacing:-.4px" id="wow-nv-tw">—</div>
-              <div style="font-size:10px;font-weight:600;margin-top:2px" id="wow-nv-wow"></div>
+              <div style="font-size:14px;font-weight:700;color:var(--text);letter-spacing:-.3px" id="wow-nv-tw">—</div>
+              <div style="font-size:10px;font-weight:600;margin-top:1px" id="wow-nv-wow"></div>
             </div>
-            <div style="padding:0 10px 8px 10px;border-bottom:1px solid var(--border);border-right:1px solid var(--border)">
+            <div style="padding:0 0 8px 8px;border-bottom:1px solid var(--border)">
               <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px">MSI Userbuy</div>
-              <div style="font-size:15px;font-weight:700;color:var(--text);letter-spacing:-.4px" id="wow-ub-tw">—</div>
-              <div style="font-size:10px;font-weight:600;margin-top:2px" id="wow-ub-wow"></div>
+              <div style="font-size:14px;font-weight:700;color:var(--text);letter-spacing:-.3px" id="wow-ub-tw">—</div>
+              <div style="font-size:10px;font-weight:600;margin-top:1px" id="wow-ub-wow"></div>
             </div>
-            <div style="padding:0 0 8px 10px;border-bottom:1px solid var(--border)">
+            <div style="padding:8px 8px 0 0;border-right:1px solid var(--border)">
               <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px">MSI Share</div>
-              <div style="font-size:15px;font-weight:700;color:var(--text);letter-spacing:-.4px" id="wow-share-tw">—</div>
-              <div style="font-size:10px;font-weight:600;margin-top:2px" id="wow-share-wow"></div>
+              <div style="font-size:14px;font-weight:700;color:var(--text);letter-spacing:-.3px" id="wow-share-tw">—</div>
+              <div style="font-size:10px;font-weight:600;margin-top:1px" id="wow-share-wow"></div>
             </div>
-            <div style="padding:8px 10px 0 0;border-right:1px solid var(--border)">
-              <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px">KA Vol</div>
-              <div style="font-size:15px;font-weight:700;color:var(--text);letter-spacing:-.4px" id="wow-ka-vol-tw">—</div>
-              <div style="font-size:10px;font-weight:600;margin-top:2px" id="wow-ka-vol-wow"></div>
-            </div>
-            <div style="padding:8px 10px 0 10px;border-right:1px solid var(--border)">
-              <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px">KA MSI Vol</div>
-              <div style="font-size:15px;font-weight:700;color:var(--text);letter-spacing:-.4px" id="wow-ka-msi-tw">—</div>
-              <div style="font-size:10px;font-weight:600;margin-top:2px" id="wow-ka-msi-wow"></div>
-            </div>
-            <div style="padding:8px 0 0 10px">
+            <div style="padding:8px 0 0 8px">
               <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px">KA Share</div>
-              <div style="font-size:15px;font-weight:700;color:var(--text);letter-spacing:-.4px" id="wow-ka-tw">—</div>
-              <div style="font-size:10px;font-weight:600;margin-top:2px" id="wow-ka-wow"></div>
+              <div style="font-size:14px;font-weight:700;color:var(--text);letter-spacing:-.3px" id="wow-ka-tw">—</div>
+              <div style="font-size:10px;font-weight:600;margin-top:1px" id="wow-ka-wow"></div>
+            </div>
+          </div>
+          <!-- KA Vol + KA MSI Vol — secondary row -->
+          <div style="display:flex;gap:12px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
+            <div style="flex:1">
+              <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px">KA Vol</div>
+              <div style="font-size:13px;font-weight:700;color:var(--text)" id="wow-ka-vol-tw">—</div>
+              <div style="font-size:10px;font-weight:600" id="wow-ka-vol-wow"></div>
+            </div>
+            <div style="flex:1">
+              <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px">KA MSI Vol</div>
+              <div style="font-size:13px;font-weight:700;color:var(--text)" id="wow-ka-msi-tw">—</div>
+              <div style="font-size:10px;font-weight:600" id="wow-ka-msi-wow"></div>
             </div>
           </div>
         </div><!-- /pulse-wow -->
