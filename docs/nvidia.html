@@ -977,21 +977,12 @@ function renderPulse(nvRows, weeks, latestW, prevW) {
   const kaMSIVol  = ihsKAAll.filter(r=>r.brand==='MSI').reduce((s,r)=>s+(r.brandVol||0),0);
   const kaShare   = kaTotalVol>0 ? kaMSIVol/kaTotalVol*100 : 0;
 
-  // YoY: sum lastYear directly from ALL brand rows at KA dealers
-  // This is accurate — each IHS row has lastYear = that brand's vol same period LY
-  // We need total LY market vol at KA = sum all brands' lastYear at KA
-  // But lastYear per row = that brand at that dealer in same week LY
-  // Best estimate: derive from MSI rows via brandShare (same logic as current vol)
-  // HOWEVER — use IHS all-brand lastYear sum as a more direct estimate
-  // Method: for each dealer-week, take the max implied LY (= brandVol/brandShare for LY rows)
-  const kaLYRows = ihsKAAll.filter(r=>r.lastYear>0&&r.brandShare>0);
-  const dwtLY = {};
-  kaLYRows.forEach(r=>{
-    // implied LY dealer total = lastYear / brandShare (same ratio holds for LY)
-    const k=r.w+'|'+r.cust, imp=r.lastYear/r.brandShare;
-    if(!dwtLY[k]||imp>dwtLY[k]) dwtLY[k]=imp;
-  });
-  const kaLYVol = Math.round(Object.values(dwtLY).reduce((s,v)=>s+v,0));
+  // YoY: sum lastYear per brand at KA dealers
+  // lastYear = that brand's vol at that dealer same period LY — direct sum is correct
+  // Do NOT divide by brandShare (that gives implied total, not brand LY)
+  const kaLYVol = D.ihs.rows
+    .filter(r=>weeks.includes(r.w)&&r.sg==='Gaming'&&KA_DEALERS.includes(r.cust)&&(r.lastYear||0)>0)
+    .reduce((s,r)=>s+(r.lastYear||0),0);
   const kaYoY   = kaLYVol>0 ? (kaTotalVol-kaLYVol)/kaLYVol*100 : null;
 
   // Hero vol + YoY badge
