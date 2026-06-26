@@ -673,14 +673,23 @@ let allYears=[], allWeeks=[];
 /* ═══════════════════════════════════════
    FETCH — parallel 3 sources
 ═══════════════════════════════════════ */
+async function gasJson(action) {
+  const res = await fetch(GAS + '?action=' + action, {redirect:'follow'});
+  const text = await res.text();
+  try {
+    return JSON.parse(text);
+  } catch(e) {
+    throw new Error('action=' + action + ' returned non-JSON: ' + text.slice(0,120));
+  }
+}
+
 async function fetchAll() {
   const step = document.getElementById('load-step');
-  const fetches = [
-    fetch(GAS+'?action=ihs').then(r=>r.json()).then(d=>{D.ihs=d;step.textContent='✓ IHS  ·  Userbuy · NV Report';}),
-    fetch(GAS+'?action=userbuy').then(r=>r.json()).then(d=>{D.ub=d;step.textContent='✓ IHS  · ✓ Userbuy ·  NV Report';}),
-    fetch(GAS+'?action=nv').then(r=>r.json()).then(d=>{D.nv=d;step.textContent='✓ IHS  · ✓ Userbuy · ✓ NV Report';})
-  ];
-  await Promise.all(fetches);
+  const [ihs, ub, nv] = await Promise.all([
+    gasJson('ihs').then(d=>{D.ihs=d; step.textContent='✓ IHS  ·  Userbuy · NV Report'; return d;}),
+    gasJson('userbuy').then(d=>{D.ub=d; step.textContent='✓ IHS  · ✓ Userbuy ·  NV Report'; return d;}),
+    gasJson('nv').then(d=>{D.nv=d; step.textContent='✓ IHS  · ✓ Userbuy · ✓ NV Report'; return d;})
+  ]);
 }
 
 /* ═══════════════════════════════════════
