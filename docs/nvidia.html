@@ -673,13 +673,26 @@ let allYears=[], allWeeks=[];
 /* ═══════════════════════════════════════
    FETCH — parallel 3 sources
 ═══════════════════════════════════════ */
-async function gasJson(action) {
-  const res = await fetch(GAS + '?action=' + action, {redirect:'follow'});
-  const text = await res.text();
+async function gasJson(action, attempt) {
+  attempt = attempt || 1;
+  const controller = new AbortController();
+  const tid = setTimeout(()=>controller.abort(), 30000); // 30s timeout
   try {
-    return JSON.parse(text);
+    const res = await fetch(GAS + '?action=' + action, {signal: controller.signal});
+    clearTimeout(tid);
+    const text = await res.text();
+    try {
+      return JSON.parse(text);
+    } catch(e) {
+      throw new Error('action=' + action + ' non-JSON: ' + text.slice(0,120));
+    }
   } catch(e) {
-    throw new Error('action=' + action + ' returned non-JSON: ' + text.slice(0,120));
+    clearTimeout(tid);
+    if (attempt < 3 && (e.name === 'AbortError' || e.message.includes('fetch'))) {
+      await new Promise(r=>setTimeout(r, 1500 * attempt)); // backoff
+      return gasJson(action, attempt + 1);
+    }
+    throw e;
   }
 }
 
