@@ -105,7 +105,8 @@ select option{background:var(--bg2)}
 /* WoW card — same grid cell, flex column */
 .pulse-wow{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;display:flex;flex-direction:column;align-self:stretch;min-height:0}
 .pulse-wow-body{flex:1;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:0}
-.p-label{font-size:10px;color:var(--text2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.p-label{font-size:12px;font-weight:700;color:var(--text);margin-bottom:1px;letter-spacing:-.1px}
+.p-sub-ctx{font-size:10px;color:var(--text3);font-style:italic;margin-bottom:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .p-value{font-size:26px;font-weight:700;color:var(--text);letter-spacing:-.7px;line-height:1}
 .p-sub{margin-top:6px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .delta{font-size:11px;font-weight:600}
@@ -329,6 +330,7 @@ select option{background:var(--bg2)}
           <!-- Card 1: Nvidia Report -->
           <div class="pulse-card nv" id="pc-msi-share">
             <div class="p-label">Nvidia Report</div>
+            <div class="p-sub-ctx" id="p1-ctx">—</div>
             <div style="margin:6px 0 2px;text-align:center">
               <div style="font-size:36px;font-weight:800;color:var(--text);letter-spacing:-1.5px;line-height:1" id="p1-nv-vol">—</div>
             </div>
@@ -349,10 +351,8 @@ select option{background:var(--bg2)}
 
           <!-- Card 2: KA Channel -->
           <div class="pulse-card ka" id="pc-ka">
-            <div style="display:flex;align-items:center;justify-content:space-between">
-              <div class="p-label">KA Channel</div>
-              <div style="font-size:9px;color:var(--text3);font-weight:500">MBW · FPT · CPS · PV</div>
-            </div>
+            <div class="p-label">KA Channel</div>
+            <div class="p-sub-ctx" id="p4-ctx">MBW · FPT · CPS · PV</div>
             <div style="margin:6px 0 2px;text-align:center">
               <div style="font-size:36px;font-weight:800;color:var(--text);letter-spacing:-1.5px;line-height:1" id="p4-ka-vol">—</div>
             </div>
@@ -373,6 +373,7 @@ select option{background:var(--bg2)}
           <!-- Card 3: Rest Channel -->
           <div class="pulse-card rest" id="pc-rest">
             <div class="p-label">Rest Channel</div>
+            <div class="p-sub-ctx" id="p5-ctx">Total NV − KA</div>
             <div style="margin:6px 0 2px;text-align:center">
               <div style="font-size:36px;font-weight:800;color:var(--text);letter-spacing:-1.5px;line-height:1" id="p5-rest-vol">—</div>
             </div>
@@ -997,7 +998,7 @@ function renderPulse(nvRows, weeks, latestW, prevW) {
   setText('p4-ka-vol', kaTotalVol.toLocaleString());
   const ctxYear4 = st.year!=='all'?st.year:'All years';
   const ctxQ4    = st.quarter!=='all'?` · ${st.quarter}`:'';
-  setText('p4-ctx', `${ctxYear4}${ctxQ4} · KA vol (MBW+FPT+CPS+PV)`);
+  setText('p4-ctx', `MBW · FPT · CPS · PV${ctxQ4?'  '+ctxQ4:''}`);
 
   const yoyEl4 = document.getElementById('p4-yoy');
   if(yoyEl4){
@@ -1031,14 +1032,13 @@ function renderPulse(nvRows, weeks, latestW, prevW) {
   const nvLYAll   = nvRows.reduce((s,r)=>s+(r.lastYear||0),0);
   const restLYVol = Math.max(0, nvLYAll - kaLYVol);
   const restYoY   = restLYVol>0 ? (restTotalVol-restLYVol)/restLYVol*100 : null;
-  // Debug: expose for verification
-  // console.log('Rest YoY debug:', {restTotalVol, restLYVol, nvLYAll, kaLYVol, restYoY});
+  console.log('[RestYoY]', {restTotalVol, restLYVol, nvLYAll, kaLYVol, restYoY: restYoY?.toFixed(1)});
 
   // Hero vol
   setText('p5-rest-vol', restTotalVol.toLocaleString());
   const ctxYear5 = st.year!=='all'?st.year:'All years';
   const ctxQ5    = st.quarter!=='all'?` · ${st.quarter}`:'';
-  setText('p5-ctx', `${ctxYear5}${ctxQ5} · Rest channel vol`);
+  setText('p5-ctx', `Total NV − KA${ctxQ5?'  '+ctxQ5:''}`);
 
   // YoY badge
   setYoYFt('p5-yoy-ft','p5-yoy', restYoY);
@@ -1500,7 +1500,7 @@ function renderGauges(weeks) {
   // IHS has cust field = dealer names, use MSI brandVol per dealer
   const ihs4 = D.ihs.rows.filter(r=>last4w.includes(r.w)&&r.sg==='Gaming'&&r.brand==='MSI');
   const CUST_MAP = {'Mobile World':'MBW','FPT RETAIL JSC':'FPT','CELLPHONES':'CPS','PHONG VU':'PV'};
-  const DEALERS = ['MBW','FPT','CPS','NK'];
+  const DEALERS = ['MBW','FPT','CPS','PV'];
   // MSI vol by dealer
   const dealerMsiVol={};
   ihs4.forEach(r=>{const s=CUST_MAP[r.cust];if(s){dealerMsiVol[s]=(dealerMsiVol[s]||0)+(r.brandVol||0);}});
