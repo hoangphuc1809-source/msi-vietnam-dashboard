@@ -1073,24 +1073,35 @@ function renderPulse(nvRows, weeks, latestW, prevW) {
       .reduce((s,r)=>s+(r.brandVol||0),0);
   }
 
-  const kaTWVol2   = kaVolAtWeek(latestW, gpuRatioTW);
-  const kaPWVol2   = kaVolAtWeek(prevW,   gpuRatioPW);
-  const kaTWMsi2   = Math.round(kaMsiAtWeek(latestW) * gpuRatioTW);
-  const kaPWMsi2   = Math.round(kaMsiAtWeek(prevW)   * gpuRatioPW);
-  const kaShareTW  = kaTWVol2  > 0 ? kaTWMsi2/kaTWVol2*100  : 0;
-  const kaSharePW2 = kaPWVol2  > 0 ? kaPWMsi2/kaPWVol2*100  : 0;
-  const kaShareWoW = kaSharePW2 > 0 ? kaShareTW - kaSharePW2 : null;
-  const kaVolWoW   = kaPWVol2  > 0 ? (kaTWVol2-kaPWVol2)/kaPWVol2*100   : null;
-  const kaMsiVolWoW= kaPWMsi2  > 0 ? (kaTWMsi2-kaPWMsi2)/kaPWMsi2*100   : null;
+  // KA WoW: IHS không có GPU field → chỉ tính khi !SG
+  let kaTWVol2=0, kaPWVol2=0, kaTWMsi2=0, kaPWMsi2=0;
+  let kaShareTW=0, kaSharePW2=0, kaShareWoW=null, kaVolWoW=null, kaMsiVolWoW=null;
+  if(!SG) {
+    kaTWVol2   = kaVolAtWeek(latestW, 1);
+    kaPWVol2   = kaVolAtWeek(prevW,   1);
+    kaTWMsi2   = kaMsiAtWeek(latestW);
+    kaPWMsi2   = kaMsiAtWeek(prevW);
+    kaShareTW  = kaTWVol2  > 0 ? kaTWMsi2/kaTWVol2*100  : 0;
+    kaSharePW2 = kaPWVol2  > 0 ? kaPWMsi2/kaPWVol2*100  : 0;
+    kaShareWoW = kaSharePW2 > 0 ? kaShareTW - kaSharePW2 : null;
+    kaVolWoW   = kaPWVol2  > 0 ? (kaTWVol2-kaPWVol2)/kaPWVol2*100   : null;
+    kaMsiVolWoW= kaPWMsi2  > 0 ? (kaTWMsi2-kaPWMsi2)/kaPWMsi2*100   : null;
+  }
 
   setText('wow-ctx', `${latestW} vs ${prevW}${cfLabel}`);
-  setWowMetric('wow-nv-tw',    'wow-nv-wow',    nvTWVol,    nvWoW,       false);
-  setWowMetric('wow-ub-tw',    'wow-ub-wow',    ubTWQty,    ubWoW,       false);
-  setWowMetric('wow-share-tw', 'wow-share-wow', msiShareTW, shareWoW,    true);
-  setWowMetric('wow-ka-vol-tw','wow-ka-vol-wow',kaTWVol2,   kaVolWoW,    false);
-  setWowMetric('wow-ka-msi-tw','wow-ka-msi-wow',kaTWMsi2,   kaMsiVolWoW, false);
-  setWowMetric('wow-ka-tw',    'wow-ka-wow',    kaShareTW,  kaShareWoW,  true);
+  setWowMetric('wow-nv-tw',    'wow-nv-wow',    nvTWVol,    nvWoW,    false);
+  setWowMetric('wow-ub-tw',    'wow-ub-wow',    ubTWQty,    ubWoW,    false);
+  setWowMetric('wow-share-tw', 'wow-share-wow', msiShareTW, shareWoW, true);
+  if(SG) {
+    ['wow-ka-vol-tw','wow-ka-msi-tw','wow-ka-tw'].forEach(id => { const el=document.getElementById(id); if(el) el.textContent='—'; });
+    ['wow-ka-vol-wow','wow-ka-msi-wow','wow-ka-wow'].forEach(id => { const el=document.getElementById(id); if(el){el.textContent='—';el.style.color='var(--text3)';} });
+  } else {
+    setWowMetric('wow-ka-vol-tw','wow-ka-vol-wow', kaTWVol2,  kaVolWoW,    false);
+    setWowMetric('wow-ka-msi-tw','wow-ka-msi-wow', kaTWMsi2,  kaMsiVolWoW, false);
+    setWowMetric('wow-ka-tw',    'wow-ka-wow',     kaShareTW, kaShareWoW,  true);
+  }
 
+  
   const ups = [nvWoW,ubWoW,shareWoW,kaShareWoW].filter(v=>v!==null&&v>0).length;
   const dns = [nvWoW,ubWoW,shareWoW,kaShareWoW].filter(v=>v!==null&&v<0).length;
   const wowCard = document.getElementById('pc-wow');
@@ -2018,3 +2029,9 @@ init();
 
 
 
+  // KA sparkline: khi SG active → IHS không có GPU data → zeros
+  const spKAseries = spWeeks2.map(w => {
+    if(SG) return 0;
+    return D.ihs.rows.filter(r=>r.w===w&&r.sg==='Gaming'&&KA_DEALERS.includes(r.cust)&&r.brand!=='TTL Gaming').reduce((s,r)=>s+(r.brandVol||0),0);
+  });
+  
