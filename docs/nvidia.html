@@ -803,12 +803,14 @@ function ihsRows(weeksArr) {
    MAIN RENDER
 ═══════════════════════════════════════ */
 function render() {
+  // Year/Quarter filter change → clear cross-filter
+  st.selBrand = null;
+  st.selGpu   = null;
   const rows = nvRows();
   const weeks = nvWeeks(rows);
-  const latestW = weeks[weeks.length-1];           // LstWk = most recent complete week
-  const prevW   = weeks[weeks.length-2]||latestW; // for WoW
+  const latestW = weeks[weeks.length-1];
+  const prevW   = weeks[weeks.length-2]||latestW;
 
-  // Update filter info
   document.getElementById('filter-info').textContent =
     `${weeks.length} weeks · ${rows.length} rows · latest: ${latestW}`;
 
@@ -826,8 +828,9 @@ function render() {
    ① PULSE STRIP
 ═══════════════════════════════════════ */
 function renderPulse(nvRows, weeks, latestW, prevW) {
-  const SB = st.selBrand;  // cross-filter: selected brand (null = all)
-  const SG = st.selGpu;    // cross-filter: selected GPU   (null = all)
+  // Snapshot state ngay tại thời điểm gọi - tránh closure/timing bug
+  const SB = st.selBrand;
+  const SG = st.selGpu;
 
   // ── Filter nvRows (gpuRows) by selGpu if active ──────────────────
   const nvR = SG ? nvRows.filter(r=>r.gpu===SG) : nvRows;
@@ -835,8 +838,22 @@ function renderPulse(nvRows, weeks, latestW, prevW) {
   const pw  = nvR.filter(r=>r.w===prevW);
 
   // ── NV brandRows filtered by selBrand ────────────────────────────
-  const nvBRAll = (D.nv.brandRows||[]).filter(r=>weeks.includes(r.w));
-  const nvBR    = SB ? nvBRAll.filter(r=>r.brand===SB) : nvBRAll;
+  // brandRows dùng ALL weeks (có thể lệch với gpuRows weeks)
+  // Không filter theo gpuRows weeks để tránh miss data
+  const nvBRAll = (D.nv.brandRows||[]).filter(r=>{
+    // Filter theo year/quarter state (cùng logic với nvRows())
+    if(st.year!=='all' && r.y!==st.year) return false;
+    if(st.quarter!=='all' && r.q!==st.quarter) return false;
+    if(st.weeks!=='all'){
+      const allBRWeeks = [...new Set((D.nv.brandRows||[]).map(x=>x.w))].sort();
+      const last = allBRWeeks.slice(-st.weeks);
+      if(!last.includes(r.w)) return false;
+    }
+    return true;
+  });
+  const nvBR = SB ? nvBRAll.filter(r=>r.brand===SB) : nvBRAll;
+  // DEBUG
+  if(SB) console.log('[Pulse] SB='+SB+' nvBR rows='+nvBR.length+' tvol_preview='+nvBR.reduce((s,r)=>s+(r.vol||0),0));
 
   // ── Period totals ─────────────────────────────────────────────────
   // Card 1 (NV Report): hero = NV total vol
@@ -861,8 +878,9 @@ function renderPulse(nvRows, weeks, latestW, prevW) {
   const ctxYear = st.year!=='all'?st.year:'All years';
   const ctxQ    = st.quarter!=='all'?` \xb7 ${st.quarter}`:'';
   const ctxW    = st.weeks!=='all'?` \xb7 Last ${st.weeks}w`:'';
+  console.log('[Pulse] SB='+SB+' SG='+SG+' tvol='+tvol+' cfLabel='+cfLabel);
   setText('p1-nv-vol', tvol.toLocaleString());
-  setText('p1-ctx', `${ctxYear}${ctxQ}${ctxW}${cfLabel} \xb7 NV vol`);
+  setText('p1-ctx', `${ctxYear}${ctxQ}${ctxW}${cfLabel} · NV vol`);
 
   // Card 1 border highlight when cross-filter active
   setPulseClass('pc-msi-share', SB||SG ? 'nv cf-active' : 'nv');
@@ -1973,5 +1991,6 @@ init();
 </script>
 </body>
 </html>
+
 
 
