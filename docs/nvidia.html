@@ -230,6 +230,15 @@ select option{background:var(--bg2)}
 .leg-line{width:16px;height:2px;border-radius:1px}
 .leg-bar{width:10px;height:10px;border-radius:2px}
 
+/* ── Cross-filter: selected row highlight ── */
+.cf-selected td { background:rgba(90,143,0,.08) !important; }
+.cf-selected td:first-child { border-left:3px solid var(--nvidia); }
+.cf-dimmed td { opacity:0.35; }
+.cf-filter-chip{display:inline-flex;align-items:center;gap:5px;background:var(--nvidia-dim);border:1px solid var(--nvidia-line);color:var(--nvidia);border-radius:20px;padding:3px 10px;font-size:11px;font-weight:600;cursor:pointer;margin-left:6px}
+.cf-filter-chip:hover{background:rgba(90,143,0,.2)}
+.cf-clear{font-size:11px;color:var(--text3);cursor:pointer;padding:3px 8px;border:none;background:none;text-decoration:underline;margin-left:4px}
+.cf-clear:hover{color:var(--text2)}
+.bg-head-row{display:flex;justify-content:space-between;align-items:center}
 /* ── responsive ── */
 @media(max-width:1200px){
   /* Tablet: 2x2 grid for pulse */
@@ -449,6 +458,8 @@ select option{background:var(--bg2)}
         <span class="sec-no" style="background:var(--bg4);color:var(--text2)">★</span>
         <span class="sec-title">Brand & GPU Breakdown</span>
         <span class="sec-tag">Volume · Share · Weekly trend · IHS data</span>
+        <span id="bg-filter-chips"></span>
+        <button class="cf-clear" id="bg-clear-btn" style="display:none" onclick="clearBgFilter()">↺ Clear filter</button>
       </div>
 
       <!-- 2×2 equal grid: Brand table | Brand chart / GPU table | GPU chart -->
@@ -666,7 +677,7 @@ Chart.defaults.font.size=11;
    STATE
 ═══════════════════════════════════════ */
 let D = { ihs:null, ub:null, nv:null };  // raw data blobs
-let st = { year:'all', quarter:'Q2', weeks:'all', gen5:false, gpu:null };
+let st = { year:'all', quarter:'Q2', weeks:'all', gen5:false, gpu:null, selBrand:null, selGpu:null };
 let charts = {};
 let allYears=[], allWeeks=[];
 
@@ -1078,21 +1089,29 @@ function renderPulse(nvRows, weeks, latestW, prevW) {
 ═══════════════════════════════════════ */
 function renderBrandGpu(nvR, weeks) {
   const last13 = weeks.slice(-13);
-  // LstWk = weeks[-1] (most recent complete week in data)
-  const latestW = last13[last13.length-1];          // LstWk
-  const prevW   = last13[last13.length-2]||latestW; // 2Wk (WoW prev)
-  const w3ago   = last13[last13.length-3]||latestW; // 3Wk
+  const latestW = last13[last13.length-1];
+  const prevW   = last13[last13.length-2]||latestW;
+  const w3ago   = last13[last13.length-3]||latestW;
 
-  // ── BRAND TABLE from NV Report (D.nv.brandRows) ──────────────
-  // D.nv.brandRows: {y, q, w, brand, vol, lastYear} — "By Brands" rows from RAW-NV Report
-  const nvBR = (D.nv.brandRows||[]).filter(r=>weeks.includes(r.w));
   const BRAND_COLORS = {
     Asus:'#f59e0b', Lenovo:'#3b82f6', Acer:'#22c55e',
     MSI:'#ef4444',  HP:'#a855f7',     Giga:'#6b7280', Others:'#94a3b8',
     Dell:'#0ea5e9', Samsung:'#14b8a6'
   };
+  const GPU_COLORS = {
+    'RTX 3050':'#3b82f6','RTX 4050':'#f59e0b','RTX 5050':'#22c55e',
+    'RTX 5060':'#8b5cf6','RTX 2050':'#ef4444','RTX 5070':'#f97316',
+    'RTX 4060':'#06b6d4','RTX 4070':'#ec4899','RTX 5070Ti':'#84cc16',
+    'RTX 5080':'#10b981','RTX 5090':'#6366f1','RTX 4080':'#f43f5e',
+    'RTX 4090':'#0ea5e9','RTX Others':'#94a3b8'
+  };
 
-  // Derive BRANDS list from NV data (dynamic, sorted by total vol)
+  const SB = st.selBrand;
+  const SG = st.selGpu;
+
+  // NV brandRows filtered by weeks
+  const nvBR = (D.nv.brandRows||[]).filter(r=>weeks.includes(r.w));
+
   const _brandTotals = {};
   nvBR.forEach(r=>{ _brandTotals[r.brand] = (_brandTotals[r.brand]||0) + (r.vol||0); });
   const BRANDS = Object.keys(_brandTotals).filter(b=>b&&b!=='TTL').sort((a,b)=>_brandTotals[b]-_brandTotals[a]);
@@ -1101,36 +1120,14 @@ function renderBrandGpu(nvR, weeks) {
     return nvBR.filter(r=>r.brand===brand&&r.w===wk).reduce((s,r)=>s+(r.vol||0),0);
   }
   function brandTtlWeek(wk) {
-    // NV total from gpuRows (consistent with all other NV calculations)
     return nvR.filter(r=>r.w===wk).reduce((s,r)=>s+(r.vol||0),0);
   }
 
   const periodTtl = nvR.reduce((s,r)=>s+(r.vol||0),0)||1;
   const wLast = latestW, wPrev = prevW;
 
-  // Build brand rows from NV brandRows
-  const brandRows = BRANDS.map(b=>{
-    const periodVol = nvBR.filter(r=>r.brand===b).reduce((s,r)=>s+(r.vol||0),0);
-    const share = periodVol/periodTtl*100;
-    const vLast = brandVolWeek(b, wLast);
-    const vPrev = brandVolWeek(b, wPrev);
-    const vW3   = brandVolWeek(b, w3ago);
-    const vW2   = brandVolWeek(b, last13[last13.length-3]||latestW);
-    const wow   = vPrev>0 ? (vLast-vPrev)/vPrev*100 : null;
-    const color = BRAND_COLORS[b]||'#94a3b8';
-    return {brand:b, vol:periodVol, share, vLast, vPrev, vW3, vW2, wow, color};
-  }).filter(r=>r.vol>0).sort((a,b)=>b.vol-a.vol);
-
-  // Grand total row — NV gpuRows total (single source of truth)
-  const gtVol   = periodTtl;
-  const gtLast  = brandTtlWeek(wLast);
-  const gtPrev  = brandTtlWeek(wPrev);
-  const gtW3    = brandTtlWeek(w3ago);
-  const gtW2    = brandTtlWeek(last13[last13.length-3]||latestW);
-  const gtWoW   = gtPrev>0?(gtLast-gtPrev)/gtPrev*100:null;
-
   function wowHtml(v) {
-    if(v===null) return '<span style="color:var(--text3)">—</span>';
+    if(v===null) return '<span style="color:var(--text3)">&mdash;</span>';
     const up=v>=0, clr=up?'#16a34a':'#dc2626';
     return `<span style="color:${clr};font-weight:600">${up?'+':''}${v.toFixed(0)}%</span>`;
   }
@@ -1142,13 +1139,37 @@ function renderBrandGpu(nvR, weeks) {
       <span style="color:var(--text)">${pct.toFixed(1)}%</span></div>`;
   }
 
+  /* ── BRAND TABLE ── */
+  const brandRowsData = BRANDS.map(b=>{
+    const periodVol = nvBR.filter(r=>r.brand===b).reduce((s,r)=>s+(r.vol||0),0);
+    const share = periodVol/periodTtl*100;
+    const vLast = brandVolWeek(b, wLast);
+    const vPrev = brandVolWeek(b, wPrev);
+    const vW3   = brandVolWeek(b, w3ago);
+    const vW2   = brandVolWeek(b, last13[last13.length-3]||latestW);
+    const wow   = vPrev>0 ? (vLast-vPrev)/vPrev*100 : null;
+    const color = BRAND_COLORS[b]||'#94a3b8';
+    return {brand:b, vol:periodVol, share, vLast, vPrev, vW3, vW2, wow, color};
+  }).filter(r=>r.vol>0).sort((a,b)=>b.vol-a.vol);
+
+  const gtVol  = periodTtl;
+  const gtLast = brandTtlWeek(wLast);
+  const gtPrev = brandTtlWeek(wPrev);
+  const gtW3   = brandTtlWeek(w3ago);
+  const gtW2   = brandTtlWeek(last13[last13.length-3]||latestW);
+  const gtWoW  = gtPrev>0?(gtLast-gtPrev)/gtPrev*100:null;
+
   const tbody = document.getElementById('brand-tbody');
   if(tbody) {
-    tbody.innerHTML = brandRows.map(r=>`
-      <tr style="border-top:1px solid var(--border)">
+    tbody.innerHTML = brandRowsData.map(r=>{
+      const isSelected = SB===r.brand;
+      const isDimmed   = SB && SB!==r.brand;
+      const rowCls = isSelected?'cf-selected':(isDimmed?'cf-dimmed':'');
+      return `<tr class="${rowCls}" style="border-top:1px solid var(--border);cursor:pointer" onclick="setBrandFilter('${r.brand}')">
         <td style="padding:7px 14px;display:flex;align-items:center;gap:6px">
           <div style="width:8px;height:8px;border-radius:50%;background:${r.color};flex-shrink:0"></div>
           <span style="font-weight:500;color:var(--text)">${r.brand}</span>
+          ${isSelected?'<span style="font-size:9px;background:var(--nvidia-dim);color:var(--nvidia);padding:1px 5px;border-radius:3px;margin-left:2px">active</span>':''}
         </td>
         <td style="padding:7px 8px;text-align:right;color:var(--text)">${r.vol.toLocaleString()}</td>
         <td style="padding:7px 8px;text-align:right">${shareBar(r.share,r.color)}</td>
@@ -1156,8 +1177,9 @@ function renderBrandGpu(nvR, weeks) {
         <td style="padding:7px 8px;text-align:right;color:var(--text2)">${r.vW2.toLocaleString()}</td>
         <td style="padding:7px 8px;text-align:right;font-weight:600;color:var(--text)">${r.vLast.toLocaleString()}</td>
         <td style="padding:7px 14px;text-align:right">${wowHtml(r.wow)}</td>
-      </tr>`).join('') +
-    `<tr style="border-top:2px solid var(--border);background:var(--bg3)">
+      </tr>`;
+    }).join('') +
+    `<tr style="border-top:2px solid var(--border);background:var(--bg3);cursor:pointer" onclick="setBrandFilter(null)">
       <td style="padding:7px 14px;font-weight:600;color:var(--text)">Grand total <span style="font-size:9px;font-weight:400;color:var(--text3)">(Nvidia)</span></td>
       <td style="padding:7px 8px;text-align:right;font-weight:600;color:var(--text)">${gtVol.toLocaleString()}</td>
       <td style="padding:7px 8px;text-align:right;font-size:10px;color:var(--text3)">100%</td>
@@ -1168,7 +1190,7 @@ function renderBrandGpu(nvR, weeks) {
     </tr>`;
   }
 
-  // ── BRAND SHARE LINE CHART ────────────────────
+  /* ── BRAND SHARE LINE CHART ── */
   const chartWeeks = last13;
   const xLabels = chartWeeks.map(w=>w);
 
@@ -1177,28 +1199,38 @@ function renderBrandGpu(nvR, weeks) {
     type:'line',
     data:{
       labels: xLabels,
-      datasets: BRANDS.filter(b=>b!=='Others').map(b=>({
-        label: b,
-        data: chartWeeks.map(w=>{
-          const bv = brandVolWeek(b,w);
-          const tv = brandTtlWeek(w)||1;
-          return +(bv/tv*100).toFixed(1);
-        }),
-        borderColor: BRAND_COLORS[b],
-        backgroundColor: BRAND_COLORS[b]+'22',
-        borderWidth: b==='MSI'?2.5:1.5,
-        pointRadius: b==='MSI'?4:2.5,
-        pointBackgroundColor: BRAND_COLORS[b],
-        tension: 0.3,
-        fill: false,
-        datalabels:{display:false}
-      }))
+      datasets: BRANDS.filter(b=>b!=='Others').map(b=>{
+        const isActive = !SB || SB===b;
+        const clr = BRAND_COLORS[b]||'#94a3b8';
+        return {
+          label: b,
+          data: chartWeeks.map(w=>{
+            const bv = brandVolWeek(b,w);
+            const tv = brandTtlWeek(w)||1;
+            return +(bv/tv*100).toFixed(1);
+          }),
+          borderColor: clr,
+          backgroundColor: clr+'22',
+          borderWidth: SB===b?3.5:(isActive?(b==='MSI'?2.5:1.5):0.8),
+          pointRadius: SB===b?5:(isActive?(b==='MSI'?4:2.5):1),
+          pointBackgroundColor: clr,
+          tension: 0.3,
+          fill: false,
+          borderDash: (!SB||SB===b)?[]:[5,4],
+          datalabels:{display:false}
+        };
+      })
     },
     options:{
       responsive:true, maintainAspectRatio:false,
       plugins:{
-        legend:{display:true, position:'top',
-          labels:{boxWidth:10, boxHeight:10, padding:12, font:{size:10}, usePointStyle:true, pointStyleWidth:8}},
+        legend:{
+          display:true, position:'top',
+          labels:{boxWidth:10, boxHeight:10, padding:12, font:{size:10}, usePointStyle:true, pointStyleWidth:8},
+          onClick(e, item) {
+            setBrandFilter(st.selBrand===item.text ? null : item.text);
+          }
+        },
         datalabels:{display:false},
         tooltip:{mode:'index', intersect:false,
           callbacks:{label:i=>` ${i.dataset.label}: ${i.raw}%`}}
@@ -1210,27 +1242,27 @@ function renderBrandGpu(nvR, weeks) {
     }
   });
 
-  // ── GPU TABLE from NV gpuRows ─────────────────
-  const GPU_COLORS = {
-    'RTX 3050':'#3b82f6','RTX 4050':'#f59e0b','RTX 5050':'#22c55e',
-    'RTX 5060':'#8b5cf6','RTX 2050':'#ef4444','RTX 5070':'#f97316',
-    'RTX 4060':'#06b6d4','RTX 4070':'#ec4899','RTX 5070Ti':'#84cc16',
-    'RTX 5080':'#10b981','RTX 5090':'#6366f1','RTX 4080':'#f43f5e',
-    'RTX 4090':'#0ea5e9','RTX Others':'#94a3b8'
-  };
-
-  function gpuVolWeek(gpu, wk) {
-    return nvR.filter(r=>r.gpu===gpu&&r.w===wk).reduce((s,r)=>s+(r.vol||0),0);
-  }
+  /* ── GPU TABLE ──
+     Nếu selBrand=MSI → show msiVol per GPU (có data)
+     Nếu selBrand=khác → show NV total vol + note
+     Nếu selGpu → highlight GPU đó, dim phần còn lại
+  */
+  const useMsiVol = (SB === 'MSI');
 
   const gpuList2 = [...new Set(nvR.map(r=>r.gpu))].filter(g=>g&&g!=='RTX Others');
   const gpuRows2 = gpuList2.map(g=>{
-    const periodVol = nvR.filter(r=>r.gpu===g).reduce((s,r)=>s+(r.vol||0),0);
-    const share = periodVol/periodTtl*100;
-    const vLast = gpuVolWeek(g, wLast);
-    const vPrev = gpuVolWeek(g, wPrev);
-    const vW3   = gpuVolWeek(g, w3ago);
-    const vW2   = gpuVolWeek(g, last13[last13.length-3]||latestW);
+    const gpuRws = nvR.filter(r=>r.gpu===g);
+    const periodVol = useMsiVol
+      ? gpuRws.reduce((s,r)=>s+(r.msiVol||0),0)
+      : gpuRws.reduce((s,r)=>s+(r.vol||0),0);
+    const share = periodVol / (useMsiVol ? (nvR.reduce((s,r)=>s+(r.msiVol||0),0)||1) : periodTtl) * 100;
+    function gpuFieldWeek(wk) {
+      return nvR.filter(r=>r.gpu===g&&r.w===wk).reduce((s,r)=>s+(useMsiVol?(r.msiVol||0):(r.vol||0)),0);
+    }
+    const vLast = gpuFieldWeek(wLast);
+    const vPrev = gpuFieldWeek(wPrev);
+    const vW3   = gpuFieldWeek(w3ago);
+    const vW2   = gpuFieldWeek(last13[last13.length-3]||latestW);
     const wow   = vPrev>0?(vLast-vPrev)/vPrev*100:null;
     return {gpu:g, vol:periodVol, share, vLast, vPrev, vW3, vW2, wow};
   }).filter(r=>r.vol>0).sort((a,b)=>b.vol-a.vol);
@@ -1244,12 +1276,22 @@ function renderBrandGpu(nvR, weeks) {
 
   const gpuTbody = document.getElementById('gpu-tbody');
   if(gpuTbody) {
-    gpuTbody.innerHTML = gpuRows2.map(r=>{
+    let noteHtml = '';
+    if(useMsiVol)
+      noteHtml = `<tr style="background:rgba(198,40,40,.06)"><td colspan="7" style="padding:4px 14px;font-size:10px;color:var(--msi);font-style:italic">Showing MSI volume per GPU (NV Report msiVol)</td></tr>`;
+    else if(SB && SB!=='MSI')
+      noteHtml = `<tr style="background:rgba(217,119,6,.06)"><td colspan="7" style="padding:4px 14px;font-size:10px;color:var(--amber);font-style:italic">NV Report has no brand\xd7GPU breakdown \u2014 showing total NV volume</td></tr>`;
+
+    gpuTbody.innerHTML = noteHtml + gpuRows2.map(r=>{
       const clr = GPU_COLORS[r.gpu]||'#94a3b8';
-      return `<tr style="border-top:1px solid var(--border)">
+      const isSelected = SG===r.gpu;
+      const isDimmed   = SG && SG!==r.gpu;
+      const rowCls = isSelected?'cf-selected':(isDimmed?'cf-dimmed':'');
+      return `<tr class="${rowCls}" style="border-top:1px solid var(--border);cursor:pointer" onclick="setGpuFilter('${r.gpu}')">
         <td style="padding:7px 14px;display:flex;align-items:center;gap:6px">
           <div style="width:8px;height:8px;border-radius:2px;background:${clr};flex-shrink:0"></div>
           <span style="font-weight:500;color:var(--text)">${r.gpu}</span>
+          ${isSelected?'<span style="font-size:9px;background:var(--nvidia-dim);color:var(--nvidia);padding:1px 5px;border-radius:3px;margin-left:2px">active</span>':''}
         </td>
         <td style="padding:7px 8px;text-align:right;color:var(--text)">${r.vol.toLocaleString()}</td>
         <td style="padding:7px 8px;text-align:right">${shareBar(r.share,clr)}</td>
@@ -1259,8 +1301,8 @@ function renderBrandGpu(nvR, weeks) {
         <td style="padding:7px 14px;text-align:right">${wowHtml(r.wow)}</td>
       </tr>`;
     }).join('') +
-    `<tr style="border-top:2px solid var(--border);background:var(--bg3)">
-      <td style="padding:7px 14px;font-weight:600;color:var(--text)">Grand total</td>
+    `<tr style="border-top:2px solid var(--border);background:var(--bg3);cursor:pointer" onclick="setGpuFilter(null)">
+      <td style="padding:7px 14px;font-weight:600;color:var(--text)">Grand total${useMsiVol?' <span style="font-size:9px;color:var(--msi)">(MSI)</span>':''}</td>
       <td style="padding:7px 8px;text-align:right;font-weight:600;color:var(--text)">${gtGpuVol.toLocaleString()}</td>
       <td style="padding:7px 8px;text-align:right;font-size:10px;color:var(--text3)">100%</td>
       <td style="padding:7px 8px;text-align:right;font-weight:600;color:var(--text)">${gtGpuW3.toLocaleString()}</td>
@@ -1270,7 +1312,7 @@ function renderBrandGpu(nvR, weeks) {
     </tr>`;
   }
 
-  // ── UPDATE TABLE COLUMN HEADERS with actual week labels ─────
+  /* ── UPDATE TABLE COLUMN HEADERS ── */
   ['brand','gpu'].forEach(pfx=>{
     const el3=document.getElementById(pfx+'-th-w3');
     const el2=document.getElementById(pfx+'-th-w2');
@@ -1280,33 +1322,47 @@ function renderBrandGpu(nvR, weeks) {
     if(el1) el1.textContent = latestW;
   });
 
-  // ── GPU VOLUME LINE CHART ─────────────────────
-  // Show top 6 GPUs by volume
-  const topGpus = gpuRows2.slice(0,6);
+  /* ── GPU VOLUME LINE CHART ── */
+  const topGpus = gpuRows2.slice(0,6).map(r=>r.gpu);
+  if(SG && !topGpus.includes(SG)) topGpus.push(SG);
+
   destroyChart('c-gpu-vol');
   charts['c-gpu-vol'] = new Chart(document.getElementById('c-gpu-vol'), {
     type:'line',
     data:{
       labels: xLabels,
-      datasets: topGpus.map(g=>({
-        label: g.gpu,
-        data: chartWeeks.map(w=>gpuVolWeek(g.gpu,w)),
-        borderColor: GPU_COLORS[g.gpu]||'#94a3b8',
-        backgroundColor: (GPU_COLORS[g.gpu]||'#94a3b8')+'18',
-        borderWidth:1.5,
-        pointRadius:2.5,
-        pointBackgroundColor: GPU_COLORS[g.gpu]||'#94a3b8',
-        tension:0.3, fill:false,
-        datalabels:{display:false}
-      }))
+      datasets: topGpus.map(g=>{
+        const isActive = !SG || SG===g;
+        const clr = GPU_COLORS[g]||'#94a3b8';
+        return {
+          label: g,
+          data: chartWeeks.map(w=>{
+            return nvR.filter(r=>r.gpu===g&&r.w===w).reduce((s,r)=>s+(useMsiVol?(r.msiVol||0):(r.vol||0)),0);
+          }),
+          borderColor: clr,
+          backgroundColor: clr+'18',
+          borderWidth: SG===g?3:(isActive?1.5:0.8),
+          pointRadius: SG===g?4:(isActive?2.5:1),
+          pointBackgroundColor: clr,
+          tension:0.3, fill:false,
+          borderDash: isActive?[]:[5,4],
+          datalabels:{display:false}
+        };
+      })
     },
     options:{
       responsive:true, maintainAspectRatio:false,
       plugins:{
-        legend:{display:true, position:'top',
-          labels:{boxWidth:10, boxHeight:10, padding:10, font:{size:10}, usePointStyle:true, pointStyleWidth:8}},
+        legend:{
+          display:true, position:'top',
+          labels:{boxWidth:10, boxHeight:10, padding:10, font:{size:10}, usePointStyle:true, pointStyleWidth:8},
+          onClick(e, item) {
+            setGpuFilter(st.selGpu===item.text ? null : item.text);
+          }
+        },
         datalabels:{display:false},
-        tooltip:{mode:'index', intersect:false}
+        tooltip:{mode:'index', intersect:false,
+          callbacks:{label:i=>useMsiVol?` ${i.dataset.label} (MSI): ${i.raw.toLocaleString()}`:`  ${i.dataset.label}: ${i.raw.toLocaleString()}`}}
       },
       scales:{
         x:{grid:{display:false}, ticks:{font:{size:9}, maxRotation:45, minRotation:30}},
@@ -1314,7 +1370,60 @@ function renderBrandGpu(nvR, weeks) {
       }
     }
   });
+
+  /* ── Update filter chips UI ── */
+  updateFilterChips();
 }
+
+/* ═══════════════════════════════════════
+   CROSS-FILTER HANDLERS
+═══════════════════════════════════════ */
+function setBrandFilter(brand) {
+  // Toggle: click same brand again = clear
+  st.selBrand = (st.selBrand === brand || brand === null) ? null : brand;
+  if(brand !== null) st.selGpu = null; // mutual exclusion
+  const rows = nvRows(), weeks = nvWeeks(rows);
+  const latestW = weeks[weeks.length-1], prevW = weeks[weeks.length-2]||weeks[weeks.length-1];
+  renderBrandGpu(rows, weeks);
+  renderPulse(rows, weeks, latestW, prevW);
+}
+
+function setGpuFilter(gpu) {
+  st.selGpu   = (st.selGpu === gpu || gpu === null) ? null : gpu;
+  if(gpu !== null) st.selBrand = null; // mutual exclusion
+  const rows = nvRows(), weeks = nvWeeks(rows);
+  const latestW = weeks[weeks.length-1], prevW = weeks[weeks.length-2]||weeks[weeks.length-1];
+  renderBrandGpu(rows, weeks);
+  renderPulse(rows, weeks, latestW, prevW);
+  // Sync GPU Detail section
+  if(st.selGpu) {
+    st.gpu = st.selGpu;
+    renderGpuList(rows, latestW);
+    renderDetail(rows, weeks, st.selGpu);
+    document.getElementById('detail-tag').textContent = st.selGpu;
+  }
+}
+
+function clearBgFilter() {
+  st.selBrand = null;
+  st.selGpu   = null;
+  const rows = nvRows(), weeks = nvWeeks(rows);
+  const latestW = weeks[weeks.length-1], prevW = weeks[weeks.length-2]||weeks[weeks.length-1];
+  renderBrandGpu(rows, weeks);
+  renderPulse(rows, weeks, latestW, prevW);
+}
+
+function updateFilterChips() {
+  const chips = document.getElementById('bg-filter-chips');
+  const clearBtn = document.getElementById('bg-clear-btn');
+  if(!chips || !clearBtn) return;
+  let html = '';
+  if(st.selBrand) html += `<span class="cf-filter-chip" onclick="setBrandFilter(null)">Brand: ${st.selBrand} <span class="cf-x">\xd7</span></span>`;
+  if(st.selGpu)   html += `<span class="cf-filter-chip" onclick="setGpuFilter(null)">GPU: ${st.selGpu} <span class="cf-x">\xd7</span></span>`;
+  chips.innerHTML = html;
+  clearBtn.style.display = (st.selBrand || st.selGpu) ? 'inline' : 'none';
+}
+
 
 /* ═══════════════════════════════════════
    ② WIN/LOSE MATRIX
@@ -1889,3 +1998,4 @@ init();
 </script>
 </body>
 </html>
+
