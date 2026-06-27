@@ -826,55 +826,69 @@ function render() {
    ① PULSE STRIP
 ═══════════════════════════════════════ */
 function renderPulse(nvRows, weeks, latestW, prevW) {
-  const tw = nvRows.filter(r=>r.w===latestW);
-  const pw = nvRows.filter(r=>r.w===prevW);
+  const SB = st.selBrand;  // cross-filter: selected brand (null = all)
+  const SG = st.selGpu;    // cross-filter: selected GPU   (null = all)
 
-  // P1 — Nvidia Market Vol hero card
-  // Hero: total NV vol across ALL weeks in filtered window (period total)
-  const tvol  = nvRows.reduce((s,r)=>s+(r.vol||0),0);   // period total NV market
-  const tmsi  = nvRows.reduce((s,r)=>s+(r.msiVol||0),0); // period total MSI NV vol
-  const tlyAll = nvRows.reduce((s,r)=>s+(r.lastYear||0),0); // period total LY vol
-  // YoY: compare current period total vs lastYear total
-  const yoy = tlyAll>0 ? (tvol-tlyAll)/tlyAll*100 : null;
-  // MSI share over the full filtered period
-  const msiShare = tvol>0 ? tmsi/tvol*100 : 0;
-  // MSI vol from userbuy (period, Gaming only, cross-filter aligned)
-  const ubAll = ubFacts(weeks);
-  const ubPeriodMsi = ubAll.reduce((s,f)=>s+(f.qty||0),0);
+  // ── Filter nvRows (gpuRows) by selGpu if active ──────────────────
+  const nvR = SG ? nvRows.filter(r=>r.gpu===SG) : nvRows;
+  const tw  = nvR.filter(r=>r.w===latestW);
+  const pw  = nvR.filter(r=>r.w===prevW);
 
-  // Build filter context label
+  // ── NV brandRows filtered by selBrand ────────────────────────────
+  const nvBRAll = (D.nv.brandRows||[]).filter(r=>weeks.includes(r.w));
+  const nvBR    = SB ? nvBRAll.filter(r=>r.brand===SB) : nvBRAll;
+
+  // ── Period totals ─────────────────────────────────────────────────
+  // Card 1 (NV Report): hero = NV total vol
+  //   selGpu  → filter gpuRows by gpu
+  //   selBrand→ filter brandRows by brand (brandRows has vol per brand)
+  let tvol, tlyAll;
+  if(SB) {
+    // Use brandRows filtered by brand (more accurate for brand total)
+    tvol   = nvBR.reduce((s,r)=>s+(r.vol||0),0);
+    tlyAll = nvBR.reduce((s,r)=>s+(r.lastYear||0),0);
+  } else {
+    tvol   = nvR.reduce((s,r)=>s+(r.vol||0),0);
+    tlyAll = nvR.reduce((s,r)=>s+(r.lastYear||0),0);
+  }
+  const tmsi = nvR.reduce((s,r)=>s+(r.msiVol||0),0); // MSI NV vol (from gpuRows)
+  const yoy  = tlyAll>0 ? (tvol-tlyAll)/tlyAll*100 : null;
+  const msiSharePeriod = tvol>0 ? tmsi/tvol*100 : 0;
+
+  // Build label suffix for cross-filter context
+  const cfLabel = SB ? ` · ${SB}` : (SG ? ` · ${SG}` : '');
+
   const ctxYear = st.year!=='all'?st.year:'All years';
-  const ctxQ = st.quarter!=='all'?` · ${st.quarter}`:'';
-  const ctxW = st.weeks!=='all'?` · Last ${st.weeks}w`:'';
+  const ctxQ    = st.quarter!=='all'?` \xb7 ${st.quarter}`:'';
+  const ctxW    = st.weeks!=='all'?` \xb7 Last ${st.weeks}w`:'';
   setText('p1-nv-vol', tvol.toLocaleString());
-  setText('p1-ctx', `${ctxYear}${ctxQ}${ctxW} · NV market vol`);
+  setText('p1-ctx', `${ctxYear}${ctxQ}${ctxW}${cfLabel} \xb7 NV vol`);
 
-  // YoY → footer span (card 1)
+  // Card 1 border highlight when cross-filter active
+  setPulseClass('pc-msi-share', SB||SG ? 'nv cf-active' : 'nv');
+
   function setYoYFt(ftId,inlineId,yoy){
     const ft=document.getElementById(ftId),il=document.getElementById(inlineId);
-    if(il)il.innerHTML="";
-    if(ft&&yoy!==null){const up=yoy>=0;ft.style.color=up?"var(--green)":"var(--red)";ft.textContent=(up?"▲":"▼")+" "+Math.abs(yoy).toFixed(1)+"% YoY";}else if(ft)ft.textContent="";
+    if(il)il.innerHTML='';
+    if(ft&&yoy!==null){const up=yoy>=0;ft.style.color=up?'var(--green)':'var(--red)';ft.textContent=(up?'\u25b2':'\u25bc')+' '+Math.abs(yoy).toFixed(1)+'% YoY';}else if(ft)ft.textContent='';
   }
   setYoYFt('p1-yoy-ft','p1-yoy',yoy);
 
-  // Sub-metrics
-  // MSI Vol in NV card = Userbuy (Gaming only, period) — matches footer label
+  // MSI Userbuy vol — filter by GPU if selGpu, else total Gaming
   const skuMapP1={}; D.ub.skus.forEach(s=>{skuMapP1[s.sku]=s;});
-  const ubP1 = D.ub.facts.filter(f=>weeks.includes(f.w)).map(f=>({...f,...(skuMapP1[f.sku]||{})})).filter(f=>(f.sg||'')!=='Business& Productivity');
+  let ubP1 = D.ub.facts.filter(f=>weeks.includes(f.w)).map(f=>({...f,...(skuMapP1[f.sku]||{})})).filter(f=>(f.sg||'')!=='Business& Productivity');
+  if(SG) ubP1 = ubP1.filter(f=>f.gpu===SG);
+  if(SB) ubP1 = ubP1.filter(f=>f.brand===SB || (SB==='MSI'));  // userbuy is MSI only
   const ubP1total = ubP1.reduce((s,f)=>s+(f.qty||0),0);
   setText('p1-msi-vol', ubP1total.toLocaleString());
-  // MSI share = userbuy / NV total
   const msiShareUB = tvol>0 ? ubP1total/tvol*100 : 0;
   const shareEl=document.getElementById('p1-msi-share');
   if(shareEl){
     shareEl.textContent=fmt1(msiShareUB)+'%';
     shareEl.style.color=msiShareUB>=15?'var(--green)':msiShareUB>=8?'var(--amber)':'var(--red)';
   }
-  setPulseClass('pc-msi-share', 'nv');  // always blue border
 
-  // ── Sparklines for the 3 hero cards ────────────────
-  // Each sparkline = weekly NV total vol, KA vol, Rest vol over last 13w
-  // canvasId, data=weekly vols, color, weekLabels=week strings
+  // ── Sparklines ───────────────────────────────────────────────────
   function drawHeroSpark(canvasId, data, color, weekLabels) {
     const el = document.getElementById(canvasId);
     if(!el) return;
@@ -892,42 +906,37 @@ function renderPulse(nvRows, weeks, latestW, prevW) {
       options:{
         responsive:true, maintainAspectRatio:false, animation:{duration:400},
         plugins:{
-          legend:{display:false},
-          datalabels:{display:false},
-          tooltip:{
-            enabled:true,
-            callbacks:{
-              title: items => items[0].label,
-              label: item => {
-                const vol = item.raw;
-                const prev = item.dataIndex>0 ? data[item.dataIndex-1] : null;
-                const wow = prev>0 ? ((vol-prev)/prev*100).toFixed(1) : null;
-                const lines = [` Vol: ${vol.toLocaleString()}`];
-                if(wow!==null) lines.push(` WoW: ${wow>=0?'+':''}${wow}%`);
-                return lines;
-              }
+          legend:{display:false}, datalabels:{display:false},
+          tooltip:{enabled:true, callbacks:{
+            title: items => items[0].label,
+            label: item => {
+              const vol=item.raw, prev=item.dataIndex>0?data[item.dataIndex-1]:null;
+              const wow=prev>0?((vol-prev)/prev*100).toFixed(1):null;
+              const lines=[` Vol: ${vol.toLocaleString()}`];
+              if(wow!==null) lines.push(` WoW: ${wow>=0?'+':''}${wow}%`);
+              return lines;
             }
-          }
+          }}
         },
-        scales:{
-          x:{display:false, grid:{display:false}},
-          y:{display:false, min:0, grid:{display:false}}
-        },
+        scales:{x:{display:false},y:{display:false,min:0}},
         layout:{padding:{left:0,right:0,top:4,bottom:0}}
       }
     });
   }
 
-  // Build weekly series for sparklines — use weeks already in scope
   const spWeeks2 = weeks.slice(-13);
-  const spNVseries  = spWeeks2.map(w=>nvRows.filter(r=>r.w===w).reduce((s,r)=>s+(r.vol||0),0));
-  const spKAseries  = spWeeks2.map(w=>{
-    // sum all brandVol at KA dealers (same method as P4 card)
-    return D.ihs.rows.filter(r=>r.w===w&&r.sg==='Gaming'&&KA_DEALERS.includes(r.cust)&&r.brand!=='TTL Gaming').reduce((s,r)=>s+(r.brandVol||0),0);
+  // NV sparkline: filter by selGpu/selBrand
+  const spNVseries = spWeeks2.map(w=>{
+    if(SB) return nvBRAll.filter(r=>r.brand===SB&&r.w===w).reduce((s,r)=>s+(r.vol||0),0);
+    return nvR.filter(r=>r.w===w).reduce((s,r)=>s+(r.vol||0),0);
+  });
+  // KA sparkline: filter by selBrand if active
+  const spKAseries = spWeeks2.map(w=>{
+    let rows = D.ihs.rows.filter(r=>r.w===w&&r.sg==='Gaming'&&KA_DEALERS.includes(r.cust)&&r.brand!=='TTL Gaming');
+    if(SB) rows = rows.filter(r=>r.brand===SB);
+    return rows.reduce((s,r)=>s+(r.brandVol||0),0);
   });
   const spRestSeries = spWeeks2.map((w,i)=>Math.max(0,(spNVseries[i]||0)-(spKAseries[i]||0)));
-
-  // Draw after short delay — pass week labels for tooltip
   const spLabels = spWeeks2.map(w=>w);
   setTimeout(()=>{
     drawHeroSpark('sp-nv',   spNVseries,   'rgb(37,99,235)',   spLabels);
@@ -935,151 +944,117 @@ function renderPulse(nvRows, weeks, latestW, prevW) {
     drawHeroSpark('sp-rest', spRestSeries, 'rgb(107,114,128)', spLabels);
   }, 50);
 
-  // P4 – WoW Summary card: 4 metrics × (TW value + WoW delta)
-  const ubFact = ubFacts(weeks);
-  const ubTW   = ubFact.filter(f=>f.w===latestW);
-  const ubPW   = ubFact.filter(f=>f.w===prevW);
+  // ── WoW card ─────────────────────────────────────────────────────
+  const skuMapW={}; D.ub.skus.forEach(s=>{skuMapW[s.sku]=s;});
+  let ubFact2 = D.ub.facts.filter(f=>weeks.includes(f.w)).map(f=>({...f,...(skuMapW[f.sku]||{})})).filter(f=>(f.sg||'')!=='Business& Productivity');
+  if(SG) ubFact2 = ubFact2.filter(f=>f.gpu===SG);
+  const ubTW   = ubFact2.filter(f=>f.w===latestW);
+  const ubPW   = ubFact2.filter(f=>f.w===prevW);
   const ubTWQty = ubTW.reduce((s,f)=>s+(f.qty||0),0);
   const ubPWQty = ubPW.reduce((s,f)=>s+(f.qty||0),0);
   const ubWoW   = ubPWQty>0 ? (ubTWQty-ubPWQty)/ubPWQty*100 : null;
 
-  // NV market TW vs PW
+  // NV market TW vs PW (already filtered by SG via nvR)
   const nvTWVol = tw.reduce((s,r)=>s+(r.vol||0),0);
   const nvPWVol = pw.reduce((s,r)=>s+(r.vol||0),0);
   const nvWoW   = nvPWVol>0 ? (nvTWVol-nvPWVol)/nvPWVol*100 : null;
-
-  // MSI NV share TW vs PW
-  const nvTWMsi  = tw.reduce((s,r)=>s+(r.msiVol||0),0);
-  const nvPWMsi  = pw.reduce((s,r)=>s+(r.msiVol||0),0);
+  const nvTWMsi = tw.reduce((s,r)=>s+(r.msiVol||0),0);
+  const nvPWMsi = pw.reduce((s,r)=>s+(r.msiVol||0),0);
   const msiShareTW = nvTWVol>0 ? nvTWMsi/nvTWVol*100 : 0;
   const msiSharePW = nvPWVol>0 ? nvPWMsi/nvPWVol*100 : 0;
   const shareWoW   = msiSharePW>0 ? msiShareTW-msiSharePW : null;
 
-  // KA share TW vs PW (from IHS) — derive vol from brandVol/brandShare
+  // KA share TW vs PW — filter by selBrand
   function deriveKAVol(wk) {
-    // sum brandVol at KA dealers — consistent with P4 total method
-    return D.ihs.rows.filter(r=>r.w===wk&&r.sg==='Gaming'&&KA_DEALERS.includes(r.cust)&&r.brand!=='TTL Gaming').reduce((s,r)=>s+(r.brandVol||0),0);
+    let rows = D.ihs.rows.filter(r=>r.w===wk&&r.sg==='Gaming'&&KA_DEALERS.includes(r.cust)&&r.brand!=='TTL Gaming');
+    if(SB) rows = rows.filter(r=>r.brand===SB);
+    return rows.reduce((s,r)=>s+(r.brandVol||0),0);
   }
-  const kaTWVol2  = deriveKAVol(latestW);
-  const kaPWVol2  = deriveKAVol(prevW);
-  const kaTWMsi2  = D.ihs.rows.filter(r=>r.w===latestW&&r.sg==='Gaming'&&KA_DEALERS.includes(r.cust)&&r.brand==='MSI').reduce((s,r)=>s+(r.brandVol||0),0);
-  const kaPWMsi2  = D.ihs.rows.filter(r=>r.w===prevW&&r.sg==='Gaming'&&KA_DEALERS.includes(r.cust)&&r.brand==='MSI').reduce((s,r)=>s+(r.brandVol||0),0);
-  const kaShareTW = kaTWVol2>0 ? kaTWMsi2/kaTWVol2*100 : 0;
+  const kaTWVol2   = deriveKAVol(latestW);
+  const kaPWVol2   = deriveKAVol(prevW);
+  let kaTWMsi2Row  = D.ihs.rows.filter(r=>r.w===latestW&&r.sg==='Gaming'&&KA_DEALERS.includes(r.cust)&&r.brand==='MSI');
+  let kaPWMsi2Row  = D.ihs.rows.filter(r=>r.w===prevW  &&r.sg==='Gaming'&&KA_DEALERS.includes(r.cust)&&r.brand==='MSI');
+  const kaTWMsi2   = kaTWMsi2Row.reduce((s,r)=>s+(r.brandVol||0),0);
+  const kaPWMsi2   = kaPWMsi2Row.reduce((s,r)=>s+(r.brandVol||0),0);
+  const kaShareTW  = kaTWVol2>0 ? kaTWMsi2/kaTWVol2*100 : 0;
   const kaSharePW2 = kaPWVol2>0 ? kaPWMsi2/kaPWVol2*100 : 0;
   const kaShareWoW = kaSharePW2>0 ? kaShareTW-kaSharePW2 : null;
-
-  // Week context label
-  setText('wow-ctx', `${latestW} vs ${prevW}`);
-
-  // Helper: set a WoW metric pair
-  function setWowMetric(valId, wowId, val, wow, isShare) {
-    const valEl = document.getElementById(valId);
-    const wowEl = document.getElementById(wowId);
-    if(valEl) valEl.textContent = isShare ? fmt1(val)+'%' : val.toLocaleString();
-    if(wowEl && wow!==null) {
-      const up=wow>=0, clr=up?'var(--green)':'var(--red)';
-      wowEl.innerHTML=`<span style="color:${clr}">${up?'▲':'▼'} ${Math.abs(wow).toFixed(1)}${isShare?'pp':'%'} WoW</span>`;
-    } else if(wowEl) { wowEl.textContent='—'; wowEl.style.color='var(--text3)'; }
-  }
-
-  // KA Vol WoW
-  const kaVolWoW = kaPWVol2>0 ? (kaTWVol2-kaPWVol2)/kaPWVol2*100 : null;
-  // KA MSI Vol WoW
+  const kaVolWoW   = kaPWVol2>0 ? (kaTWVol2-kaPWVol2)/kaPWVol2*100 : null;
   const kaMsiVolWoW = kaPWMsi2>0 ? (kaTWMsi2-kaPWMsi2)/kaPWMsi2*100 : null;
 
-  // Row 1: NV Market | MSI Userbuy | MSI Share
-  setWowMetric('wow-nv-tw',     'wow-nv-wow',     nvTWVol,    nvWoW,      false);
-  setWowMetric('wow-ub-tw',     'wow-ub-wow',     ubTWQty,    ubWoW,      false);
-  setWowMetric('wow-share-tw',  'wow-share-wow',  msiShareTW, shareWoW,   true);
-  // Row 2: KA Vol | KA MSI Vol | KA Share
-  setWowMetric('wow-ka-vol-tw', 'wow-ka-vol-wow', kaTWVol2,   kaVolWoW,   false);
-  setWowMetric('wow-ka-msi-tw', 'wow-ka-msi-wow', kaTWMsi2,   kaMsiVolWoW,false);
-  setWowMetric('wow-ka-tw',     'wow-ka-wow',     kaShareTW,  kaShareWoW, true);
+  setText('wow-ctx', `${latestW} vs ${prevW}${cfLabel}`);
 
-  // Card border
-  const ups = [nvWoW, ubWoW, shareWoW, kaShareWoW].filter(v=>v!==null&&v>0).length;
-  const dns = [nvWoW, ubWoW, shareWoW, kaShareWoW].filter(v=>v!==null&&v<0).length;
-  // WoW card border color
+  function setWowMetric(valId, wowId, val, wow, isShare) {
+    const valEl=document.getElementById(valId), wowEl=document.getElementById(wowId);
+    if(valEl) valEl.textContent = isShare ? fmt1(val)+'%' : val.toLocaleString();
+    if(wowEl && wow!==null){
+      const up=wow>=0, clr=up?'var(--green)':'var(--red)';
+      wowEl.innerHTML=`<span style="color:${clr}">${up?'\u25b2':'\u25bc'} ${Math.abs(wow).toFixed(1)}${isShare?'pp':'%'} WoW</span>`;
+    } else if(wowEl){wowEl.textContent='\u2014';wowEl.style.color='var(--text3)';}
+  }
+
+  setWowMetric('wow-nv-tw',    'wow-nv-wow',    nvTWVol,   nvWoW,      false);
+  setWowMetric('wow-ub-tw',    'wow-ub-wow',    ubTWQty,   ubWoW,      false);
+  setWowMetric('wow-share-tw', 'wow-share-wow', msiShareTW,shareWoW,   true);
+  setWowMetric('wow-ka-vol-tw','wow-ka-vol-wow',kaTWVol2,  kaVolWoW,   false);
+  setWowMetric('wow-ka-msi-tw','wow-ka-msi-wow',kaTWMsi2,  kaMsiVolWoW,false);
+  setWowMetric('wow-ka-tw',    'wow-ka-wow',    kaShareTW, kaShareWoW, true);
+
+  const ups=[nvWoW,ubWoW,shareWoW,kaShareWoW].filter(v=>v!==null&&v>0).length;
+  const dns=[nvWoW,ubWoW,shareWoW,kaShareWoW].filter(v=>v!==null&&v<0).length;
   const wowEl=document.getElementById('pc-wow');
-  if(wowEl){wowEl.className='pulse-wow '+(ups>dns?'ok-wow':dns>ups?'warn-wow':'');}
+  if(wowEl) wowEl.className='pulse-wow '+(ups>dns?'ok-wow':dns>ups?'warn-wow':'');
 
-  // P4 – KA Channel hero card
-  // IHS ttlVol = 0 always; derive dealer total from brandVol/brandShare
-  // KA_DEALERS in IHS: Mobile World, FPT RETAIL JSC, CELLPHONES (NK missing)
-  const ihsKAAll = D.ihs.rows.filter(r=>weeks.includes(r.w)&&r.sg==='Gaming'&&KA_DEALERS.includes(r.cust));
+  // ── Card 2: KA Channel ────────────────────────────────────────────
+  // Filter IHS by selBrand if active
+  let ihsKAAll = D.ihs.rows.filter(r=>weeks.includes(r.w)&&r.sg==='Gaming'&&KA_DEALERS.includes(r.cust));
+  if(SB) ihsKAAll = ihsKAAll.filter(r=>r.brand===SB || r.brand==='TTL Gaming');
 
-  // KA total = sum of all brandVol at KA dealers (excl TTL Gaming row)
-  // Verified: this matches sheet exactly (e.g. Q2 2026 = 20,839)
   const kaTotalVol = ihsKAAll.filter(r=>r.brand!=='TTL Gaming').reduce((s,r)=>s+(r.brandVol||0),0);
+  const kaMSIVol   = ihsKAAll.filter(r=>r.brand==='MSI').reduce((s,r)=>s+(r.brandVol||0),0);
+  const kaShare    = kaTotalVol>0 ? kaMSIVol/kaTotalVol*100 : 0;
 
-  // MSI vol at KA: direct brandVol sum (accurate)
-  const kaMSIVol  = ihsKAAll.filter(r=>r.brand==='MSI').reduce((s,r)=>s+(r.brandVol||0),0);
-  const kaShare   = kaTotalVol>0 ? kaMSIVol/kaTotalVol*100 : 0;
-
-  // YoY: sum lastYear per brand at KA dealers
-  // lastYear = that brand's vol at that dealer same period LY — direct sum is correct
-  // Do NOT divide by brandShare (that gives implied total, not brand LY)
-  const kaLYVol = D.ihs.rows
-    .filter(r=>weeks.includes(r.w)&&r.sg==='Gaming'&&KA_DEALERS.includes(r.cust)&&r.brand!=='TTL Gaming'&&(r.lastYear||0)>0)
-    .reduce((s,r)=>s+(r.lastYear||0),0);
+  let kaLYRows = D.ihs.rows.filter(r=>weeks.includes(r.w)&&r.sg==='Gaming'&&KA_DEALERS.includes(r.cust)&&r.brand!=='TTL Gaming'&&(r.lastYear||0)>0);
+  if(SB) kaLYRows = kaLYRows.filter(r=>r.brand===SB);
+  const kaLYVol = kaLYRows.reduce((s,r)=>s+(r.lastYear||0),0);
   const kaYoY   = kaLYVol>0 ? (kaTotalVol-kaLYVol)/kaLYVol*100 : null;
 
-  // Hero vol + YoY badge
   setText('p4-ka-vol', kaTotalVol.toLocaleString());
-  const ctxYear4 = st.year!=='all'?st.year:'All years';
-  const ctxQ4    = st.quarter!=='all'?` · ${st.quarter}`:'';
-  setText('p4-ctx', `MBW · FPT · CPS · PV${ctxQ4?'  '+ctxQ4:''}`);
-
+  setText('p4-ctx', `MBW \xb7 FPT \xb7 CPS \xb7 PV${cfLabel}`);
   setYoYFt('p4-yoy-ft','p4-yoy', kaYoY);
-
-  // Sub-metrics: MSI vol + MSI share (color-coded)
   setText('p4-msi-vol', kaMSIVol.toLocaleString());
-  const kaShareEl = document.getElementById('p4-msi-share');
+  const kaShareEl=document.getElementById('p4-msi-share');
   if(kaShareEl){
-    kaShareEl.textContent = fmt1(kaShare)+'%';
-    kaShareEl.style.color = kaShare>=20?'var(--green)':kaShare>=12?'var(--amber)':'var(--red)';
+    kaShareEl.textContent=fmt1(kaShare)+'%';
+    kaShareEl.style.color=kaShare>=20?'var(--green)':kaShare>=12?'var(--amber)':'var(--red)';
   }
   setPulseClass('pc-ka', kaShare>=20?'ok':kaShare>=12?'warn':'risk');
 
-  // P5 — Rest Channel = Total NV − KA (period)
-  // Derive from NV gpuRows total minus KA total (already computed above)
-  // NV total = tvol (from gpuRows, accurate)
-  // KA total = kaTotalVol (derived above)
+  // ── Card 3: Rest Channel = NV total − KA ─────────────────────────
   const restTotalVol = Math.max(0, tvol - kaTotalVol);
 
-  // MSI Rest = NV MSI total - KA MSI (IHS brandVol)
-  // MSI in Rest = Total Userbuy − MSI in KA (per sheet: hình 2)
-  // ubPeriodMsi = userbuy total (Gaming only, period)
   const skuMapR={}; D.ub.skus.forEach(s=>{skuMapR[s.sku]=s;});
-  const ubPeriodAll = D.ub.facts.filter(f=>weeks.includes(f.w)).map(f=>({...f,...(skuMapR[f.sku]||{})})).filter(f=>(f.sg||'')!=='Business& Productivity');
+  let ubPeriodAll = D.ub.facts.filter(f=>weeks.includes(f.w)).map(f=>({...f,...(skuMapR[f.sku]||{})})).filter(f=>(f.sg||'')!=='Business& Productivity');
+  if(SG) ubPeriodAll = ubPeriodAll.filter(f=>f.gpu===SG);
   const ubPeriodTotal = ubPeriodAll.reduce((s,f)=>s+(f.qty||0),0);
-  const restMSIVol   = Math.max(0, ubPeriodTotal - kaMSIVol);
-  const restShare    = restTotalVol>0 ? restMSIVol/restTotalVol*100 : 0;
+  const restMSIVol    = Math.max(0, ubPeriodTotal - kaMSIVol);
+  const restShare     = restTotalVol>0 ? restMSIVol/restTotalVol*100 : 0;
 
-  // YoY Rest: NV LY total - KA LY total (both now using best-available derivation)
-  const nvLYAll   = nvRows.reduce((s,r)=>s+(r.lastYear||0),0);
+  const nvLYAll   = (SB ? nvBR : nvR).reduce((s,r)=>s+(r.lastYear||0),0);
   const restLYVol = Math.max(0, nvLYAll - kaLYVol);
   const restYoY   = restLYVol>0 ? (restTotalVol-restLYVol)/restLYVol*100 : null;
-  console.log('[RestYoY]', {restTotalVol, restLYVol, nvLYAll, kaLYVol, restYoY: restYoY?.toFixed(1)});
 
-  // Hero vol
   setText('p5-rest-vol', restTotalVol.toLocaleString());
-  const ctxYear5 = st.year!=='all'?st.year:'All years';
-  const ctxQ5    = st.quarter!=='all'?` · ${st.quarter}`:'';
-  setText('p5-ctx', `Total NV − KA${ctxQ5?'  '+ctxQ5:''}`);
-
-  // YoY badge
+  setText('p5-ctx', `Total NV \u2212 KA${cfLabel}`);
   setYoYFt('p5-yoy-ft','p5-yoy', restYoY);
-
-  // Sub-metrics
   setText('p5-msi-vol', restMSIVol.toLocaleString());
-  const restShareEl = document.getElementById('p5-msi-share');
+  const restShareEl=document.getElementById('p5-msi-share');
   if(restShareEl){
-    restShareEl.textContent = fmt1(restShare)+'%';
-    restShareEl.style.color = restShare>=15?'var(--green)':restShare>=8?'var(--amber)':'var(--red)';
+    restShareEl.textContent=fmt1(restShare)+'%';
+    restShareEl.style.color=restShare>=15?'var(--green)':restShare>=8?'var(--amber)':'var(--red)';
   }
-
 }
+
 
 
 /* ═══════════════════════════════════════
@@ -1998,4 +1973,5 @@ init();
 </script>
 </body>
 </html>
+
 
