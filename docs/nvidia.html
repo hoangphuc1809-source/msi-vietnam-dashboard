@@ -1039,7 +1039,7 @@ function renderPulse(nvRows, weeks, latestW, prevW) {
   setTimeout(() => {
     drawHeroSpark('sp-nv',   spNV,   'rgb(37,99,235)',   spWeeks);
     drawHeroSpark('sp-ka',   spKA,   'rgb(217,119,6)',   spWeeks);
-    drawHeroSpark('sp-rest', spRest, 'rgb(107,114,128)', spWeeks);
+    if(SG){const el=document.getElementById('sp-rest');const ck='sp-sp-rest';if(charts[ck]){charts[ck].destroy();delete charts[ck];}}else{drawHeroSpark('sp-rest',spRest,'rgb(107,114,128)',spWeeks);}
   }, 50);
 
   /* ═══════════════════════════════════════════════════════════
