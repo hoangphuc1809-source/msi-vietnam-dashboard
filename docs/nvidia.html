@@ -936,51 +936,55 @@ function renderPulse(nvRows, weeks, latestW, prevW) {
 
   const kaTotalVolFull = ihsKAAll.filter(r => r.brand !== 'TTL Gaming').reduce((s,r) => s + (r.brandVol||0), 0);
   const kaMSIVolFull   = ihsKAAll.filter(r => r.brand === 'MSI').reduce((s,r) => s + (r.brandVol||0), 0);
-
-  // Scale theo GPU ratio nếu SG active
-  const kaTotalVol = Math.round(kaTotalVolFull * gpuShareRatio);
-  const kaMSIVol   = Math.round(kaMSIVolFull   * gpuShareRatio);
-  const kaShare    = kaTotalVol > 0 ? kaMSIVol / kaTotalVol * 100 : 0;
-
   let kaLYRows = D.ihs.rows.filter(r => weeks.includes(r.w) && r.sg==='Gaming' && KA_DEALERS.includes(r.cust) && r.brand!=='TTL Gaming' && (r.lastYear||0)>0);
   if(SB) kaLYRows = kaLYRows.filter(r => r.brand === SB);
   const kaLYVolFull = kaLYRows.reduce((s,r) => s + (r.lastYear||0), 0);
-  const kaLYVol     = Math.round(kaLYVolFull * gpuShareRatio);
-  const kaYoY       = kaLYVol > 0 ? (kaTotalVol - kaLYVol) / kaLYVol * 100 : null;
-
-  const kaCtxSuffix = SG ? ` \xb7 ${SG} (est.)` : cfLabel;
-  setText('p4-ka-vol', kaTotalVol.toLocaleString());
-  setText('p4-ctx', `MBW \xb7 FPT \xb7 CPS \xb7 PV${kaCtxSuffix}`);
-  setYoYFt('p4-yoy-ft', 'p4-yoy', kaYoY);
-  setText('p4-msi-vol', kaMSIVol.toLocaleString());
-  const kaShareEl = document.getElementById('p4-msi-share');
-  if(kaShareEl) {
-    kaShareEl.textContent = fmt1(kaShare) + '%';
-    kaShareEl.style.color = kaShare>=20 ? 'var(--green)' : kaShare>=12 ? 'var(--amber)' : 'var(--red)';
+  // Khi SG active: IHS không có GPU field → KA = n/a
+  const kaTotalVol = SG ? 0 : kaTotalVolFull;
+  const kaMSIVol   = SG ? 0 : kaMSIVolFull;
+  const kaShare    = kaTotalVol > 0 ? kaMSIVol / kaTotalVol * 100 : 0;
+  const kaLYVol    = SG ? 0 : kaLYVolFull;
+  const kaYoY      = !SG && kaLYVol > 0 ? (kaTotalVol - kaLYVol) / kaLYVol * 100 : null;
+  if(SG) {
+    setText('p4-ka-vol', '—');
+    setText('p4-ctx', 'KA Channel · n/a (no GPU breakdown)');
+    const ft4 = document.getElementById('p4-yoy-ft'); if(ft4){ft4.textContent='';ft4.style.color='';}
+    setText('p4-msi-vol', '—');
+    const ks = document.getElementById('p4-msi-share'); if(ks){ks.textContent='—';ks.style.color='var(--text3)';}
+    setPulseClass('pc-ka', 'warn');
+  } else {
+    setText('p4-ka-vol', kaTotalVol.toLocaleString());
+    setText('p4-ctx', `MBW · FPT · CPS · PV${cfLabel}`);
+    setYoYFt('p4-yoy-ft', 'p4-yoy', kaYoY);
+    setText('p4-msi-vol', kaMSIVol.toLocaleString());
+    const kaShareEl = document.getElementById('p4-msi-share');
+    if(kaShareEl){kaShareEl.textContent=fmt1(kaShare)+'%';kaShareEl.style.color=kaShare>=20?'var(--green)':kaShare>=12?'var(--amber)':'var(--red)';}
+    setPulseClass('pc-ka', kaShare>=20?'ok':kaShare>=12?'warn':'risk');
   }
-  setPulseClass('pc-ka', kaShare>=20 ? 'ok' : kaShare>=12 ? 'warn' : 'risk');
 
   /* ═══════════════════════════════════════════════════════════
      CARD 3 — Rest Channel = NV total − KA
   ═══════════════════════════════════════════════════════════ */
-  const restTotalVol = Math.max(0, tvol - kaTotalVol);
-  const restMSIVol   = Math.max(0, ubP1total - kaMSIVol);
-  const restShare    = restTotalVol > 0 ? restMSIVol / restTotalVol * 100 : 0;
-
-  const nvLYAll   = (SB ? nvBR : nvR).reduce((s,r) => s + (r.lastYear||0), 0);
-  const restLYVol = Math.max(0, nvLYAll - kaLYVol);
-  const restYoY   = restLYVol > 0 ? (restTotalVol - restLYVol) / restLYVol * 100 : null;
-
-  setText('p5-rest-vol', restTotalVol.toLocaleString());
-  setText('p5-ctx', `Total NV \u2212 KA${SG ? ` \xb7 ${SG} (est.)` : cfLabel}`);
-  setYoYFt('p5-yoy-ft', 'p5-yoy', restYoY);
-  setText('p5-msi-vol', restMSIVol.toLocaleString());
-  const restShareEl = document.getElementById('p5-msi-share');
-  if(restShareEl) {
-    restShareEl.textContent = fmt1(restShare) + '%';
-    restShareEl.style.color = restShare>=15 ? 'var(--green)' : restShare>=8 ? 'var(--amber)' : 'var(--red)';
+  if(SG) {
+    setText('p5-rest-vol', '—');
+    setText('p5-ctx', 'Rest Channel · n/a (no GPU breakdown)');
+    const ft5=document.getElementById('p5-yoy-ft');if(ft5){ft5.textContent='';ft5.style.color='';}
+    setText('p5-msi-vol', '—');
+    const rs=document.getElementById('p5-msi-share');if(rs){rs.textContent='—';rs.style.color='var(--text3)';}
+  } else {
+    const restTotalVol = Math.max(0, tvol - kaTotalVol);
+    const restMSIVol   = Math.max(0, ubP1total - kaMSIVol);
+    const restShare    = restTotalVol > 0 ? restMSIVol / restTotalVol * 100 : 0;
+    const nvLYAll      = (SB?nvBR:nvR).reduce((s,r)=>s+(r.lastYear||0),0);
+    const restLYVol    = Math.max(0, nvLYAll - kaLYVol);
+    const restYoY      = restLYVol > 0 ? (restTotalVol-restLYVol)/restLYVol*100 : null;
+    setText('p5-rest-vol', restTotalVol.toLocaleString());
+    setText('p5-ctx', `Total NV − KA${cfLabel}`);
+    setYoYFt('p5-yoy-ft', 'p5-yoy', restYoY);
+    setText('p5-msi-vol', restMSIVol.toLocaleString());
+    const restShareEl=document.getElementById('p5-msi-share');
+    if(restShareEl){restShareEl.textContent=fmt1(restShare)+'%';restShareEl.style.color=restShare>=15?'var(--green)':restShare>=8?'var(--amber)':'var(--red)';}
   }
-
   /* ═══════════════════════════════════════════════════════════
      SPARKLINES (3 hero cards)
   ═══════════════════════════════════════════════════════════ */
@@ -1103,6 +1107,963 @@ function renderPulse(nvRows, weeks, latestW, prevW) {
 
   
   const ups = [nvWoW,ubWoW,shareWoW,kaShareWoW].filter(v=>v!==null&&v>0).length;
+  const dns = [nvWoW,ubWoW,shareWoW,kaShareWoW].filter(v=>v!==null&&v<0).length;
+  const wowCard = document.getElementById('pc-wow');
+  if(wowCard) wowCard.className = 'pulse-wow ' + (ups>dns?'ok-wow':dns>ups?'warn-wow':'');
+}
+
+
+/* ═══════════════════════════════════════
+   ★ BRAND & GPU ANALYSIS
+   Brand table + line chart (share %)
+   GPU table + line chart (volume)
+═══════════════════════════════════════ */
+function renderBrandGpu(nvR, weeks) {
+  const last13 = weeks.slice(-13);
+  const latestW = last13[last13.length-1];
+  const prevW   = last13[last13.length-2]||latestW;
+  const w3ago   = last13[last13.length-3]||latestW;
+
+  const BRAND_COLORS = {
+    Asus:'#f59e0b', Lenovo:'#3b82f6', Acer:'#22c55e',
+    MSI:'#ef4444',  HP:'#a855f7',     Giga:'#6b7280', Others:'#94a3b8',
+    Dell:'#0ea5e9', Samsung:'#14b8a6'
+  };
+  const GPU_COLORS = {
+    'RTX 3050':'#3b82f6','RTX 4050':'#f59e0b','RTX 5050':'#22c55e',
+    'RTX 5060':'#8b5cf6','RTX 2050':'#ef4444','RTX 5070':'#f97316',
+    'RTX 4060':'#06b6d4','RTX 4070':'#ec4899','RTX 5070Ti':'#84cc16',
+    'RTX 5080':'#10b981','RTX 5090':'#6366f1','RTX 4080':'#f43f5e',
+    'RTX 4090':'#0ea5e9','RTX Others':'#94a3b8'
+  };
+
+  const SB = st.selBrand;
+  const SG = st.selGpu;
+
+  // NV brandRows filtered by weeks
+  const nvBR = (D.nv.brandRows||[]).filter(r=>weeks.includes(r.w));
+
+  const _brandTotals = {};
+  nvBR.forEach(r=>{ _brandTotals[r.brand] = (_brandTotals[r.brand]||0) + (r.vol||0); });
+  const BRANDS = Object.keys(_brandTotals).filter(b=>b&&b!=='TTL').sort((a,b)=>_brandTotals[b]-_brandTotals[a]);
+
+  function brandVolWeek(brand, wk) {
+    return nvBR.filter(r=>r.brand===brand&&r.w===wk).reduce((s,r)=>s+(r.vol||0),0);
+  }
+  function brandTtlWeek(wk) {
+    return nvR.filter(r=>r.w===wk).reduce((s,r)=>s+(r.vol||0),0);
+  }
+
+  const periodTtl = nvR.reduce((s,r)=>s+(r.vol||0),0)||1;
+  const wLast = latestW, wPrev = prevW;
+
+  function wowHtml(v) {
+    if(v===null) return '<span style="color:var(--text3)">&mdash;</span>';
+    const up=v>=0, clr=up?'#16a34a':'#dc2626';
+    return `<span style="color:${clr};font-weight:600">${up?'+':''}${v.toFixed(0)}%</span>`;
+  }
+  function shareBar(pct, color) {
+    return `<div style="display:flex;align-items:center;gap:5px">
+      <div style="width:50px;height:5px;background:var(--bg4);border-radius:3px;overflow:hidden">
+        <div style="width:${Math.min(100,pct*3)}%;height:100%;background:${color};border-radius:3px"></div>
+      </div>
+      <span style="color:var(--text)">${pct.toFixed(1)}%</span></div>`;
+  }
+
+  /* ── BRAND TABLE ── */
+  const brandRowsData = BRANDS.map(b=>{
+    const periodVol = nvBR.filter(r=>r.brand===b).reduce((s,r)=>s+(r.vol||0),0);
+    const share = periodVol/periodTtl*100;
+    const vLast = brandVolWeek(b, wLast);
+    const vPrev = brandVolWeek(b, wPrev);
+    const vW3   = brandVolWeek(b, w3ago);
+    const vW2   = brandVolWeek(b, last13[last13.length-3]||latestW);
+    const wow   = vPrev>0 ? (vLast-vPrev)/vPrev*100 : null;
+    const color = BRAND_COLORS[b]||'#94a3b8';
+    return {brand:b, vol:periodVol, share, vLast, vPrev, vW3, vW2, wow, color};
+  }).filter(r=>r.vol>0).sort((a,b)=>b.vol-a.vol);
+
+  const gtVol  = periodTtl;
+  const gtLast = brandTtlWeek(wLast);
+  const gtPrev = brandTtlWeek(wPrev);
+  const gtW3   = brandTtlWeek(w3ago);
+  const gtW2   = brandTtlWeek(last13[last13.length-3]||latestW);
+  const gtWoW  = gtPrev>0?(gtLast-gtPrev)/gtPrev*100:null;
+
+  const tbody = document.getElementById('brand-tbody');
+  if(tbody) {
+    tbody.innerHTML = brandRowsData.map(r=>{
+      const isSelected = SB===r.brand;
+      const isDimmed   = SB && SB!==r.brand;
+      const rowCls = isSelected?'cf-selected':(isDimmed?'cf-dimmed':'');
+      return `<tr class="${rowCls}" style="border-top:1px solid var(--border);cursor:pointer" onclick="setBrandFilter('${r.brand}')">
+        <td style="padding:7px 14px;display:flex;align-items:center;gap:6px">
+          <div style="width:8px;height:8px;border-radius:50%;background:${r.color};flex-shrink:0"></div>
+          <span style="font-weight:500;color:var(--text)">${r.brand}</span>
+          ${isSelected?'<span style="font-size:9px;background:var(--nvidia-dim);color:var(--nvidia);padding:1px 5px;border-radius:3px;margin-left:2px">active</span>':''}
+        </td>
+        <td style="padding:7px 8px;text-align:right;color:var(--text)">${r.vol.toLocaleString()}</td>
+        <td style="padding:7px 8px;text-align:right">${shareBar(r.share,r.color)}</td>
+        <td style="padding:7px 8px;text-align:right;color:var(--text2)">${r.vW3.toLocaleString()}</td>
+        <td style="padding:7px 8px;text-align:right;color:var(--text2)">${r.vW2.toLocaleString()}</td>
+        <td style="padding:7px 8px;text-align:right;font-weight:600;color:var(--text)">${r.vLast.toLocaleString()}</td>
+        <td style="padding:7px 14px;text-align:right">${wowHtml(r.wow)}</td>
+      </tr>`;
+    }).join('') +
+    `<tr style="border-top:2px solid var(--border);background:var(--bg3);cursor:pointer" onclick="setBrandFilter(null)">
+      <td style="padding:7px 14px;font-weight:600;color:var(--text)">Grand total <span style="font-size:9px;font-weight:400;color:var(--text3)">(Nvidia)</span></td>
+      <td style="padding:7px 8px;text-align:right;font-weight:600;color:var(--text)">${gtVol.toLocaleString()}</td>
+      <td style="padding:7px 8px;text-align:right;font-size:10px;color:var(--text3)">100%</td>
+      <td style="padding:7px 8px;text-align:right;font-weight:600;color:var(--text)">${gtW3.toLocaleString()}</td>
+      <td style="padding:7px 8px;text-align:right;font-weight:600;color:var(--text)">${gtW2.toLocaleString()}</td>
+      <td style="padding:7px 8px;text-align:right;font-weight:600;color:var(--text)">${gtLast.toLocaleString()}</td>
+      <td style="padding:7px 14px;text-align:right">${wowHtml(gtWoW)}</td>
+    </tr>`;
+  }
+
+  /* ── BRAND SHARE LINE CHART ── */
+  const chartWeeks = last13;
+  const xLabels = chartWeeks.map(w=>w);
+
+  destroyChart('c-brand-share');
+  charts['c-brand-share'] = new Chart(document.getElementById('c-brand-share'), {
+    type:'line',
+    data:{
+      labels: xLabels,
+      datasets: BRANDS.filter(b=>b!=='Others').map(b=>{
+        const isActive = !SB || SB===b;
+        const clr = BRAND_COLORS[b]||'#94a3b8';
+        return {
+          label: b,
+          data: chartWeeks.map(w=>{
+            const bv = brandVolWeek(b,w);
+            const tv = brandTtlWeek(w)||1;
+            return +(bv/tv*100).toFixed(1);
+          }),
+          borderColor: clr,
+          backgroundColor: clr+'22',
+          borderWidth: SB===b?3.5:(isActive?(b==='MSI'?2.5:1.5):0.8),
+          pointRadius: SB===b?5:(isActive?(b==='MSI'?4:2.5):1),
+          pointBackgroundColor: clr,
+          tension: 0.3,
+          fill: false,
+          borderDash: (!SB||SB===b)?[]:[5,4],
+          datalabels:{display:false}
+        };
+      })
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{
+          display:true, position:'top',
+          labels:{boxWidth:10, boxHeight:10, padding:12, font:{size:10}, usePointStyle:true, pointStyleWidth:8},
+          onClick(e, item) {
+            setBrandFilter(st.selBrand===item.text ? null : item.text);
+          }
+        },
+        datalabels:{display:false},
+        tooltip:{mode:'index', intersect:false,
+          callbacks:{label:i=>` ${i.dataset.label}: ${i.raw}%`}}
+      },
+      scales:{
+        x:{grid:{display:false}, ticks:{font:{size:9}, maxRotation:45, minRotation:30}},
+        y:{grid:{color:'rgba(0,0,0,.04)'}, ticks:{callback:v=>v+'%', font:{size:10}}, min:0}
+      }
+    }
+  });
+
+  /* ── GPU TABLE ──
+     Nếu selBrand=MSI → show msiVol per GPU (có data)
+     Nếu selBrand=khác → show NV total vol + note
+     Nếu selGpu → highlight GPU đó, dim phần còn lại
+  */
+  const useMsiVol = (SB === 'MSI');
+
+  const gpuList2 = [...new Set(nvR.map(r=>r.gpu))].filter(g=>g&&g!=='RTX Others');
+  const gpuRows2 = gpuList2.map(g=>{
+    const gpuRws = nvR.filter(r=>r.gpu===g);
+    const periodVol = useMsiVol
+      ? gpuRws.reduce((s,r)=>s+(r.msiVol||0),0)
+      : gpuRws.reduce((s,r)=>s+(r.vol||0),0);
+    const share = periodVol / (useMsiVol ? (nvR.reduce((s,r)=>s+(r.msiVol||0),0)||1) : periodTtl) * 100;
+    function gpuFieldWeek(wk) {
+      return nvR.filter(r=>r.gpu===g&&r.w===wk).reduce((s,r)=>s+(useMsiVol?(r.msiVol||0):(r.vol||0)),0);
+    }
+    const vLast = gpuFieldWeek(wLast);
+    const vPrev = gpuFieldWeek(wPrev);
+    const vW3   = gpuFieldWeek(w3ago);
+    const vW2   = gpuFieldWeek(last13[last13.length-3]||latestW);
+    const wow   = vPrev>0?(vLast-vPrev)/vPrev*100:null;
+    return {gpu:g, vol:periodVol, share, vLast, vPrev, vW3, vW2, wow};
+  }).filter(r=>r.vol>0).sort((a,b)=>b.vol-a.vol);
+
+  const gtGpuVol  = gpuRows2.reduce((s,r)=>s+r.vol,0);
+  const gtGpuLast = gpuRows2.reduce((s,r)=>s+r.vLast,0);
+  const gtGpuW3   = gpuRows2.reduce((s,r)=>s+r.vW3,0);
+  const gtGpuW2   = gpuRows2.reduce((s,r)=>s+r.vW2,0);
+  const gtGpuPrev = gpuRows2.reduce((s,r)=>s+r.vPrev,0);
+  const gtGpuWoW  = gtGpuPrev>0?(gtGpuLast-gtGpuPrev)/gtGpuPrev*100:null;
+
+  const gpuTbody = document.getElementById('gpu-tbody');
+  if(gpuTbody) {
+    let noteHtml = '';
+    if(useMsiVol)
+      noteHtml = `<tr style="background:rgba(198,40,40,.06)"><td colspan="7" style="padding:4px 14px;font-size:10px;color:var(--msi);font-style:italic">Showing MSI volume per GPU (NV Report msiVol)</td></tr>`;
+    else if(SB && SB!=='MSI')
+      noteHtml = `<tr style="background:rgba(217,119,6,.06)"><td colspan="7" style="padding:4px 14px;font-size:10px;color:var(--amber);font-style:italic">NV Report has no brand\xd7GPU breakdown \u2014 showing total NV volume</td></tr>`;
+
+    gpuTbody.innerHTML = noteHtml + gpuRows2.map(r=>{
+      const clr = GPU_COLORS[r.gpu]||'#94a3b8';
+      const isSelected = SG===r.gpu;
+      const isDimmed   = SG && SG!==r.gpu;
+      const rowCls = isSelected?'cf-selected':(isDimmed?'cf-dimmed':'');
+      return `<tr class="${rowCls}" style="border-top:1px solid var(--border);cursor:pointer" onclick="setGpuFilter('${r.gpu}')">
+        <td style="padding:7px 14px;display:flex;align-items:center;gap:6px">
+          <div style="width:8px;height:8px;border-radius:2px;background:${clr};flex-shrink:0"></div>
+          <span style="font-weight:500;color:var(--text)">${r.gpu}</span>
+          ${isSelected?'<span style="font-size:9px;background:var(--nvidia-dim);color:var(--nvidia);padding:1px 5px;border-radius:3px;margin-left:2px">active</span>':''}
+        </td>
+        <td style="padding:7px 8px;text-align:right;color:var(--text)">${r.vol.toLocaleString()}</td>
+        <td style="padding:7px 8px;text-align:right">${shareBar(r.share,clr)}</td>
+        <td style="padding:7px 8px;text-align:right;color:var(--text2)">${r.vW3.toLocaleString()}</td>
+        <td style="padding:7px 8px;text-align:right;color:var(--text2)">${r.vW2.toLocaleString()}</td>
+        <td style="padding:7px 8px;text-align:right;font-weight:600;color:var(--text)">${r.vLast.toLocaleString()}</td>
+        <td style="padding:7px 14px;text-align:right">${wowHtml(r.wow)}</td>
+      </tr>`;
+    }).join('') +
+    `<tr style="border-top:2px solid var(--border);background:var(--bg3);cursor:pointer" onclick="setGpuFilter(null)">
+      <td style="padding:7px 14px;font-weight:600;color:var(--text)">Grand total${useMsiVol?' <span style="font-size:9px;color:var(--msi)">(MSI)</span>':''}</td>
+      <td style="padding:7px 8px;text-align:right;font-weight:600;color:var(--text)">${gtGpuVol.toLocaleString()}</td>
+      <td style="padding:7px 8px;text-align:right;font-size:10px;color:var(--text3)">100%</td>
+      <td style="padding:7px 8px;text-align:right;font-weight:600;color:var(--text)">${gtGpuW3.toLocaleString()}</td>
+      <td style="padding:7px 8px;text-align:right;font-weight:600;color:var(--text)">${gtGpuW2.toLocaleString()}</td>
+      <td style="padding:7px 8px;text-align:right;font-weight:600;color:var(--text)">${gtGpuLast.toLocaleString()}</td>
+      <td style="padding:7px 14px;text-align:right">${wowHtml(gtGpuWoW)}</td>
+    </tr>`;
+  }
+
+  /* ── UPDATE TABLE COLUMN HEADERS ── */
+  ['brand','gpu'].forEach(pfx=>{
+    const el3=document.getElementById(pfx+'-th-w3');
+    const el2=document.getElementById(pfx+'-th-w2');
+    const el1=document.getElementById(pfx+'-th-w1');
+    if(el3) el3.textContent = w3ago;
+    if(el2) el2.textContent = prevW;
+    if(el1) el1.textContent = latestW;
+  });
+
+  /* ── GPU VOLUME LINE CHART ── */
+  const topGpus = gpuRows2.slice(0,6).map(r=>r.gpu);
+  if(SG && !topGpus.includes(SG)) topGpus.push(SG);
+
+  destroyChart('c-gpu-vol');
+  charts['c-gpu-vol'] = new Chart(document.getElementById('c-gpu-vol'), {
+    type:'line',
+    data:{
+      labels: xLabels,
+      datasets: topGpus.map(g=>{
+        const isActive = !SG || SG===g;
+        const clr = GPU_COLORS[g]||'#94a3b8';
+        return {
+          label: g,
+          data: chartWeeks.map(w=>{
+            return nvR.filter(r=>r.gpu===g&&r.w===w).reduce((s,r)=>s+(useMsiVol?(r.msiVol||0):(r.vol||0)),0);
+          }),
+          borderColor: clr,
+          backgroundColor: clr+'18',
+          borderWidth: SG===g?3:(isActive?1.5:0.8),
+          pointRadius: SG===g?4:(isActive?2.5:1),
+          pointBackgroundColor: clr,
+          tension:0.3, fill:false,
+          borderDash: isActive?[]:[5,4],
+          datalabels:{display:false}
+        };
+      })
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{
+          display:true, position:'top',
+          labels:{boxWidth:10, boxHeight:10, padding:10, font:{size:10}, usePointStyle:true, pointStyleWidth:8},
+          onClick(e, item) {
+            setGpuFilter(st.selGpu===item.text ? null : item.text);
+          }
+        },
+        datalabels:{display:false},
+        tooltip:{mode:'index', intersect:false,
+          callbacks:{label:i=>useMsiVol?` ${i.dataset.label} (MSI): ${i.raw.toLocaleString()}`:`  ${i.dataset.label}: ${i.raw.toLocaleString()}`}}
+      },
+      scales:{
+        x:{grid:{display:false}, ticks:{font:{size:9}, maxRotation:45, minRotation:30}},
+        y:{grid:{color:'rgba(0,0,0,.04)'}, ticks:{font:{size:10},callback:v=>v>=1000?(v/1000).toFixed(1)+'k':v}, min:0}
+      }
+    }
+  });
+
+  /* ── Update filter chips UI ── */
+  updateFilterChips();
+}
+
+/* ═══════════════════════════════════════
+   CROSS-FILTER HANDLERS
+═══════════════════════════════════════ */
+function setBrandFilter(brand) {
+  // Toggle: click same brand again = clear
+  st.selBrand = (st.selBrand === brand || brand === null) ? null : brand;
+  if(brand !== null) st.selGpu = null; // mutual exclusion
+  const rows = nvRows(), weeks = nvWeeks(rows);
+  const latestW = weeks[weeks.length-1], prevW = weeks[weeks.length-2]||weeks[weeks.length-1];
+  renderBrandGpu(rows, weeks);
+  renderPulse(rows, weeks, latestW, prevW);
+}
+
+function setGpuFilter(gpu) {
+  st.selGpu   = (st.selGpu === gpu || gpu === null) ? null : gpu;
+  if(gpu !== null) st.selBrand = null; // mutual exclusion
+  const rows = nvRows(), weeks = nvWeeks(rows);
+  const latestW = weeks[weeks.length-1], prevW = weeks[weeks.length-2]||weeks[weeks.length-1];
+  renderBrandGpu(rows, weeks);
+  renderPulse(rows, weeks, latestW, prevW);
+  // Sync GPU Detail section
+  if(st.selGpu) {
+    st.gpu = st.selGpu;
+    renderGpuList(rows, latestW);
+    renderDetail(rows, weeks, st.selGpu);
+    document.getElementById('detail-tag').textContent = st.selGpu;
+  }
+}
+
+function clearBgFilter() {
+  st.selBrand = null;
+  st.selGpu   = null;
+  const rows = nvRows(), weeks = nvWeeks(rows);
+  const latestW = weeks[weeks.length-1], prevW = weeks[weeks.length-2]||weeks[weeks.length-1];
+  renderBrandGpu(rows, weeks);
+  renderPulse(rows, weeks, latestW, prevW);
+}
+
+function updateFilterChips() {
+  const chips = document.getElementById('bg-filter-chips');
+  const clearBtn = document.getElementById('bg-clear-btn');
+  if(!chips || !clearBtn) return;
+  let html = '';
+  if(st.selBrand) html += `<span class="cf-filter-chip" onclick="setBrandFilter(null)">Brand: ${st.selBrand} <span class="cf-x">\xd7</span></span>`;
+  if(st.selGpu)   html += `<span class="cf-filter-chip" onclick="setGpuFilter(null)">GPU: ${st.selGpu} <span class="cf-x">\xd7</span></span>`;
+  chips.innerHTML = html;
+  clearBtn.style.display = (st.selBrand || st.selGpu) ? 'inline' : 'none';
+}
+
+
+/* ═══════════════════════════════════════
+   ② WIN/LOSE MATRIX
+═══════════════════════════════════════ */
+function renderWinLose(nvR, weeks, latestW) {
+  const gpus = gpuList().filter(g=>g!=='RTX Others');
+  const tw = nvR.filter(r=>r.w===latestW);
+  const totalVolTW = tw.reduce((s,r)=>s+(r.vol||0),0);
+
+  // Compare current 4w avg share vs LY 4w avg share
+  const last4w = weeks.slice(-4);
+  const first4w = weeks.slice(0,4); // proxy for LY if no LY data
+
+  const gpuData = gpus.map(gpu=>{
+    const twRow = tw.find(r=>r.gpu===gpu)||{};
+    const vol = twRow.vol||0;
+    const msiVol = twRow.msiVol||0;
+    const lyVol = twRow.lastYear||0;
+    const shareTW = vol>0 ? msiVol/vol*100 : 0;
+    // LY estimate: use lastYear vol with same msiVol ratio as proxy
+    const sharePercentIHS = D.ihs.rows
+      .filter(r=>r.w===latestW&&r.sg==='Gaming'&&r.brand==='MSI')
+      .reduce((s,r)=>s+(r.brandShare||0),0);
+    // Delta from rolling share trend (current 4w avg - rolling avg LY weeks)
+    const cur4w = nvR.filter(r=>r.w&&last4w.includes(r.w)&&r.gpu===gpu);
+    const cur4wShare = cur4w.length>0
+      ? cur4w.reduce((s,r)=>r.vol>0?s+(r.msiVol/r.vol*100):s,0)/cur4w.filter(r=>r.vol>0).length||0
+      : 0;
+    // Previous 4w (earlier in window)
+    const prev4weeks = weeks.slice(-8,-4);
+    const prev4w = nvR.filter(r=>prev4weeks.includes(r.w)&&r.gpu===gpu);
+    const prev4wShare = prev4w.length>0
+      ? prev4w.reduce((s,r)=>r.vol>0?s+(r.msiVol/r.vol*100):s,0)/prev4w.filter(r=>r.vol>0).length||0
+      : 0;
+    const delta = cur4wShare - prev4wShare;
+    const mktPct = totalVolTW>0 ? vol/totalVolTW*100 : 0;
+    return {gpu, vol, msiVol, shareTW, delta, cur4wShare, mktPct};
+  }).filter(d=>d.vol>10||d.msiVol>0); // skip zero-vol GPUs
+
+  const gaining = gpuData.filter(d=>d.delta>=0).sort((a,b)=>b.delta-a.delta);
+  const losing  = gpuData.filter(d=>d.delta<0).sort((a,b)=>a.delta-b.delta);
+
+  const maxDelta = Math.max(...gpuData.map(d=>Math.abs(d.delta)),0.1);
+
+  setText('wl-win-count', `${gaining.length} GPU tier${gaining.length!==1?'s':''}`);
+  setText('wl-lose-count', `${losing.length} GPU tier${losing.length!==1?'s':''}`);
+
+  function buildRows(arr, container, cls) {
+    const el = document.getElementById(container);
+    el.innerHTML='';
+    if (arr.length===0) {
+      el.innerHTML=`<div style="padding:12px;font-size:12px;color:var(--text3)">No ${cls} GPUs in current filter</div>`;
+      return;
+    }
+    arr.forEach(d=>{
+      const barW = Math.min(100, Math.abs(d.delta)/maxDelta*100);
+      const deltaStr = (d.delta>=0?'+':'')+fmt1(d.delta)+'pp';
+      const color = cls==='win'?'var(--green)':'var(--red)';
+      el.insertAdjacentHTML('beforeend',`
+        <div class="wl-row">
+          <div>
+            <div class="wl-gpu">${d.gpu}</div>
+            <div class="wl-sub">${GPU_TO_SEG[d.gpu]||''} · ${fmt1(d.cur4wShare)}% share</div>
+          </div>
+          <div class="wl-bar-wrap">
+            <div class="wl-bar-bg"><div class="wl-bar-fill ${cls}" style="width:${barW}%"></div></div>
+          </div>
+          <div class="wl-delta" style="color:${color}">${deltaStr}</div>
+        </div>`);
+    });
+  }
+
+  buildRows(gaining,'wl-win-rows','win');
+  buildRows(losing,'wl-lose-rows','lose');
+
+  // Auto insight
+  const topWin = gaining[0];
+  const topLose = losing[0];
+  let insight = '';
+  if (topWin && topLose) {
+    insight = `<strong>${topWin.gpu}</strong> leads with +${fmt1(topWin.delta)}pp 4-week share trend — `;
+    insight += `Continue push at MBW/FPT. `;
+    insight += `<strong>${topLose.gpu}</strong> lost ${fmt1(Math.abs(topLose.delta))}pp — `;
+    insight += `Check price competitiveness and inventory at KA dealers.`;
+  } else if (gaining.length===0) {
+    insight = 'MSI đang lost share ở tất cả GPU tiers trong window hiện tại — cần review pricing strategy ngay.';
+  } else {
+    insight = 'MSI gaining share across most GPU tiers. Maintain momentum and monitor inventory.';
+  }
+  document.getElementById('wl-insight').innerHTML = insight;
+}
+
+/* ═══════════════════════════════════════
+   ③ DUAL-AXIS SPARKLINE MATRIX
+═══════════════════════════════════════ */
+function renderSparklines(nvR, weeks) {
+  const last13 = weeks.slice(-13);
+  const gpus = gpuList().filter(g=>g!=='RTX Others');
+  const ub = ubFacts(last13);
+
+  // Map GPU label to userbuy sku gpu field
+  // Both use same label e.g. "RTX 4050"
+  const ubByGpuWeek = {};
+  ub.forEach(f=>{
+    const key = (f.gpu||'')+'|'+(f.w||'');
+    ubByGpuWeek[key]=(ubByGpuWeek[key]||0)+(f.qty||0);
+  });
+
+  const container = document.getElementById('spark-grid');
+  container.innerHTML='';
+
+  // Destroy old sparkline charts
+  Object.keys(charts).filter(k=>k.startsWith('sp-')).forEach(k=>{charts[k].destroy();delete charts[k];});
+
+  gpus.forEach(gpu=>{
+    const nvData = last13.map(w=>{
+      const r = nvR.find(row=>row.w===w&&row.gpu===gpu);
+      return r?r.vol:0;
+    });
+    const ubData = last13.map(w=>ubByGpuWeek[gpu+'|'+w]||0);
+    const nvMax = Math.max(...nvData,1);
+    const ubMax = Math.max(...ubData,1);
+
+    // Correlation signal
+    const nvNorm = nvData.map(v=>v/nvMax);
+    const ubNorm = ubData.map(v=>v/ubMax);
+    const correlation = pearson(nvNorm, ubNorm);
+    const nvTrend = trend(nvData);
+    const ubTrend = trend(ubData);
+    let syncClass='sync-na', syncLabel='N/A';
+    const hasData = nvMax>5 && ubMax>2;
+    if (hasData) {
+      if (Math.abs(correlation)>0.7 && Math.sign(nvTrend)===Math.sign(ubTrend)) {
+        syncClass='sync-sync'; syncLabel='In sync ↑';
+      } else if (nvTrend>0.05 && ubTrend < -0.05) {
+        syncClass='sync-diverg'; syncLabel='Diverging ↘';
+      } else if (Math.abs(nvTrend)>0.05 && Math.abs(correlation)<0.4) {
+        syncClass='sync-lag'; syncLabel='Lagging ↗';
+      } else if (Math.abs(correlation)>0.5) {
+        syncClass='sync-sync'; syncLabel='In sync';
+      } else {
+        syncClass='sync-lag'; syncLabel='Monitor';
+      }
+    }
+
+    const cardId = 'sp-'+gpu.replace(/\s/g,'-');
+    const nvCanvasId = 'spnv-'+cardId;
+    const ubCanvasId = 'spub-'+cardId;
+
+    const latestNV = nvData[nvData.length-1];
+    const latestUB = ubData[ubData.length-1];
+
+    container.insertAdjacentHTML('beforeend',`
+      <div class="spark-card" onclick="selectGpu('${gpu}')">
+        <div class="spark-head">
+          <span class="spark-gpu">${gpu}</span>
+          <span class="sync-badge ${syncClass}">${syncLabel}</span>
+        </div>
+        <div class="spark-charts">
+          <div class="spark-mini">
+            <div class="spark-mini-label">Market vol (NV)</div>
+            <div class="spark-canvas-wrap"><canvas id="${nvCanvasId}" height="44"></canvas></div>
+            <div class="spark-vals">
+              <span class="spark-val market" style="font-size:10px">${latestNV.toLocaleString()}</span>
+              <span style="font-size:9px;color:var(--text3)">units</span>
+            </div>
+          </div>
+          <div class="spark-mini">
+            <div class="spark-mini-label">MSI userbuy</div>
+            <div class="spark-canvas-wrap"><canvas id="${ubCanvasId}" height="44"></canvas></div>
+            <div class="spark-vals">
+              <span class="spark-val msi">${latestUB.toLocaleString()}</span>
+              <span style="font-size:9px;color:var(--text3)">units</span>
+            </div>
+          </div>
+        </div>
+      </div>`);
+
+    // Draw sparklines after DOM insert
+    requestAnimationFrame(()=>{
+      drawSparkline(nvCanvasId, nvData, '#9090a0', 'rgba(144,144,160,0.15)');
+      drawSparkline(ubCanvasId, ubData, '#e53935', 'rgba(229,57,53,0.15)');
+    });
+  });
+}
+
+function drawSparkline(canvasId, data, color, fill) {
+  const el = document.getElementById(canvasId);
+  if (!el) return;
+  const id = 'chart-'+canvasId;
+  if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+  charts[id] = new Chart(el, {
+    type:'line',
+    data:{
+      labels:data.map((_,i)=>i),
+      datasets:[{data, borderColor:color, backgroundColor:fill, borderWidth:1.5,
+        pointRadius:0, tension:0.3, fill:true}]
+    },
+    options:{
+      responsive:false, animation:false,
+      plugins:{legend:{display:false},datalabels:{display:false},tooltip:{enabled:false}},
+      scales:{x:{display:false},y:{display:false,min:0}}
+    }
+  });
+}
+
+/* ═══════════════════════════════════════
+   ④ CHANNEL PENETRATION GAUGE
+   IHS data → dealer MSI vol × GPU ub share
+═══════════════════════════════════════ */
+function renderGauges(weeks) {
+  const last4w = weeks.slice(-4);
+  // IHS has cust field = dealer names, use MSI brandVol per dealer
+  const ihs4 = D.ihs.rows.filter(r=>last4w.includes(r.w)&&r.sg==='Gaming'&&r.brand==='MSI');
+  const CUST_MAP = {'Mobile World':'MBW','FPT RETAIL JSC':'FPT','CELLPHONES':'CPS','PHONG VU':'PV'};
+  const DEALERS = ['MBW','FPT','CPS','PV'];
+  // MSI vol by dealer
+  const dealerMsiVol={};
+  ihs4.forEach(r=>{const s=CUST_MAP[r.cust];if(s){dealerMsiVol[s]=(dealerMsiVol[s]||0)+(r.brandVol||0);}});
+  // GPU distribution from userbuy
+  const ub4=ubFacts(last4w);
+  const gpuUbVol={};
+  ub4.forEach(f=>{if(f.gpu)gpuUbVol[f.gpu]=(gpuUbVol[f.gpu]||0)+(f.qty||0);});
+  const totalUbVol=Object.values(gpuUbVol).reduce((s,v)=>s+v,0)||1;
+  // Top GPUs
+  let topGpus=GPU_ORDER.filter(g=>g!=='RTX Others'&&(gpuUbVol[g]||0)>0)
+    .sort((a,b)=>(gpuUbVol[b]||0)-(gpuUbVol[a]||0)).slice(0,8);
+  if(!topGpus.length){
+    // fallback from NV data
+    const nvTW=nvRows().filter(r=>r.w===nvWeeks(nvRows()).slice(-1)[0]);
+    topGpus=GPU_ORDER.filter(g=>g!=='RTX Others')
+      .sort((a,b)=>(nvTW.find(r=>r.gpu===b)?.msiVol||0)-(nvTW.find(r=>r.gpu===a)?.msiVol||0)).slice(0,6);
+  }
+  const container=document.getElementById('gauge-grid');
+  container.innerHTML='';
+  topGpus.forEach(gpu=>{
+    const gpuShr=totalUbVol>0?(gpuUbVol[gpu]||0)/totalUbVol:0;
+    const dv={};DEALERS.forEach(d=>{dv[d]=Math.round((dealerMsiVol[d]||0)*gpuShr);});
+    const total=DEALERS.reduce((s,d)=>s+(dv[d]||0),0);
+    const maxV=Math.max(...DEALERS.map(d=>dv[d]||0),1);
+    let rows='';
+    DEALERS.forEach(d=>{
+      const v=dv[d]||0,pct=total>0?v/total*100:0,bw=v/maxV*100;
+      const bc=pct>=35?'var(--green)':pct>=20?'var(--nvidia)':pct>=10?'var(--amber)':'var(--red)';
+      rows+=`<div class="gauge-row"><div class="gauge-dealer">${d}</div>
+        <div class="gauge-track"><div class="gauge-fill" style="width:${bw}%;background:${bc}"></div></div>
+        <div class="gauge-pct" style="color:${bc}">${total>0?fmt1(pct)+'%':'—'}</div></div>`;
+    });
+    const topD=total>0?DEALERS.reduce((t,d)=>dv[d]>dv[t]?d:t,DEALERS[0]):'—';
+    const lowD=total>0?DEALERS.reduce((b,d)=>dv[d]<dv[b]?d:b,DEALERS[0]):'—';
+    container.insertAdjacentHTML('beforeend',`<div class="gauge-card">
+      <div class="gauge-gpu-title">${gpu}</div>
+      <div class="gauge-gpu-sub">Est. 4w KA: ${total.toLocaleString()} units</div>
+      ${rows}
+      <div class="gauge-note">Best: <strong style="color:var(--green)">${topD}</strong> · Weak: <strong style="color:var(--red)">${lowD}</strong></div>
+    </div>`);
+  });
+  if(!container.innerHTML)container.innerHTML='<div style="color:var(--text3);font-size:12px;padding:16px">No data in current filter window</div>';
+}
+
+/* ═══════════════════════════════════════
+   ⑤ CEO SIGNAL PANEL
+═══════════════════════════════════════ */
+function renderSignals(nvR, weeks, latestW) {
+  const last4w = weeks.slice(-4);
+  const ub = ubFacts(last4w);
+  const tw = nvR.filter(r=>r.w===latestW);
+  const prevW = weeks[weeks.length-2]||latestW;
+  const pw = nvR.filter(r=>r.w===prevW);
+  const totalVol = tw.reduce((s,r)=>s+(r.vol||0),0);
+  const totalMsi = tw.reduce((s,r)=>s+(r.msiVol||0),0);
+
+  document.getElementById('sig-date').textContent = `Week ${latestW}`;
+
+  const signals = [];
+
+  // Signal 1 – overall MSI share
+  const msiShare = totalVol>0?totalMsi/totalVol*100:0;
+  const pTotalVol = pw.reduce((s,r)=>s+(r.vol||0),0);
+  const pMsiVol = pw.reduce((s,r)=>s+(r.msiVol||0),0);
+  const prevShare = pTotalVol>0?pMsiVol/pTotalVol*100:0;
+  const shareDelta = prevShare>0?msiShare-prevShare:null;
+  if(shareDelta!==null) {
+    if(shareDelta>0.5) signals.push({type:'ok',title:`MSI Overall: +${fmt1(shareDelta)}pp vs prev week`,
+      desc:`MSI holds ${fmt1(msiShare)}% of total Nvidia market — week ${latestW}. Good momentum — maintain stock at KA dealers.`,
+      action:'Maintain','act-cls':'act-green'});
+    else if(shareDelta < -0.5) signals.push({type:'risk',title:`MSI Share giảm ${fmt1(Math.abs(shareDelta))}pp WoW`,
+      desc:`Down from ${fmt1(prevShare)}% to ${fmt1(msiShare)}% — check pricing and availability at Mobile World, FPT.`,
+      action:'Review urgently','act-cls':'act-red'});
+  }
+
+  // Signal 2 – GPU specific divergence
+  const gpus = gpuList().filter(g=>g!=='RTX Others');
+  gpus.forEach(gpu=>{
+    const nvTW = tw.find(r=>r.gpu===gpu)||{};
+    const nvVol = nvTW.vol||0;
+    const prev = pw.find(r=>r.gpu===gpu)||{};
+    const prevVol = prev.vol||0;
+    const msiNow = nvTW.msiVol||0;
+    const shareNow = nvVol>0?msiNow/nvVol*100:0;
+    const sharePrev = prevVol>0?(prev.msiVol||0)/prevVol*100:0;
+    const sdelta = sharePrev>0?shareNow-sharePrev:null;
+
+    // Market up but MSI down = "Diverging" signal
+    const mktGrowth = prevVol>0?(nvVol-prevVol)/prevVol*100:0;
+    const ubGPU = ub.filter(f=>f.gpu===gpu).reduce((s,f)=>s+(f.qty||0),0);
+
+    if(nvVol>80 && mktGrowth>15 && msiNow<prevVol*0.02 && ubGPU<3) {
+      signals.push({type:'warn',title:`${gpu}: Market ↑${fmt1(mktGrowth)}% nhưng MSI Userbuy thấp`,
+        desc:`Nvidia market ${gpu} surging but MSI only holds ${msiNow} units NV share. Review inventory and dealer promotion.`,
+        action:'Check stock & pricing','act-cls':'act-amber'});
+    }
+
+    // OOS signal for active GPU
+    if(nvVol>50 && shareNow<3 && ubGPU===0) {
+      signals.push({type:'risk',title:`${gpu}: MSI có thể OOS`,
+        desc:`Market vol ${nvVol.toLocaleString()} units but MSI NV share only ${fmt1(shareNow)}% and userbuy = 0. Check stock immediately.`,
+        action:'Check OOS immediately','act-cls':'act-red'});
+    }
+
+    // Strong performer
+    if(shareNow>20 && nvVol>50) {
+      signals.push({type:'ok',title:`${gpu}: MSI dominates với ${fmt1(shareNow)}% share`,
+        desc:`Strong performance — continue push of ${gpu} at KA channel. Consider featured placement.`,
+        action:'Push marketing','act-cls':'act-green'});
+    }
+  });
+
+  // Signal 3 – Userbuy overall trend
+  const ubTW = ub.filter(f=>weeks.slice(-1)[0]===f.w).reduce((s,f)=>s+(f.qty||0),0);
+  const ubPW = ub.filter(f=>weeks.slice(-2,-1)[0]===f.w).reduce((s,f)=>s+(f.qty||0),0);
+  if(ubPW>0) {
+    const ubGrowth = (ubTW-ubPW)/ubPW*100;
+    if(ubGrowth>10) signals.push({type:'ok',title:`Userbuy ↑${fmt1(ubGrowth)}% WoW`,
+      desc:`Total MSI userbuy up from ${ubPW.toLocaleString()} to ${ubTW.toLocaleString()} units this week. Strong sell-through momentum.`,
+      action:'Forecast restock','act-cls':'act-green'});
+    else if(ubGrowth < -10) signals.push({type:'warn',title:`Userbuy ↓${fmt1(Math.abs(ubGrowth))}% WoW`,
+      desc:`Sell-through declined — possible end-of-week effect or stock constraints. Verify with dealers.`,
+      action:'Verify with dealers','act-cls':'act-amber'});
+  }
+
+  // Limit to top 6 signals, prioritize risk/warn
+  const sorted = [...signals.filter(s=>s.type==='risk'),...signals.filter(s=>s.type==='warn'),...signals.filter(s=>s.type==='ok')].slice(0,6);
+
+  if(sorted.length===0) {
+    sorted.push({type:'ok',title:'No critical signals this week',
+      desc:`All indicators within normal range. Continue monitoring next week.`,
+      action:'Monitor','act-cls':'act-green'});
+  }
+
+  const feed = document.getElementById('signal-feed');
+  feed.innerHTML = sorted.map(s=>`
+    <div class="signal-item">
+      <div class="sig-dot-wrap"><div class="sig-dot ${s.type}"></div></div>
+      <div class="sig-body">
+        <div class="sig-title">${s.title}</div>
+        <div class="sig-desc">${s.desc}</div>
+        <span class="sig-action ${s['act-cls']}">▶ ${s.action}</span>
+      </div>
+    </div>`).join('');
+
+  // Market snapshot sidebar
+  const marketRows = gpuList().filter(g=>g!=='RTX Others').map(gpu=>{
+    const r = tw.find(row=>row.gpu===gpu)||{};
+    const vol = r.vol||0;
+    const msiPct = vol>0?(r.msiVol||0)/vol*100:0;
+    if(vol===0) return '';
+    return `<div class="stat-row"><span class="stat-key">${gpu}</span>
+      <span class="stat-val">${vol.toLocaleString()}</span></div>`;
+  }).join('');
+  document.getElementById('stat-market').innerHTML = marketRows||'<div class="stat-row"><span class="stat-key">No data</span></div>';
+
+  // Userbuy by GPU sidebar
+  const ubRows = ubFacts(weeks.slice(-1)).reduce((acc,f)=>{
+    if(f.gpu) acc[f.gpu]=(acc[f.gpu]||0)+(f.qty||0);
+    return acc;
+  },{});
+  const ubSorted = Object.entries(ubRows).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  document.getElementById('stat-userbuy').innerHTML = ubSorted.length>0
+    ? ubSorted.map(([gpu,qty])=>
+        `<div class="stat-row"><span class="stat-key">${gpu}</span><span class="stat-val">${qty.toLocaleString()}</span></div>`
+      ).join('')
+    : '<div class="stat-row"><span class="stat-key">No data</span></div>';
+}
+
+/* ═══════════════════════════════════════
+   GPU LIST + DETAIL CHART
+═══════════════════════════════════════ */
+function renderGpuList(nvR, latestW) {
+  const tw = nvR.filter(r=>r.w===latestW);
+  const gpus = gpuList();
+  const container = document.getElementById('gpu-list');
+  container.innerHTML='';
+  gpus.forEach(gpu=>{
+    const r = tw.find(row=>row.gpu===gpu)||{};
+    const vol = r.vol||0;
+    const msiVol = r.msiVol||0;
+    const share = vol>0?msiVol/vol*100:0;
+    const cls = vol>20?(share>=20?'hi':share>=10?'mid':'lo'):'na';
+    const active = st.gpu===gpu?'active':'';
+    container.insertAdjacentHTML('beforeend',`
+      <div class="gpu-list-item ${active}" onclick="selectGpu('${gpu}')">
+        <span class="gli-name">${gpu}</span>
+        <span class="gli-pct ${cls}">${vol>0?fmt1(share)+'%':'—'}</span>
+      </div>`);
+  });
+}
+
+function selectGpu(gpu) {
+  st.gpu=gpu;
+  const rows=nvRows(), weeks=nvWeeks(rows);
+  renderGpuList(rows, weeks[weeks.length-1]);
+  renderDetail(rows, weeks, gpu);
+  document.getElementById('detail-tag').textContent=gpu;
+}
+
+function renderDetail(nvR, weeks, gpu) {
+  if(!gpu) return;
+  const gpuR = nvR.filter(r=>r.gpu===gpu);
+  const latestW = weeks[weeks.length-1];
+  const prevW   = weeks[weeks.length-2]||latestW;
+  const twRow = gpuR.find(r=>r.w===latestW)||{};
+  const pwRow = gpuR.find(r=>r.w===prevW)||{};
+
+  const vol=twRow.vol||0, msiVol=twRow.msiVol||0, lyVol=twRow.lastYear||0;
+  const totalVol=nvR.filter(r=>r.w===latestW).reduce((s,r)=>s+(r.vol||0),0);
+  const msiShare=vol>0?msiVol/vol*100:0;
+  const gpuMktPct=totalVol>0?vol/totalVol*100:0;
+  const lyDelta=lyVol>0?(vol-lyVol)/lyVol*100:null;
+  const msiSharePrev=pwRow.vol>0?(pwRow.msiVol||0)/pwRow.vol*100:0;
+  const msiDelta=msiSharePrev>0?msiShare-msiSharePrev:null;
+
+  setText('dk1',vol.toLocaleString());
+  setText('dk2',msiVol.toLocaleString());
+  setText('dk3',fmt1(msiShare)+'%');
+  setText('dk4',fmt1(gpuMktPct)+'%');
+  document.getElementById('dk1d').innerHTML=lyDelta!==null?deltaHtml(lyDelta,'%')+'<span style="color:var(--text3);font-size:10px"> vs LY</span>':'';
+  document.getElementById('dk3d').innerHTML=msiDelta!==null?deltaHtml(msiDelta,'pp')+'<span style="color:var(--text3);font-size:10px"> WoW</span>':'';
+  document.getElementById('detail-chart-title').textContent=`${gpu} — Weekly Nvidia Market`;
+
+  const last13=weeks.slice(-13);
+  const labels=last13.map(w=>w);
+  const barData=last13.map(w=>{const r=gpuR.find(row=>row.w===w);return r?r.vol:0;});
+  const mktShareLine=last13.map(w=>{
+    const r=gpuR.find(row=>row.w===w);
+    const total=nvR.filter(row=>row.w===w).reduce((s,row)=>s+(row.vol||0),0);
+    return (r&&total>0)?+((r.vol/total*100).toFixed(1)):0;
+  });
+  const msiShareLine=last13.map(w=>{
+    const r=gpuR.find(row=>row.w===w);
+    return (r&&r.vol>0) ? +((r.msiVol||0)/r.vol*100).toFixed(1) : 0;
+  });
+
+  destroyChart('c-detail');
+  charts['c-detail']=new Chart(document.getElementById('c-detail'),{
+    type:'bar',
+    data:{labels, datasets:[
+      {label:'Market Vol',type:'bar',
+        data:barData,
+        backgroundColor:barData.map((_,i)=>i===barData.length-1?'rgba(60,80,140,.55)':'rgba(100,120,160,.25)'),
+        yAxisID:'yVol',
+        datalabels:{display:true,anchor:'end',align:'top',color:'#7070808',font:{size:9},formatter:v=>v>0?v.toLocaleString():''}},
+      {label:'Mkt share %',type:'line',
+        data:mktShareLine,
+        borderColor:'#f59e0b',backgroundColor:'rgba(245,158,11,.08)',
+        borderWidth:2,pointRadius:3,
+        pointBackgroundColor:(_,ctx)=>ctx.dataIndex===mktShareLine.length-1?'#f59e0b':'transparent',
+        pointBorderColor:'#f59e0b',pointBorderWidth:2,tension:.3,
+        yAxisID:'yShare',fill:false,
+        datalabels:{display:false}}
+    ]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},datalabels:{},
+        tooltip:{mode:'index',intersect:false,callbacks:{label:i=>i.dataset.label==='Market Vol'?` Vol: ${i.raw.toLocaleString()}`:` ${i.dataset.label}: ${i.raw}%`}}},
+      scales:{
+        x:{grid:{display:false},ticks:{font:{size:10}}},
+        yVol:{type:'linear',position:'left',grid:{color:'rgba(255,255,255,0.04)'},ticks:{callback:v=>v>=1000?(v/1000).toFixed(1)+'k':v}},
+        yShare:{type:'linear',position:'right',grid:{display:false},ticks:{callback:v=>v+'%'},min:0}
+      }
+    },
+    plugins:[{
+      afterDraw(chart){
+        const ctx=chart.ctx;
+        const meta=chart.getDatasetMeta(0);
+        ctx.save();
+        meta.data.forEach((bar,i)=>{
+          const s=+(last13.map(w=>{const r=gpuR.find(row=>row.w===w);return (r&&r.vol>0)?+(r.msiVol/r.vol*100).toFixed(1):0;})[i]);
+          if(s<=0&&barData[i]<=0)return;
+          const x=bar.x,y=chart.chartArea.bottom+7;
+          const txt=fmt1(s)+'%';
+          const tw2=ctx.measureText(txt).width+10;
+          const bw=Math.max(tw2,26),bh=15;
+          ctx.fillStyle='rgba(180,20,20,.9)';
+          rrect(ctx,x-bw/2,y,bw,bh,3);ctx.fill();
+          ctx.fillStyle='#fff';ctx.font='bold 9px Inter,sans-serif';
+          ctx.textAlign='center';ctx.textBaseline='middle';
+          ctx.fillText(txt,x,y+bh/2);
+        });
+        ctx.restore();
+      }
+    }]
+  });
+
+  // Trend chart 26w
+  const last26=weeks.slice(-26);
+  const trendLabels=last26.map(w=>w);
+  const msiTY=last26.map(w=>{const r=gpuR.find(row=>row.w===w);return (r&&r.vol>0)?+((r.msiVol/r.vol*100).toFixed(1)):null;});
+
+  destroyChart('c-trend');
+  charts['c-trend']=new Chart(document.getElementById('c-trend'),{
+    type:'line',
+    data:{labels:trendLabels,datasets:[
+      {label:'MSI share TY',data:msiTY,borderColor:'#e53935',backgroundColor:'rgba(229,57,53,.08)',borderWidth:2,pointRadius:2,tension:.35,fill:true,spanGaps:true,datalabels:{display:false}}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},datalabels:{display:false},tooltip:{callbacks:{label:i=>` MSI share: ${i.raw}%`}}},
+      scales:{x:{grid:{display:false},ticks:{font:{size:10},maxTicksLimit:13}},y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{callback:v=>v+'%'},min:0}}}
+  });
+}
+
+/* ═══════════════════════════════════════
+   UTILITIES
+═══════════════════════════════════════ */
+function destroyChart(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
+function setText(id,v){const el=document.getElementById(id);if(el)el.textContent=v;}
+function fmt1(n){return isNaN(n)||n===null?'0.0':(+n).toFixed(1);}
+function deltaHtml(v,unit){
+  const cls=v>=0?'up':'dn',sign=v>=0?'▲':'▼';
+  return `<span class="delta ${cls}">${sign}${Math.abs(+v).toFixed(1)}${unit}</span>`;
+}
+function setDelta(id,v,unit){
+  const el=document.getElementById(id);if(!el)return;
+  if(v===null||v===undefined){el.textContent='—';el.className='delta fl';return;}
+  el.innerHTML=deltaHtml(v,unit);
+}
+function setPulseClass(id,cls){
+  const el=document.getElementById(id);if(!el)return;
+  el.className='pulse-card '+cls;
+}
+function pearson(a,b){
+  const n=a.length;const ma=a.reduce((s,v)=>s+v,0)/n,mb=b.reduce((s,v)=>s+v,0)/n;
+  let num=0,da=0,db=0;
+  for(let i=0;i<n;i++){num+=(a[i]-ma)*(b[i]-mb);da+=(a[i]-ma)**2;db+=(b[i]-mb)**2;}
+  return da>0&&db>0?num/Math.sqrt(da*db):0;
+}
+function trend(arr){
+  if(arr.length<2)return 0;
+  const n=arr.length,first=arr[0]||0,last=arr[n-1]||0;
+  return first>0?(last-first)/first:0;
+}
+function rrect(ctx,x,y,w,h,r){
+  ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);
+  ctx.quadraticCurveTo(x+w,y,x+w,y+r);ctx.lineTo(x+w,y+h-r);
+  ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);
+  ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);
+  ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();
+}
+function toggleGen5(){st.gen5=!st.gen5;document.getElementById('tog-gen5').classList.toggle('on',st.gen5);render();}
+function resetFilters(){
+  st.gen5=false;st.year=allYears[allYears.length-1];st.quarter='Q2';st.weeks='all';
+  document.getElementById('f-year').value=st.year;
+  document.getElementById('f-quarter').value='Q2';
+  document.getElementById('f-weeks').value='all';
+  document.getElementById('f-weeks').value='13';
+  document.getElementById('tog-gen5').classList.remove('on');
+  render();
+}
+
+/* ── BOOT ── */
+init();
+</script>
+</body>
+</html>
+
+
+
+
+  // KA sparkline: khi SG active → IHS không có GPU data → zeros
+  const spKAseries = spWeeks2.map(w => {
+    if(SG) return 0;
+    return D.ihs.rows.filter(r=>r.w===w&&r.sg==='Gaming'&&KA_DEALERS.includes(r.cust)&&r.brand!=='TTL Gaming').reduce((s,r)=>s+(r.brandVol||0),0);
+  });
+  
+  // KA WoW: IHS không có GPU field → chỉ tính khi !SG
+  let kaTWVol2=0,kaPWVol2=0,kaTWMsi2=0,kaPWMsi2=0;
+  let kaShareTW=0,kaSharePW2=0,kaShareWoW=null,kaVolWoW=null,kaMsiVolWoW=null;
+  if(!SG){
+    kaTWVol2  =kaVolAtWeek(latestW,1); kaPWVol2  =kaVolAtWeek(prevW,1);
+    kaTWMsi2  =kaMsiAtWeek(latestW);   kaPWMsi2  =kaMsiAtWeek(prevW);
+    kaShareTW =kaTWVol2>0?kaTWMsi2/kaTWVol2*100:0;
+    kaSharePW2=kaPWVol2>0?kaPWMsi2/kaPWVol2*100:0;
+    kaShareWoW=kaSharePW2>0?kaShareTW-kaSharePW2:null;
+    kaVolWoW  =kaPWVol2>0?(kaTWVol2-kaPWVol2)/kaPWVol2*100:null;
+    kaMsiVolWoW=kaPWMsi2>0?(kaTWMsi2-kaPWMsi2)/kaPWMsi2*100:null;
+  }
+  setText('wow-ctx',`${latestW} vs ${prevW}${cfLabel}`);
+  setWowMetric('wow-nv-tw','wow-nv-wow',nvTWVol,nvWoW,false);
+  setWowMetric('wow-ub-tw','wow-ub-wow',ubTWQty,ubWoW,false);
+  setWowMetric('wow-share-tw','wow-share-wow',msiShareTW,shareWoW,true);
+  if(SG){
+    ['wow-ka-vol-tw','wow-ka-msi-tw','wow-ka-tw'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent='—';});
+    ['wow-ka-vol-wow','wow-ka-msi-wow','wow-ka-wow'].forEach(id=>{const el=document.getElementById(id);if(el){el.textContent='—';el.style.color='var(--text3)';}});
+  } else {
+    setWowMetric('wow-ka-vol-tw','wow-ka-vol-wow',kaTWVol2,kaVolWoW,false);
+    setWowMetric('wow-ka-msi-tw','wow-ka-msi-wow',kaTWMsi2,kaMsiVolWoW,false);
+    setWowMetric('wow-ka-tw','wow-ka-wow',kaShareTW,kaShareWoW,true);
+  }
+    const ups = [nvWoW,ubWoW,shareWoW,kaShareWoW].filter(v=>v!==null&&v>0).length;
   const dns = [nvWoW,ubWoW,shareWoW,kaShareWoW].filter(v=>v!==null&&v<0).length;
   const wowCard = document.getElementById('pc-wow');
   if(wowCard) wowCard.className = 'pulse-wow ' + (ups>dns?'ok-wow':dns>ups?'warn-wow':'');
