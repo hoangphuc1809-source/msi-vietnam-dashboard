@@ -934,54 +934,53 @@ function renderPulse(nvRows, weeks, latestW, prevW) {
   let ihsKAAll = D.ihs.rows.filter(r => weeks.includes(r.w) && r.sg === 'Gaming' && KA_DEALERS.includes(r.cust));
   if(SB) ihsKAAll = ihsKAAll.filter(r => r.brand === SB || r.brand === 'TTL Gaming');
 
-  const kaTotalVolFull = ihsKAAll.filter(r => r.brand !== 'TTL Gaming').reduce((s,r) => s + (r.brandVol||0), 0);
-  const kaMSIVolFull   = ihsKAAll.filter(r => r.brand === 'MSI').reduce((s,r) => s + (r.brandVol||0), 0);
-  let kaLYRows = D.ihs.rows.filter(r => weeks.includes(r.w) && r.sg==='Gaming' && KA_DEALERS.includes(r.cust) && r.brand!=='TTL Gaming' && (r.lastYear||0)>0);
-  if(SB) kaLYRows = kaLYRows.filter(r => r.brand === SB);
-  const kaLYVolFull = kaLYRows.reduce((s,r) => s + (r.lastYear||0), 0);
-  // Khi SG active: IHS không có GPU field → KA = n/a
-  const kaTotalVol = SG ? 0 : kaTotalVolFull;
-  const kaMSIVol   = SG ? 0 : kaMSIVolFull;
-  const kaShare    = kaTotalVol > 0 ? kaMSIVol / kaTotalVol * 100 : 0;
-  const kaLYVol    = SG ? 0 : kaLYVolFull;
-  const kaYoY      = !SG && kaLYVol > 0 ? (kaTotalVol - kaLYVol) / kaLYVol * 100 : null;
-  if(SG) {
-    setText('p4-ka-vol', '—');
-    setText('p4-ctx', 'KA Channel · n/a (no GPU breakdown)');
-    const ft4 = document.getElementById('p4-yoy-ft'); if(ft4){ft4.textContent='';ft4.style.color='';}
-    setText('p4-msi-vol', '—');
-    const ks = document.getElementById('p4-msi-share'); if(ks){ks.textContent='—';ks.style.color='var(--text3)';}
-    setPulseClass('pc-ka', 'warn');
-  } else {
-    setText('p4-ka-vol', kaTotalVol.toLocaleString());
-    setText('p4-ctx', `MBW · FPT · CPS · PV${cfLabel}`);
-    setYoYFt('p4-yoy-ft', 'p4-yoy', kaYoY);
-    setText('p4-msi-vol', kaMSIVol.toLocaleString());
-    const kaShareEl = document.getElementById('p4-msi-share');
+  const kaTotalVolFull = ihsKAAll.filter(r=>r.brand!=='TTL Gaming').reduce((s,r)=>s+(r.brandVol||0),0);
+  const kaMSIVolFull   = ihsKAAll.filter(r=>r.brand==='MSI').reduce((s,r)=>s+(r.brandVol||0),0);
+  let kaLYRows = D.ihs.rows.filter(r=>weeks.includes(r.w)&&r.sg==='Gaming'&&KA_DEALERS.includes(r.cust)&&r.brand!=='TTL Gaming'&&(r.lastYear||0)>0);
+  if(SB) kaLYRows=kaLYRows.filter(r=>r.brand===SB);
+  const kaLYVolFull = kaLYRows.reduce((s,r)=>s+(r.lastYear||0),0);
+  const kaTotalVol = SG?0:kaTotalVolFull;
+  const kaMSIVol   = SG?0:kaMSIVolFull;
+  const kaShare    = kaTotalVol>0?kaMSIVol/kaTotalVol*100:0;
+  const kaLYVol    = SG?0:kaLYVolFull;
+  const kaYoY      = !SG&&kaLYVol>0?(kaTotalVol-kaLYVol)/kaLYVol*100:null;
+  if(SG){
+    setText('p4-ka-vol','—');
+    setText('p4-ctx','KA Channel · n/a');
+    const ft4=document.getElementById('p4-yoy-ft');if(ft4){ft4.textContent='';ft4.style.color='';}
+    setText('p4-msi-vol','—');
+    const ks=document.getElementById('p4-msi-share');if(ks){ks.textContent='—';ks.style.color='var(--text3)';}
+    setPulseClass('pc-ka','warn');
+  }else{
+    setText('p4-ka-vol',kaTotalVol.toLocaleString());
+    setText('p4-ctx',`MBW · FPT · CPS · PV${cfLabel}`);
+    setYoYFt('p4-yoy-ft','p4-yoy',kaYoY);
+    setText('p4-msi-vol',kaMSIVol.toLocaleString());
+    const kaShareEl=document.getElementById('p4-msi-share');
     if(kaShareEl){kaShareEl.textContent=fmt1(kaShare)+'%';kaShareEl.style.color=kaShare>=20?'var(--green)':kaShare>=12?'var(--amber)':'var(--red)';}
-    setPulseClass('pc-ka', kaShare>=20?'ok':kaShare>=12?'warn':'risk');
+    setPulseClass('pc-ka',kaShare>=20?'ok':kaShare>=12?'warn':'risk');
   }
 
   /* ═══════════════════════════════════════════════════════════
      CARD 3 — Rest Channel = NV total − KA
   ═══════════════════════════════════════════════════════════ */
-  if(SG) {
-    setText('p5-rest-vol', '—');
-    setText('p5-ctx', 'Rest Channel · n/a (no GPU breakdown)');
+  if(SG){
+    setText('p5-rest-vol','—');
+    setText('p5-ctx','Rest Channel · n/a');
     const ft5=document.getElementById('p5-yoy-ft');if(ft5){ft5.textContent='';ft5.style.color='';}
-    setText('p5-msi-vol', '—');
+    setText('p5-msi-vol','—');
     const rs=document.getElementById('p5-msi-share');if(rs){rs.textContent='—';rs.style.color='var(--text3)';}
-  } else {
-    const restTotalVol = Math.max(0, tvol - kaTotalVol);
-    const restMSIVol   = Math.max(0, ubP1total - kaMSIVol);
-    const restShare    = restTotalVol > 0 ? restMSIVol / restTotalVol * 100 : 0;
-    const nvLYAll      = (SB?nvBR:nvR).reduce((s,r)=>s+(r.lastYear||0),0);
-    const restLYVol    = Math.max(0, nvLYAll - kaLYVol);
-    const restYoY      = restLYVol > 0 ? (restTotalVol-restLYVol)/restLYVol*100 : null;
-    setText('p5-rest-vol', restTotalVol.toLocaleString());
-    setText('p5-ctx', `Total NV − KA${cfLabel}`);
-    setYoYFt('p5-yoy-ft', 'p5-yoy', restYoY);
-    setText('p5-msi-vol', restMSIVol.toLocaleString());
+  }else{
+    const restTotalVol=Math.max(0,tvol-kaTotalVol);
+    const restMSIVol=Math.max(0,ubP1total-kaMSIVol);
+    const restShare=restTotalVol>0?restMSIVol/restTotalVol*100:0;
+    const nvLYAll=(SB?nvBR:nvR).reduce((s,r)=>s+(r.lastYear||0),0);
+    const restLYVol=Math.max(0,nvLYAll-kaLYVol);
+    const restYoY=restLYVol>0?(restTotalVol-restLYVol)/restLYVol*100:null;
+    setText('p5-rest-vol',restTotalVol.toLocaleString());
+    setText('p5-ctx',`Total NV − KA${cfLabel}`);
+    setYoYFt('p5-yoy-ft','p5-yoy',restYoY);
+    setText('p5-msi-vol',restMSIVol.toLocaleString());
     const restShareEl=document.getElementById('p5-msi-share');
     if(restShareEl){restShareEl.textContent=fmt1(restShare)+'%';restShareEl.style.color=restShare>=15?'var(--green)':restShare>=8?'var(--amber)':'var(--red)';}
   }
@@ -1030,16 +1029,12 @@ function renderPulse(nvRows, weeks, latestW, prevW) {
   });
   // KA sparkline: IHS total × gpuRatio tuần đó
   const spKA = spWeeks.map(w => {
-    let rows = D.ihs.rows.filter(r => r.w===w && r.sg==='Gaming' && KA_DEALERS.includes(r.cust) && r.brand!=='TTL Gaming');
-    if(SB) rows = rows.filter(r => r.brand===SB);
-    const kaFull = rows.reduce((s,r) => s+(r.brandVol||0), 0);
-    if(!SG) return kaFull;
-    // Scale theo GPU ratio của tuần đó
-    const nvW    = nvRows.filter(r=>r.w===w).reduce((s,r)=>s+(r.vol||0),0) || 1;
-    const gpuW   = nvRows.filter(r=>r.w===w&&r.gpu===SG).reduce((s,r)=>s+(r.vol||0),0);
-    return Math.round(kaFull * gpuW / nvW);
+    if(SG) return 0;
+    let rows=D.ihs.rows.filter(r=>r.w===w&&r.sg==='Gaming'&&KA_DEALERS.includes(r.cust)&&r.brand!=='TTL Gaming');
+    if(SB) rows=rows.filter(r=>r.brand===SB);
+    return rows.reduce((s,r)=>s+(r.brandVol||0),0);
   });
-  const spRest = spWeeks.map((w,i) => Math.max(0, (spNV[i]||0) - (spKA[i]||0)));
+    const spRest = spWeeks.map((w,i) => Math.max(0, (spNV[i]||0) - (spKA[i]||0)));
 
   setTimeout(() => {
     drawHeroSpark('sp-nv',   spNV,   'rgb(37,99,235)',   spWeeks);
@@ -1077,36 +1072,30 @@ function renderPulse(nvRows, weeks, latestW, prevW) {
       .reduce((s,r)=>s+(r.brandVol||0),0);
   }
 
-  // KA WoW: IHS không có GPU field → chỉ tính khi !SG
-  let kaTWVol2=0, kaPWVol2=0, kaTWMsi2=0, kaPWMsi2=0;
-  let kaShareTW=0, kaSharePW2=0, kaShareWoW=null, kaVolWoW=null, kaMsiVolWoW=null;
-  if(!SG) {
-    kaTWVol2   = kaVolAtWeek(latestW, 1);
-    kaPWVol2   = kaVolAtWeek(prevW,   1);
-    kaTWMsi2   = kaMsiAtWeek(latestW);
-    kaPWMsi2   = kaMsiAtWeek(prevW);
-    kaShareTW  = kaTWVol2  > 0 ? kaTWMsi2/kaTWVol2*100  : 0;
-    kaSharePW2 = kaPWVol2  > 0 ? kaPWMsi2/kaPWVol2*100  : 0;
-    kaShareWoW = kaSharePW2 > 0 ? kaShareTW - kaSharePW2 : null;
-    kaVolWoW   = kaPWVol2  > 0 ? (kaTWVol2-kaPWVol2)/kaPWVol2*100   : null;
-    kaMsiVolWoW= kaPWMsi2  > 0 ? (kaTWMsi2-kaPWMsi2)/kaPWMsi2*100   : null;
+  let kaTWVol2=0,kaPWVol2=0,kaTWMsi2=0,kaPWMsi2=0;
+  let kaShareTW=0,kaSharePW2=0,kaShareWoW=null,kaVolWoW=null,kaMsiVolWoW=null;
+  if(!SG){
+    kaTWVol2=kaVolAtWeek(latestW,1); kaPWVol2=kaVolAtWeek(prevW,1);
+    kaTWMsi2=kaMsiAtWeek(latestW);   kaPWMsi2=kaMsiAtWeek(prevW);
+    kaShareTW=kaTWVol2>0?kaTWMsi2/kaTWVol2*100:0;
+    kaSharePW2=kaPWVol2>0?kaPWMsi2/kaPWVol2*100:0;
+    kaShareWoW=kaSharePW2>0?kaShareTW-kaSharePW2:null;
+    kaVolWoW=kaPWVol2>0?(kaTWVol2-kaPWVol2)/kaPWVol2*100:null;
+    kaMsiVolWoW=kaPWMsi2>0?(kaTWMsi2-kaPWMsi2)/kaPWMsi2*100:null;
   }
-
-  setText('wow-ctx', `${latestW} vs ${prevW}${cfLabel}`);
-  setWowMetric('wow-nv-tw',    'wow-nv-wow',    nvTWVol,    nvWoW,    false);
-  setWowMetric('wow-ub-tw',    'wow-ub-wow',    ubTWQty,    ubWoW,    false);
-  setWowMetric('wow-share-tw', 'wow-share-wow', msiShareTW, shareWoW, true);
-  if(SG) {
-    ['wow-ka-vol-tw','wow-ka-msi-tw','wow-ka-tw'].forEach(id => { const el=document.getElementById(id); if(el) el.textContent='—'; });
-    ['wow-ka-vol-wow','wow-ka-msi-wow','wow-ka-wow'].forEach(id => { const el=document.getElementById(id); if(el){el.textContent='—';el.style.color='var(--text3)';} });
-  } else {
-    setWowMetric('wow-ka-vol-tw','wow-ka-vol-wow', kaTWVol2,  kaVolWoW,    false);
-    setWowMetric('wow-ka-msi-tw','wow-ka-msi-wow', kaTWMsi2,  kaMsiVolWoW, false);
-    setWowMetric('wow-ka-tw',    'wow-ka-wow',     kaShareTW, kaShareWoW,  true);
+  setText('wow-ctx',`${latestW} vs ${prevW}${cfLabel}`);
+  setWowMetric('wow-nv-tw','wow-nv-wow',nvTWVol,nvWoW,false);
+  setWowMetric('wow-ub-tw','wow-ub-wow',ubTWQty,ubWoW,false);
+  setWowMetric('wow-share-tw','wow-share-wow',msiShareTW,shareWoW,true);
+  if(SG){
+    ['wow-ka-vol-tw','wow-ka-msi-tw','wow-ka-tw'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent='—';});
+    ['wow-ka-vol-wow','wow-ka-msi-wow','wow-ka-wow'].forEach(id=>{const el=document.getElementById(id);if(el){el.textContent='—';el.style.color='var(--text3)';}});
+  }else{
+    setWowMetric('wow-ka-vol-tw','wow-ka-vol-wow',kaTWVol2,kaVolWoW,false);
+    setWowMetric('wow-ka-msi-tw','wow-ka-msi-wow',kaTWMsi2,kaMsiVolWoW,false);
+    setWowMetric('wow-ka-tw','wow-ka-wow',kaShareTW,kaShareWoW,true);
   }
-
-  
-  const ups = [nvWoW,ubWoW,shareWoW,kaShareWoW].filter(v=>v!==null&&v>0).length;
+    const ups = [nvWoW,ubWoW,shareWoW,kaShareWoW].filter(v=>v!==null&&v>0).length;
   const dns = [nvWoW,ubWoW,shareWoW,kaShareWoW].filter(v=>v!==null&&v<0).length;
   const wowCard = document.getElementById('pc-wow');
   if(wowCard) wowCard.className = 'pulse-wow ' + (ups>dns?'ok-wow':dns>ups?'warn-wow':'');
@@ -2029,3 +2018,7 @@ init();
 </script>
 </body>
 </html>
+
+
+
+
