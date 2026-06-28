@@ -878,7 +878,7 @@ function ubFacts(weeksArr) {
   return D.ub.facts
     .filter(f=>wSet.has(f.w))
     .map(f=>({...f,...(skuMap[f.sku]||{})}))
-    .filter(f=>(f.sg||'')!=='Business& Productivity'); // Gaming only
+    .filter(f=>{ const sg=f.sg||''; return sg==='Gaming'||sg==='Gaming '; }); // Gaming ONLY
 }
 
 // IHS rows for latest window — Gaming only
@@ -942,10 +942,12 @@ function renderPulse(nvRows, weeks, latestW, prevW) {
   const skuMap = {};
   D.ub.skus.forEach(s => { skuMap[s.sku] = s; });
   function ubRows(weeksArr) {
+    const _skuMap = {};
+    D.ub.skus.forEach(s => _skuMap[s.sku]=s);
     return D.ub.facts
       .filter(f => weeksArr.includes(f.w))
-      .map(f => ({...f, ...(skuMap[f.sku] || {})}))
-      .filter(f => (f.sg || '') !== 'Business& Productivity');
+      .map(f => ({...f, ...(_skuMap[f.sku] || {})}))
+      .filter(f => { const sg=f.sg||''; return sg==='Gaming'||sg==='Gaming '; }); // Gaming ONLY
   }
 
   /* ── NV gpuRows filtered by SG ──────────────────────────── */
