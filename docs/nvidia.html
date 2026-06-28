@@ -1640,114 +1640,181 @@ function renderWinLose(nvR, weeks, latestW) {
   buildWL2Rows(losing,  'wl2-lose-rows', 'lose');
 
   // ─────────────────────────────────────────────────────────────────
-  // PANEL B: KA Dealer Gap Analysis
-  // Approach: IHS có brandVol per dealer nhưng không có GPU
-  //   → dùng Userbuy GPU share để estimate MSI vol per GPU per dealer
-  //   → so sánh với NV GPU market share
-  // ─────────────────────────────────────────────────────────────────
-  const ihs4w  = D.ihs.rows.filter(r=>last4w.includes(r.w)&&r.sg==='Gaming');
-  const ub4w   = ubFacts(last4w);
+  // PANEL B: KA Dealer Gap Analysis (redesign)
+  // ──────────────────────────────────────────────────────────────
+  // Mỗi ô dealer = MSI brand share% tại dealer đó (IHS data, last 4w)
+  // So sánh với MSI NV overall share (từ NV gpuRows, latestW)
+  // 🟢 dealer share > overall+2pp | 🟡 within ±2pp | 🔴 below overall-2pp
+  // Không estimate — dùng thẳng IHS brandShare/brandVol per dealer per brand
+  // ──────────────────────────────────────────────────────────────
 
-  // Total MSI vol per KA dealer (từ IHS 4w)
-  const dealerMsiVol4w = {};
-  ihs4w.filter(r=>r.brand==='MSI'&&KA_FULL.includes(r.cust)).forEach(r=>{
-    const abbr = CUST_MAP[r.cust];
-    dealerMsiVol4w[abbr] = (dealerMsiVol4w[abbr]||0) + (r.brandVol||0);
+  const ihs4w  = D.ihs.rows.filter(r => last4w.includes(r.w) && r.sg==='Gaming');
+
+  // MSI brand share per dealer per week → avg over last4w
+  // IHS row: {w, cust, brand, brandVol, sg}
+  // Dealer MSI share% = sum(MSI brandVol) / sum(all brand brandVol excl TTL) per dealer
+  function dealerMsiShareAvg(custFull) {
+    let msiVol=0, totalVol=0;
+    ihs4w.filter(r=>r.cust===custFull).forEach(r=>{
+      if(r.brand==='TTL Gaming') return;
+      if(r.brand==='MSI') msiVol  +=(r.brandVol||0);
+      totalVol += (r.brandVol||0);
+    });
+    return totalVol>0 ? msiVol/totalVol*100 : null;
+  }
+
+  const CUST_MAP2 = {
+    'MBW':'Mobile World','FPT':'FPT RETAIL JSC',
+    'CPS':'CELLPHONES','PV':'PHONG VU'
+  };
+
+  // MSI NV overall share per GPU (NV gpuRows, latestW)
+  // dùng làm benchmark để so sánh dealer
+  const nvMsiShareByGpu = {};
+  gpus.forEach(gpu=>{
+    const tw2 = nvTW.find(r=>r.gpu===gpu)||{};
+    const v=tw2.vol||0, m=tw2.msiVol||0;
+    nvMsiShareByGpu[gpu] = v>0 ? m/v*100 : null;
   });
-  // Total NV market vol per KA dealer (từ IHS 4w, all brands excl TTL)
-  const dealerNVVol4w = {};
-  ihs4w.filter(r=>r.brand!=='TTL Gaming'&&KA_FULL.includes(r.cust)).forEach(r=>{
-    const abbr = CUST_MAP[r.cust];
-    dealerNVVol4w[abbr] = (dealerNVVol4w[abbr]||0) + (r.brandVol||0);
-  });
 
-  // GPU share từ Userbuy (MSI GPU mix)
-  const gpuUbVol = {};
-  ub4w.forEach(f=>{ if(f.gpu) gpuUbVol[f.gpu]=(gpuUbVol[f.gpu]||0)+(f.qty||0); });
-  const ubTotal = Object.values(gpuUbVol).reduce((s,v)=>s+v,0)||1;
+  // Overall MSI NV share (tất cả GPU) tại latestW — dùng làm fallback benchmark
+  const nvOverallMsiShare = (()=>{
+    const v=nvTW.reduce((s,r)=>s+(r.vol||0),0);
+    const m=nvTW.reduce((s,r)=>s+(r.msiVol||0),0);
+    return v>0?m/v*100:null;
+  })();
 
-  // NV GPU market share (latest week)
-  const nvTotalTW = nvTW.reduce((s,r)=>s+(r.vol||0),0)||1;
+  // Dealer MSI share overall (all GPU, last 4w IHS)
+  const dealerShareMap = {};
+  KA_ABBR.forEach(abbr=>{ dealerShareMap[abbr]=dealerMsiShareAvg(CUST_MAP2[abbr]); });
 
-  // Top GPUs by NV market share
-  const topGpus4KA = gpus
-    .map(g=>({ gpu:g, nvPct: (nvTW.find(r=>r.gpu===g)?.vol||0)/nvTotalTW*100, ubPct: (gpuUbVol[g]||0)/ubTotal*100 }))
-    .filter(g=>g.nvPct>1 || g.ubPct>1)
-    .sort((a,b)=>b.nvPct-a.nvPct)
-    .slice(0,8);
+  // Cập nhật table header với actual dealer names
+  const existingHead = document.getElementById('kagap-table')?.querySelector('thead tr');
+  if(existingHead){
+    existingHead.innerHTML = `
+      <th style="min-width:80px">GPU</th>
+      <th>NV Mkt%<br><span style="font-weight:400;font-size:8px;text-transform:none">GPU share of total</span></th>
+      <th>MSI NV%<br><span style="font-weight:400;font-size:8px;text-transform:none">NV Report</span></th>
+      <th>MBW<br><span style="font-weight:400;font-size:8px;text-transform:none">IHS share</span></th>
+      <th>FPT<br><span style="font-weight:400;font-size:8px;text-transform:none">IHS share</span></th>
+      <th>CPS<br><span style="font-weight:400;font-size:8px;text-transform:none">IHS share</span></th>
+      <th>PV<br><span style="font-weight:400;font-size:8px;text-transform:none">IHS share</span></th>
+      <th>Gap<br><span style="font-weight:400;font-size:8px;text-transform:none">KA avg vs NV</span></th>`;
+  }
 
-  setText('kagap-ctx', `last 4w · est. via IHS × Userbuy GPU mix`);
+  setText('kagap-ctx', `last 4w avg · IHS brand share per dealer · NV Report MSI share`);
+
+  // Benchmark per GPU = nvMsiShareByGpu (NV overall MSI share of that GPU)
+  // Nếu không có → dùng nvOverallMsiShare
+  function dealerShareCell(abbr, benchmark) {
+    const share = dealerShareMap[abbr];
+    if(share===null || share===undefined || benchmark===null) {
+      return `<td style="text-align:right;color:var(--text3)">—</td>`;
+    }
+    const diff = share - benchmark;
+    let dotClr, bgClr='';
+    if(diff >= 2)       { dotClr='var(--green)'; bgClr='background:var(--green-dim)'; }
+    else if(diff <= -2) { dotClr='var(--red)';   bgClr='background:var(--red-dim)'; }
+    else                { dotClr='var(--amber)';  bgClr=''; }
+
+    const arrow = diff>=2?'▲':diff<=-2?'▼':'~';
+    return `<td style="text-align:right;${bgClr}padding:6px 10px">
+      <span style="color:${dotClr};font-weight:700;font-size:11px">${share.toFixed(1)}%</span>
+      <span style="font-size:9px;color:${dotClr};margin-left:2px">${arrow}</span>
+    </td>`;
+  }
 
   const tbody = document.getElementById('kagap-tbody');
   if(tbody){
-    tbody.innerHTML = topGpus4KA.map(({gpu, nvPct, ubPct})=>{
-      // Estimate MSI vol per dealer per GPU = dealerMsiVol × (gpuUbShare)
-      const gpuShr = (gpuUbVol[gpu]||0)/ubTotal;
+    // Top GPUs by NV market%
+    const topGpus4KA2 = gpus.map(g=>{
+      const twR = nvTW.find(r=>r.gpu===g)||{};
+      return {gpu:g, nvVol:twR.vol||0, nvMsiPct:nvMsiShareByGpu[g]};
+    }).filter(g=>g.nvVol>0).sort((a,b)=>b.nvVol-a.nvVol).slice(0,8);
 
-      const dealerCells = KA_ABBR.map(d=>{
-        const estMsiVol = Math.round((dealerMsiVol4w[d]||0) * gpuShr);
-        const dealerNV  = dealerNVVol4w[d]||0;
-        // MSI share at this dealer for this GPU (estimated)
-        const gpuNVAtDealer = Math.round(dealerNV * nvPct/100);
-        const estShare = gpuNVAtDealer>0 ? estMsiVol/gpuNVAtDealer*100 : null;
+    const nvTotalVol2 = nvTW.reduce((s,r)=>s+(r.vol||0),0)||1;
 
-        // Color: compare estShare vs overall MSI share at that dealer
-        const dealerMsiShare = (dealerNVVol4w[d]||0)>0
-          ? (dealerMsiVol4w[d]||0)/(dealerNVVol4w[d]||0)*100 : null;
-        let dotColor = '#94a3b8'; // unknown
-        if(estShare!==null && dealerMsiShare!==null){
-          if(estShare >= dealerMsiShare*1.1) dotColor='var(--green)';
-          else if(estShare >= dealerMsiShare*0.85) dotColor='var(--amber)';
-          else dotColor='var(--red)';
-        }
-        const dispVal = estMsiVol>0 ? estMsiVol.toLocaleString() : '—';
-        return `<td><div class="ka-gap-cell"><div class="ka-dot" style="background:${dotColor}"></div>${dispVal}</div></td>`;
-      }).join('');
+    tbody.innerHTML = topGpus4KA2.map(({gpu, nvVol, nvMsiPct})=>{
+      const nvMktPct = nvVol/nvTotalVol2*100;
+      const benchmark = nvMsiPct!==null ? nvMsiPct : nvOverallMsiShare;
 
-      // KA total avg MSI share for this GPU
-      const totalKAMsi = KA_ABBR.reduce((s,d)=>s+Math.round((dealerMsiVol4w[d]||0)*gpuShr),0);
-      const totalKANV  = KA_ABBR.reduce((s,d)=>s+Math.round((dealerNVVol4w[d]||0)*nvPct/100),0);
-      const kaAvgShare = totalKANV>0 ? totalKAMsi/totalKANV*100 : null;
+      // KA avg share = weighted avg of 4 dealers (by dealer total NV vol)
+      const dealerShares = KA_ABBR.map(abbr=>dealerShareMap[abbr]).filter(x=>x!==null);
+      const kaAvg = dealerShares.length
+        ? dealerShares.reduce((s,x)=>s+x,0)/dealerShares.length : null;
+      const gap = (kaAvg!==null && benchmark!==null) ? kaAvg-benchmark : null;
 
-      // TW MSI share from NV data (ground truth)
-      const twRow2 = nvTW.find(r=>r.gpu===gpu)||{};
-      const nvMsiShare = (twRow2.vol||0)>0 ? (twRow2.msiVol||0)/(twRow2.vol||0)*100 : null;
-      const gap = (kaAvgShare!==null && nvMsiShare!==null) ? kaAvgShare-nvMsiShare : null;
+      const gapClr = gap===null?'var(--text3)':gap>=2?'var(--green)':gap<=-2?'var(--red)':'var(--amber)';
       const gapStr = gap!==null
-        ? `<span style="color:${gap>=0?'var(--green)':'var(--red)'};font-weight:600">${gap>=0?'+':''}${gap.toFixed(1)}pp</span>`
+        ? `<span style="font-weight:700;color:${gapClr}">${gap>=0?'+':''}${gap.toFixed(1)}pp</span>`
         : '—';
+      const nvPctStr = nvMsiPct!==null
+        ? `<span style="color:var(--msi);font-weight:600">${nvMsiPct.toFixed(1)}%</span>`
+        : '<span style="color:var(--text3)">—</span>';
 
       return `<tr>
-        <td>${gpu}</td>
-        <td>${nvPct.toFixed(1)}%</td>
-        ${dealerCells}
-        <td>${kaAvgShare!==null?kaAvgShare.toFixed(1)+'%':'—'}</td>
-        <td>${gapStr}</td>
+        <td style="padding:6px 12px;font-weight:600;color:var(--text)">${gpu}
+          <div style="font-size:9px;font-weight:400;color:var(--text3)">${GPU_TO_SEG[gpu]||''}</div>
+        </td>
+        <td style="text-align:right;padding:6px 10px;color:var(--text2)">${nvMktPct.toFixed(1)}%</td>
+        <td style="text-align:right;padding:6px 10px">${nvPctStr}</td>
+        ${dealerShareCell('MBW', benchmark)}
+        ${dealerShareCell('FPT', benchmark)}
+        ${dealerShareCell('CPS', benchmark)}
+        ${dealerShareCell('PV',  benchmark)}
+        <td style="text-align:right;padding:6px 12px">${gapStr}</td>
       </tr>`;
     }).join('');
+
+    if(!topGpus4KA2.length){
+      tbody.innerHTML='<tr><td colspan="8" style="padding:16px;text-align:center;color:var(--text3);font-size:12px">No data in current filter</td></tr>';
+    }
   }
 
-  // KA Gap insight
-  const worstGap = topGpus4KA.map(({gpu,nvPct})=>{
-    const gpuShr=(gpuUbVol[gpu]||0)/ubTotal;
-    const totalKAMsi=KA_ABBR.reduce((s,d)=>s+Math.round((dealerMsiVol4w[d]||0)*gpuShr),0);
-    const totalKANV =KA_ABBR.reduce((s,d)=>s+Math.round((dealerNVVol4w[d]||0)*nvPct/100),0);
-    const kaAvg=totalKANV>0?totalKAMsi/totalKANV*100:null;
-    const tw2=nvTW.find(r=>r.gpu===gpu)||{};
-    const nvMs=(tw2.vol||0)>0?(tw2.msiVol||0)/(tw2.vol||0)*100:null;
-    return {gpu, gap:(kaAvg!==null&&nvMs!==null)?kaAvg-nvMs:null};
-  }).filter(x=>x.gap!==null).sort((a,b)=>a.gap-b.gap);
-
-  let kagapInsight='';
-  if(worstGap.length){
-    const worst=worstGap[0], best=worstGap[worstGap.length-1];
-    kagapInsight=`<strong>${worst.gpu}</strong> có KA share thấp hơn NV overall ${Math.abs(worst.gap).toFixed(1)}pp — cần tăng presence tại KA dealers. `;
-    if(best.gap>0) kagapInsight+=`<strong>${best.gpu}</strong> outperforms NV benchmark tại KA +${best.gap.toFixed(1)}pp — duy trì momentum.`;
+  // Legend row
+  const legendEl = document.getElementById('kagap-table');
+  if(legendEl && !document.getElementById('kagap-legend')){
+    legendEl.insertAdjacentHTML('afterend', `
+      <div id="kagap-legend" style="display:flex;gap:16px;padding:8px 14px;font-size:10px;color:var(--text3);border-top:1px solid var(--border)">
+        <span><span style="color:var(--green);font-weight:700">▲ Green</span> = dealer MSI share &gt; NV benchmark +2pp</span>
+        <span><span style="color:var(--amber);font-weight:700">~ Amber</span> = within ±2pp of NV benchmark</span>
+        <span><span style="color:var(--red);font-weight:700">▼ Red</span> = dealer MSI share &lt; NV benchmark −2pp</span>
+        <span style="margin-left:auto;font-style:italic">Benchmark = MSI NV Report share per GPU</span>
+      </div>`);
   }
-  setText('kagap-insight', kagapInsight || 'Insufficient data for KA gap analysis.');
 
-  // ─────────────────────────────────────────────────────────────────
-  // PANEL C: OnHand Alert per GPU
+  // Insight (dùng innerHTML để render bold)
+  const worstGap2 = topGpus4KA2 ? [] : [];
+  // Tính lại gap per GPU cho insight
+  const gapRanking = (()=>{
+    const nvTotalV2 = nvTW.reduce((s,r)=>s+(r.vol||0),0)||1;
+    const __gpuSet=new Set((topGpus4KA2||gpus.map(g=>({gpu:g}))).map(x=>x.gpu));
+    return gpus.filter(g=>__gpuSet.has(g)).map(gpu=>{
+      const twR=nvTW.find(r=>r.gpu===gpu)||{};
+      if((twR.vol||0)<5) return null;
+      const nvMs=nvMsiShareByGpu[gpu];
+      const dShares=KA_ABBR.map(abbr=>dealerShareMap[abbr]).filter(x=>x!==null);
+      const kaAvg2=dShares.length?dShares.reduce((s,x)=>s+x,0)/dShares.length:null;
+      const gap2=(kaAvg2!==null&&nvMs!==null)?kaAvg2-nvMs:null;
+      return {gpu, gap:gap2, nvMktPct:(twR.vol||0)/nvTotalV2*100};
+    }).filter(x=>x&&x.gap!==null).sort((a,b)=>a.gap-b.gap);
+  })();
+
+  const kagapEl = document.getElementById('kagap-insight');
+  if(kagapEl && gapRanking.length){
+    const worst2=gapRanking[0], best2=gapRanking[gapRanking.length-1];
+    let ins='';
+    if(worst2.gap<=-2){
+      ins+=`<strong>${worst2.gpu}</strong>: KA dealers đang bán MSI thấp hơn NV benchmark <strong style="color:var(--red)">${worst2.gap.toFixed(1)}pp</strong> — cần đẩy mạnh tại MBW/FPT. `;
+    }
+    if(best2.gap>=2){
+      ins+=`<strong>${best2.gpu}</strong>: KA dealers vượt NV benchmark <strong style="color:var(--green)">+${best2.gap.toFixed(1)}pp</strong> — duy trì momentum.`;
+    }
+    if(!ins) ins='KA dealer MSI share nằm trong ±2pp so với NV benchmark — thị trường đang balanced.';
+    kagapEl.innerHTML = ins;
+  }
+
+    // PANEL C: OnHand Alert per GPU
   // byGpu: {w, gpu, onHand} — MSI inventory tại dealers
   // Alert: onHand(latestW) vs avg(last4w) → Low / OK / Rapid drop
   // ─────────────────────────────────────────────────────────────────
