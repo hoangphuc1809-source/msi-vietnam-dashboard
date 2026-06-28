@@ -764,7 +764,7 @@ Chart.defaults.font.size=11;
 /* ═══════════════════════════════════════
    STATE
 ═══════════════════════════════════════ */
-let D = { ihs:null, ub:null, nv:null };  // raw data blobs
+let D = { ihs:null, ub:null, nv:null, ds:null };  // raw data blobs (ds = dealer sellout)
 let st = { year:'all', quarter:'Q2', weeks:'all', gen5:false, gpu:null, selBrand:null, selGpu:null };
 let charts = {};
 let allYears=[], allWeeks=[];
@@ -798,9 +798,11 @@ async function gasJson(action, attempt) {
 async function fetchAll() {
   const step = document.getElementById('load-step');
   const [ihs, ub, nv] = await Promise.all([
-    gasJson('ihs').then(d=>{D.ihs=d; step.textContent='✓ IHS  ·  Userbuy · NV Report'; return d;}),
-    gasJson('userbuy').then(d=>{D.ub=d; step.textContent='✓ IHS  · ✓ Userbuy ·  NV Report'; return d;}),
-    gasJson('nv').then(d=>{D.nv=d; step.textContent='✓ IHS  · ✓ Userbuy · ✓ NV Report'; return d;})
+    gasJson('ihs').then(d=>{D.ihs=d; step.textContent='✓ IHS  ·  Userbuy · NV Report · Sellout'; return d;}),
+    gasJson('userbuy').then(d=>{D.ub=d; step.textContent='✓ IHS  · ✓ Userbuy ·  NV Report · Sellout'; return d;}),
+    gasJson('nv').then(d=>{D.nv=d; step.textContent='✓ IHS  · ✓ Userbuy · ✓ NV Report · Sellout'; return d;}),
+    gasJson('sellout').then(d=>{D.ds=d; step.textContent='✓ IHS  · ✓ Userbuy · ✓ NV Report · ✓ Sellout'; return d;})
+      .catch(e=>{console.warn('[Sellout]',e); D.ds={byDealerModel:[],byGpu:[]}; return {};})
   ]);
 }
 
@@ -826,7 +828,7 @@ async function init() {
     const latestW = allWeeks[allWeeks.length-1];
     document.getElementById('hdr-week').textContent = latestW;
     document.getElementById('hdr-sub').textContent =
-      `${D.nv.gpuRows.length.toLocaleString()} NV rows · ${D.ub.facts.length.toLocaleString()} userbuy facts · ${D.ihs.rows.length.toLocaleString()} IHS rows`;
+      `${D.nv.gpuRows.length.toLocaleString()} NV rows · ${D.ub.facts.length.toLocaleString()} userbuy facts · ${D.ihs.rows.length.toLocaleString()} IHS rows · ${((D.ds||{}).byDealerModel||[]).length.toLocaleString()} sellout`;
     document.getElementById('hdr-status').textContent = '● Live';
 
     st.gpu = GPU_ORDER[3]; // default RTX 4050
@@ -1653,8 +1655,7 @@ function renderWinLose(nvR, weeks, latestW) {
   //       D.ub.skus → {sku, gpu, sg} dùng để map sku → GPU tier + Gaming filter
   // ─────────────────────────────────────────────────────────────
 
-  const byDM = (window.MsiDealerSelloutData && window.MsiDealerSelloutData.getByDealerModel)
-    ? window.MsiDealerSelloutData.getByDealerModel() : [];
+  const byDM = (D.ds && D.ds.byDealerModel) ? D.ds.byDealerModel : [];
 
   // SKU map: sku → {gpu, sg}
   const skuMeta = {};
@@ -1870,8 +1871,7 @@ function renderWinLose(nvR, weeks, latestW) {
   // byGpu: {w, gpu, onHand} — MSI inventory tại dealers
   // Alert: onHand(latestW) vs avg(last4w) → Low / OK / Rapid drop
   // ─────────────────────────────────────────────────────────────────
-  const byGpu = (window.MsiDealerSelloutData && window.MsiDealerSelloutData.getByGpu)
-    ? window.MsiDealerSelloutData.getByGpu() : [];
+  const byGpu = (D.ds && D.ds.byGpu) ? D.ds.byGpu : [];
 
   // Lấy tuần mới nhất có data từ byGpu
   const ohWeeks = [...new Set(byGpu.map(r=>r.w))].sort();
