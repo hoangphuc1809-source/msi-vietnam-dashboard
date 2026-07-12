@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dealers Target — MSI Vietnam BI</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f5f6f8;--bg2:#ffffff;--bg3:#f0f1f4;--bg4:#e8eaed;--bg5:#dde0e5;
+  --border:rgba(0,0,0,0.09);--border2:rgba(0,0,0,0.16);
+  --text:#1a1a22;--text2:#4a4a5a;--text3:#8a8a9a;
+  --green:#16a34a;--green-bg:rgba(22,163,74,.1);--green-dim:rgba(22,163,74,.06);
+  --red:#dc2626;--red-bg:rgba(220,38,38,.1);--red-dim:rgba(220,38,38,.06);
+  --amber:#d97706;--amber-bg:rgba(217,119,6,.1);--amber-dim:rgba(217,119,6,.06);
+  --blue:#2563eb;--blue-bg:rgba(37,99,235,.1);--blue-dim:rgba(37,99,235,.06);
+  --msi:#c62828;--msi-dim:rgba(198,40,40,.12);
+  --sellIn:#1D4ED8;--sellOut:#059669;
+  --r:10px;--rs:6px;
+}
+html{font-size:14px}
+body{background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;min-height:100vh}
+
+/* ── NAV ── */
+.tab-nav{display:flex;gap:2px;padding:12px 24px 0;background:var(--bg2);border-bottom:1px solid var(--border)}
+.tab-nav-item{padding:8px 18px;font-size:13px;color:var(--text2);text-decoration:none;border-radius:8px 8px 0 0;border:1px solid transparent;border-bottom:none;transition:all .15s}
+.tab-nav-item:hover{color:var(--text);background:var(--bg3)}
+.tab-nav-item.active{color:var(--text);background:var(--bg);border-color:var(--border);border-bottom-color:var(--bg);font-weight:600}
+
+/* ── PAGE ── */
+.page{max-width:1440px;margin:0 auto;padding:20px 24px}
+
+/* ── HEADER ── */
+.header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:12px}
+.header-left{display:flex;align-items:center;gap:14px}
+.hdr-icon{width:34px;height:34px;background:var(--sellIn);border-radius:8px;display:grid;place-items:center}
+.hdr-icon svg{width:18px;height:18px;fill:#fff}
+.header-title{font-size:18px;font-weight:700;color:var(--text);letter-spacing:-.4px}
+.header-sub{font-size:12px;color:var(--text3);margin-top:2px}
+.chip{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:500;padding:3px 10px;border-radius:20px;white-space:nowrap}
+.chip-g{background:var(--green-bg);color:var(--green)}
+.chip-r{background:var(--red-bg);color:var(--red)}
+.chip-b{background:var(--blue-bg);color:var(--blue)}
+.chip-neutral{background:var(--bg4);color:var(--text2);border:1px solid var(--border)}
+
+/* ── LOADING ── */
+#loading{display:flex;flex-direction:column;align-items:center;justify-content:center;height:320px;gap:14px;color:var(--text2)}
+.spin-wrap{position:relative;width:40px;height:40px}
+.spin{position:absolute;inset:0;border:2px solid var(--border2);border-top-color:var(--sellIn);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.load-text{font-size:13px;color:var(--text3)}
+.load-step{font-size:11px;color:var(--text3);text-align:center}
+
+/* ── FILTER BAR ── */
+.filter-bar{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:11px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.fl{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap}
+select{background:var(--bg4);border:1px solid var(--border);color:var(--text);font-size:12px;border-radius:var(--rs);padding:5px 10px;cursor:pointer;outline:none;transition:border-color .15s;font-family:inherit}
+select:hover{border-color:var(--border2)}
+select option{background:var(--bg2)}
+.fsep{width:1px;height:18px;background:var(--border);margin:0 2px}
+.btn-rst{font-size:11px;color:var(--text3);cursor:pointer;padding:4px 8px;border:none;background:none;transition:color .15s;font-family:inherit}
+.btn-rst:hover{color:var(--text2)}
+
+/* ── SECTION ── */
+.section{margin-bottom:18px}
+.sec-head{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.sec-no{width:20px;height:20px;border-radius:50%;background:var(--blue-dim);color:var(--blue);font-size:10px;font-weight:700;display:grid;place-items:center;flex-shrink:0;border:1px solid rgba(37,99,235,.25)}
+.sec-title{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.08em}
+.sec-tag{font-size:10px;padding:2px 7px;border-radius:4px;background:var(--bg4);color:var(--text3);border:1px solid var(--border)}
+
+/* ── KPI CARDS ── */
+.kpi-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:10px}
+.kpi-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;position:relative;overflow:hidden;transition:border-color .15s}
+.kpi-card:hover{border-color:var(--border2)}
+.kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:var(--r) var(--r) 0 0}
+.kpi-card.si::before{background:var(--sellIn)}
+.kpi-card.so::before{background:var(--sellOut)}
+.kpi-card.ach-good::before{background:var(--green)}
+.kpi-card.ach-warn::before{background:var(--amber)}
+.kpi-card.ach-bad::before{background:var(--red)}
+.kpi-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.kpi-value{font-size:22px;font-weight:800;letter-spacing:-.5px;line-height:1.1}
+.kpi-sub{font-size:11px;color:var(--text3);margin-top:4px}
+.kpi-value.si-color{color:var(--sellIn)}
+.kpi-value.so-color{color:var(--sellOut)}
+.kpi-value.ach-color-good{color:var(--green)}
+.kpi-value.ach-color-warn{color:var(--amber)}
+.kpi-value.ach-color-bad{color:var(--red)}
+
+/* ── GAUGE ── */
+.gauge-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.gauge-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px;text-align:center}
+.gauge-title{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+.gauge-wrap{position:relative;width:200px;height:120px;margin:0 auto}
+.gauge-wrap canvas{width:200px!important;height:120px!important}
+.gauge-center{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);text-align:center}
+.gauge-pct{font-size:28px;font-weight:800;letter-spacing:-1px}
+.gauge-pct.g-good{color:var(--green)}
+.gauge-pct.g-warn{color:var(--amber)}
+.gauge-pct.g-bad{color:var(--red)}
+.gauge-detail{font-size:10px;color:var(--text3);margin-top:2px}
+
+/* ── TABLES ── */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;margin-bottom:16px}
+.card-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.hint{font-size:10px;font-weight:400;color:var(--text3);margin-left:auto}
+.tbl-wrap{overflow-x:auto;max-height:480px;overflow-y:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{background:var(--bg3);color:var(--text2);font-weight:600;padding:7px 10px;text-align:left;position:sticky;top:0;z-index:2;border-bottom:1px solid var(--border);white-space:nowrap;font-size:10px;text-transform:uppercase;letter-spacing:.04em}
+td{padding:6px 10px;border-bottom:1px solid var(--border);white-space:nowrap}
+tr:hover td{background:var(--bg3)}
+tr.row-total td{font-weight:700;background:var(--bg3);border-top:2px solid var(--border2)}
+.num{text-align:right;font-variant-numeric:tabular-nums}
+.ach-pill{display:inline-block;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:600}
+.ach-pill.good{background:var(--green-dim);color:var(--green)}
+.ach-pill.warn{background:var(--amber-dim);color:var(--amber)}
+.ach-pill.bad{background:var(--red-dim);color:var(--red)}
+.bar-cell{position:relative;min-width:80px}
+.bar-bg{position:absolute;left:0;top:2px;bottom:2px;border-radius:3px;opacity:.18}
+.bar-val{position:relative;z-index:1}
+
+/* ── TWO COL GRID ── */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+
+/* ── FOOTER ── */
+.footer{text-align:center;padding:16px;font-size:11px;color:var(--text3);margin-top:20px}
+
+/* ── RESPONSIVE ── */
+@media(max-width:1100px){
+  .kpi-grid{grid-template-columns:repeat(3,1fr)}
+  .two-col{grid-template-columns:1fr}
+}
+@media(max-width:700px){
+  .tab-nav{padding:8px 10px 0}
+  .tab-nav-item{padding:5px 10px;font-size:11px}
+  .page{padding:12px 10px}
+  .kpi-grid{grid-template-columns:repeat(2,1fr)}
+  .gauge-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<nav class="tab-nav">
+  <a href="index.html" class="tab-nav-item">Market Overall</a>
+  <a href="userbuy.html" class="tab-nav-item">Userbuy Tracking</a>
+  <a href="nvidia.html" class="tab-nav-item">Nvidia Report</a>
+  <a href="dealers-target.html" class="tab-nav-item active">Dealers Target</a>
+</nav>
+
+<div class="page">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <div class="hdr-icon"><svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg></div>
+      <div>
+        <div class="header-title">Dealers Target</div>
+        <div class="header-sub">Sell In / Sell Out vs Target — Quarterly Performance</div>
+      </div>
+    </div>
+    <div id="headerChips" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+  </div>
+
+  <!-- Loading -->
+  <div id="loading">
+    <div class="spin-wrap"><div class="spin"></div></div>
+    <div class="load-text">Loading data…</div>
+    <div class="load-step" id="loadStep"></div>
+  </div>
+
+  <!-- Dashboard (hidden until data loads) -->
+  <div id="dashboard" style="display:none">
+
+    <!-- Filter bar -->
+    <div class="filter-bar">
+      <span class="fl">Year</span>
+      <select id="fYear"></select>
+      <span class="fl">Quarter</span>
+      <select id="fQuarter"></select>
+      <div class="fsep"></div>
+      <span class="fl">Channel</span>
+      <select id="fChannel"><option value="">All</option></select>
+      <span class="fl">Series Group</span>
+      <select id="fSG"><option value="">All</option></select>
+      <div class="fsep"></div>
+      <button class="btn-rst" id="btnReset">Reset</button>
+    </div>
+
+    <!-- ═══ ZONE 1: KPI Scorecards ═══ -->
+    <div class="section">
+      <div class="sec-head">
+        <div class="sec-no">1</div>
+        <span class="sec-title">Performance Snapshot</span>
+        <span class="sec-tag" id="periodTag">—</span>
+      </div>
+      <div class="kpi-grid" id="kpiGrid"></div>
+    </div>
+
+    <!-- ═══ ZONE 2: Gauges ═══ -->
+    <div class="section">
+      <div class="sec-head">
+        <div class="sec-no">2</div>
+        <span class="sec-title">Achievement Gauges</span>
+      </div>
+      <div class="gauge-grid">
+        <div class="gauge-card">
+          <div class="gauge-title">Sell In Achievement</div>
+          <div class="gauge-wrap"><canvas id="gaugeSI"></canvas><div class="gauge-center"><div class="gauge-pct" id="gaugeSIPct">—</div><div class="gauge-detail" id="gaugeSIDetail"></div></div></div>
+        </div>
+        <div class="gauge-card">
+          <div class="gauge-title">Sell Out Achievement</div>
+          <div class="gauge-wrap"><canvas id="gaugeSO"></canvas><div class="gauge-center"><div class="gauge-pct" id="gaugeSOPct">—</div><div class="gauge-detail" id="gaugeSODetail"></div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ ZONE 3: Series Group Breakdown ═══ -->
+    <div class="section">
+      <div class="sec-head">
+        <div class="sec-no">3</div>
+        <span class="sec-title">Series Group Breakdown</span>
+      </div>
+      <div class="card" style="padding:12px">
+        <div class="tbl-wrap" id="sgTable"></div>
+      </div>
+    </div>
+
+    <!-- ═══ ZONE 4: Distributor Breakdown ═══ -->
+    <div class="section">
+      <div class="sec-head">
+        <div class="sec-no">4</div>
+        <span class="sec-title">Distributor Breakdown</span>
+      </div>
+      <div class="two-col">
+        <div class="card">
+          <div class="card-title"><span class="dot" style="background:var(--sellIn)"></span>Sell In by Distributor</div>
+          <div class="tbl-wrap" id="distySITable"></div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="dot" style="background:var(--sellOut)"></span>Sell Out by Distributor</div>
+          <div class="tbl-wrap" id="distySOTable"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ ZONE 5: Customer Detail ═══ -->
+    <div class="section">
+      <div class="sec-head">
+        <div class="sec-no">5</div>
+        <span class="sec-title">Customer Detail</span>
+        <span class="sec-tag">Top 20 by Target</span>
+      </div>
+      <div class="card" style="padding:12px">
+        <div class="tbl-wrap" id="custTable"></div>
+      </div>
+    </div>
+
+    <!-- ═══ ZONE 6: SOH & WOI ═══ -->
+    <div class="section">
+      <div class="sec-head">
+        <div class="sec-no">6</div>
+        <span class="sec-title">Stock On Hand & Weeks of Inventory</span>
+      </div>
+      <div class="two-col">
+        <div class="card">
+          <div class="card-title"><span class="dot" style="background:#64748B"></span>SOH by Series Group</div>
+          <div class="tbl-wrap" id="sohTable"></div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="dot" style="background:#7C3AED"></span>WOI (Weeks of Inventory)</div>
+          <div class="tbl-wrap" id="woiTable"></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /dashboard -->
+
+  <div class="footer">MSI Vietnam · Dealers Target Dashboard · Source: Sales Tracking (Google Sheets, via GAS)</div>
+</div>
+
+<script>
+'use strict';
+
+/* ═══════════════════════════════════════════
+   CONFIG & DATA STORE
+   ═══════════════════════════════════════════ */
+const GAS = (window.MSI_CONFIG && window.MSI_CONFIG.APPS_SCRIPT_URL)
+  || 'https://script.google.com/macros/s/AKfycbwA403Z2FAYM_qyq0sGNqTfWuRiJc9rhSrb7RoZRFKzYD45YWFBF1y08L3Y_H3iQmC3/exec';
+
+const D = {}; // data store
+let gaugeChartSI = null, gaugeChartSO = null;
+
+/* ═══════════════════════════════════════════
+   HELPERS
+   ═══════════════════════════════════════════ */
+const fmt = n => n == null || isNaN(n) ? '—' : Math.round(n).toLocaleString('en-US');
+const fmtPct = (n,d=0) => n == null || isNaN(n) ? '—' : (n*100).toFixed(d)+'%';
+const achClass = pct => pct >= 0.95 ? 'good' : pct >= 0.80 ? 'warn' : 'bad';
+const normSG = s => { let t = (s||'').trim(); return /^Business\s*&\s*Productivity$/i.test(t) ? 'Business& Productivity' : t; };
+
+/* ═══════════════════════════════════════════
+   DATA FETCH
+   ═══════════════════════════════════════════ */
+async function gasJson(action, attempt=0) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 25000);
+  try {
+    const res = await fetch(GAS + '?action=' + action, {signal: controller.signal});
+    clearTimeout(timer);
+    const text = await res.text();
+    try { return JSON.parse(text); }
+    catch(e) { throw new Error('action='+action+' non-JSON: '+text.slice(0,120)); }
+  } catch(e) {
+    clearTimeout(timer);
+    if (attempt < 3 && (e.name==='AbortError' || e.message.includes('fetch'))) {
+      await new Promise(r=>setTimeout(r, 1000*(attempt+1)));
+      return gasJson(action, attempt+1);
+    }
+    throw e;
+  }
+}
+
+async function fetchAll() {
+  const step = document.getElementById('loadStep');
+  try {
+    const [tgt, inv, so] = await Promise.all([
+      gasJson('target').then(d=>{D.tgt=d; step.textContent='✓ Target+Actuals · Disty INV · Sellout'; return d;}),
+      gasJson('distyinv').then(d=>{D.inv=d; step.textContent='✓ Target+Actuals · ✓ Disty INV · Sellout'; return d;}),
+      gasJson('sellout').then(d=>{D.so=d; step.textContent='✓ Target+Actuals · ✓ Disty INV · ✓ Sellout'; return d;})
+    ]);
+    return true;
+  } catch(e) {
+    step.textContent = '❌ ' + e.message;
+    console.error(e);
+    return false;
+  }
+}
+
+/* ═══════════════════════════════════════════
+   AGGREGATE FUNCTIONS
+   ═══════════════════════════════════════════ */
+
+// Filter targets and actuals by current filter state
+function getFiltered() {
+  const y = document.getElementById('fYear').value;
+  const q = document.getElementById('fQuarter').value;
+  const ch = document.getElementById('fChannel').value;
+  const sg = document.getElementById('fSG').value;
+
+  let targets = (D.tgt && D.tgt.targets) || [];
+  let actuals = (D.tgt && D.tgt.actuals) || [];
+  let distyAct = (D.tgt && D.tgt.distyActuals) || [];
+
+  if (y) { targets = targets.filter(r=>r.y===y); actuals = actuals.filter(r=>r.y===y); distyAct = distyAct.filter(r=>r.y===y); }
+  if (q) { targets = targets.filter(r=>r.q===q); actuals = actuals.filter(r=>r.q===q); distyAct = distyAct.filter(r=>r.q===q); }
+  if (ch) { targets = targets.filter(r=>r.channel===ch); }
+  if (sg) { targets = targets.filter(r=>r.sg===sg); actuals = actuals.filter(r=>r.sg===sg); distyAct = distyAct.filter(r=>r.sg===sg); }
+
+  // If channel filter active, restrict actuals to matching customers
+  if (ch) {
+    const custSet = new Set(targets.map(r=>r.cust));
+    actuals = actuals.filter(r=>custSet.has(r.cust));
+  }
+
+  return { targets, actuals, distyAct };
+}
+
+function sumField(arr, field) { return arr.reduce((s,r)=>s+(r[field]||0),0); }
+
+function groupBy(arr, keyFn) {
+  const map = {};
+  arr.forEach(r => { const k = keyFn(r); if(!map[k]) map[k]=[]; map[k].push(r); });
+  return map;
+}
+
+/* ═══════════════════════════════════════════
+   RENDER: KPI CARDS
+   ═══════════════════════════════════════════ */
+function renderKPI() {
+  const {targets, actuals} = getFiltered();
+  const siActual = sumField(actuals,'sellIn');
+  const soActual = sumField(actuals,'sellOut');
+  const siTarget = sumField(targets,'target');
+  // Use same target for SO (single target column in source)
+  const soTarget = siTarget;
+  const siAch = siTarget > 0 ? siActual/siTarget : 0;
+  const soAch = soTarget > 0 ? soActual/soTarget : 0;
+
+  const cards = [
+    {label:'Sell In Actual', value:fmt(siActual), cls:'si', vCls:'si-color', sub:`vs LQ: —`},
+    {label:'Sell In Target', value:fmt(siTarget), cls:'si', vCls:'si-color', sub:'Quarterly target'},
+    {label:'SI Achievement', value:fmtPct(siAch), cls:'ach-'+achClass(siAch), vCls:'ach-color-'+achClass(siAch), sub:fmt(siActual)+' / '+fmt(siTarget)},
+    {label:'Sell Out Actual', value:fmt(soActual), cls:'so', vCls:'so-color', sub:`vs LQ: —`},
+    {label:'Sell Out Target', value:fmt(soTarget), cls:'so', vCls:'so-color', sub:'Quarterly target'},
+    {label:'SO Achievement', value:fmtPct(soAch), cls:'ach-'+achClass(soAch), vCls:'ach-color-'+achClass(soAch), sub:fmt(soActual)+' / '+fmt(soTarget)},
+  ];
+
+  const el = document.getElementById('kpiGrid');
+  el.innerHTML = cards.map(c=>`
+    <div class="kpi-card ${c.cls}">
+      <div class="kpi-label">${c.label}</div>
+      <div class="kpi-value ${c.vCls}">${c.value}</div>
+      <div class="kpi-sub">${c.sub}</div>
+    </div>`).join('');
+
+  // Period tag
+  const y = document.getElementById('fYear').value;
+  const q = document.getElementById('fQuarter').value;
+  document.getElementById('periodTag').textContent = (y||'All')+ ' ' +(q||'All Q');
+
+  // Header chips
+  document.getElementById('headerChips').innerHTML =
+    `<span class="chip chip-b">SI Ach ${fmtPct(siAch)}</span>`+
+    `<span class="chip ${soAch>=0.95?'chip-g':'chip-r'}">SO Ach ${fmtPct(soAch)}</span>`+
+    `<span class="chip chip-neutral">${fmt(siTarget)} target</span>`;
+
+  return {siActual, soActual, siTarget, soTarget, siAch, soAch};
+}
+
+/* ═══════════════════════════════════════════
+   RENDER: GAUGES
+   ═══════════════════════════════════════════ */
+function renderGauges(kpi) {
+  renderOneGauge('gaugeSI', kpi.siAch, 'gaugeSIPct', 'gaugeSIDetail', kpi.siActual, kpi.siTarget, 'si');
+  renderOneGauge('gaugeSO', kpi.soAch, 'gaugeSOPct', 'gaugeSODetail', kpi.soActual, kpi.soTarget, 'so');
+}
+
+function renderOneGauge(canvasId, pct, pctId, detailId, actual, target, type) {
+  const canvas = document.getElementById(canvasId);
+  const ctx = canvas.getContext('2d');
+  const cls = achClass(pct);
+  const color = cls==='good'?'#16a34a':cls==='warn'?'#d97706':'#dc2626';
+  const bgColor = '#e8eaed';
+
+  // Destroy previous
+  if (type==='si' && gaugeChartSI) gaugeChartSI.destroy();
+  if (type==='so' && gaugeChartSO) gaugeChartSO.destroy();
+
+  const val = Math.min(pct, 1.2); // cap at 120%
+  const remaining = Math.max(1-val, 0);
+
+  const chart = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      datasets: [{
+        data: [val, remaining],
+        backgroundColor: [color, bgColor],
+        borderWidth: 0,
+        circumference: 180,
+        rotation: 270
+      }]
+    },
+    options: {
+      responsive: false,
+      cutout: '75%',
+      plugins: { legend:{display:false}, tooltip:{enabled:false}, datalabels:{display:false} },
+      layout: { padding: 0 }
+    }
+  });
+
+  if (type==='si') gaugeChartSI = chart;
+  else gaugeChartSO = chart;
+
+  const pctEl = document.getElementById(pctId);
+  pctEl.textContent = fmtPct(pct);
+  pctEl.className = 'gauge-pct g-'+cls;
+  document.getElementById(detailId).textContent = fmt(actual)+' / '+fmt(target);
+}
+
+/* ═══════════════════════════════════════════
+   RENDER: SERIES GROUP TABLE
+   ═══════════════════════════════════════════ */
+function renderSGTable() {
+  const {targets, actuals} = getFiltered();
+
+  // Group by Series Group
+  const tgtBySG = groupBy(targets, r=>r.sg);
+  const actBySG = groupBy(actuals, r=>r.sg);
+  const allSGs = [...new Set([...Object.keys(tgtBySG), ...Object.keys(actBySG)])].sort();
+
+  let rows = allSGs.map(sg => {
+    const tgt = sumField(tgtBySG[sg]||[],'target');
+    const si = sumField(actBySG[sg]||[],'sellIn');
+    const so = sumField(actBySG[sg]||[],'sellOut');
+    const oh = sumField(actBySG[sg]||[],'onHand');
+    return {sg, si, siTgt:tgt, so, soTgt:tgt, oh};
+  });
+
+  // Sort by target desc
+  rows.sort((a,b)=>b.siTgt-a.siTgt);
+
+  // Total row
+  const tot = {sg:'TOTAL', si:0, siTgt:0, so:0, soTgt:0, oh:0};
+  rows.forEach(r=>{tot.si+=r.si;tot.siTgt+=r.siTgt;tot.so+=r.so;tot.soTgt+=r.soTgt;tot.oh+=r.oh;});
+
+  const maxSI = Math.max(...rows.map(r=>r.si),1);
+  const maxSO = Math.max(...rows.map(r=>r.so),1);
+
+  function achPill(actual, target) {
+    if (!target) return '<span class="ach-pill warn">—</span>';
+    const pct = actual/target;
+    return `<span class="ach-pill ${achClass(pct)}">${fmtPct(pct)}</span>`;
+  }
+
+  function barCell(val, max, color) {
+    const w = Math.min(val/max*100,100);
+    return `<td class="num bar-cell"><div class="bar-bg" style="width:${w}%;background:${color}"></div><span class="bar-val">${fmt(val)}</span></td>`;
+  }
+
+  let html = `<table><thead><tr>
+    <th>Series Group</th>
+    <th class="num">Sell In</th><th class="num">SI Target</th><th>SI Ach%</th>
+    <th class="num">Sell Out</th><th class="num">SO Target</th><th>SO Ach%</th>
+    <th class="num">On Hand</th>
+  </tr></thead><tbody>`;
+
+  rows.forEach(r => {
+    html += `<tr>
+      <td style="font-weight:600">${r.sg}</td>
+      ${barCell(r.si, maxSI, 'var(--sellIn)')}
+      <td class="num">${fmt(r.siTgt)}</td>
+      <td>${achPill(r.si, r.siTgt)}</td>
+      ${barCell(r.so, maxSO, 'var(--sellOut)')}
+      <td class="num">${fmt(r.soTgt)}</td>
+      <td>${achPill(r.so, r.soTgt)}</td>
+      <td class="num">${fmt(r.oh)}</td>
+    </tr>`;
+  });
+
+  // Total
+  html += `<tr class="row-total">
+    <td>TOTAL</td>
+    <td class="num">${fmt(tot.si)}</td><td class="num">${fmt(tot.siTgt)}</td>
+    <td>${achPill(tot.si, tot.siTgt)}</td>
+    <td class="num">${fmt(tot.so)}</td><td class="num">${fmt(tot.soTgt)}</td>
+    <td>${achPill(tot.so, tot.soTgt)}</td>
+    <td class="num">${fmt(tot.oh)}</td>
+  </tr>`;
+
+  html += '</tbody></table>';
+  document.getElementById('sgTable').innerHTML = html;
+}
+
+/* ═══════════════════════════════════════════
+   RENDER: DISTRIBUTOR TABLES
+   ═══════════════════════════════════════════ */
+function renderDistyTables() {
+  const {distyAct} = getFiltered();
+
+  // Group by disty
+  const byDisty = groupBy(distyAct, r=>r.disty);
+  const distys = Object.keys(byDisty).sort();
+
+  function distyTable(field) {
+    let rows = distys.map(d => ({name:d, val:sumField(byDisty[d],field)}));
+    rows.sort((a,b)=>b.val-a.val);
+    const tot = rows.reduce((s,r)=>s+r.val,0);
+    const max = Math.max(...rows.map(r=>r.val),1);
+    const color = field==='sellIn'?'var(--sellIn)':'var(--sellOut)';
+
+    let html = `<table><thead><tr><th>Distributor</th><th class="num">${field==='sellIn'?'Sell In':'Sell Out'}</th><th class="num">Share</th></tr></thead><tbody>`;
+    rows.forEach(r => {
+      const share = tot>0?(r.val/tot*100).toFixed(1)+'%':'—';
+      const w = Math.min(r.val/max*100,100);
+      html += `<tr><td style="font-weight:500">${r.name||'(blank)'}</td>
+        <td class="num bar-cell"><div class="bar-bg" style="width:${w}%;background:${color}"></div><span class="bar-val">${fmt(r.val)}</span></td>
+        <td class="num">${share}</td></tr>`;
+    });
+    html += `<tr class="row-total"><td>TOTAL</td><td class="num">${fmt(tot)}</td><td class="num">100%</td></tr>`;
+    html += '</tbody></table>';
+    return html;
+  }
+
+  document.getElementById('distySITable').innerHTML = distyTable('sellIn');
+  document.getElementById('distySOTable').innerHTML = distyTable('sellOut');
+}
+
+/* ═══════════════════════════════════════════
+   RENDER: CUSTOMER DETAIL TABLE
+   ═══════════════════════════════════════════ */
+function renderCustTable() {
+  const {targets, actuals} = getFiltered();
+
+  const tgtByCust = groupBy(targets, r=>r.cust);
+  const actByCust = groupBy(actuals, r=>r.cust);
+  const allCusts = [...new Set([...Object.keys(tgtByCust),...Object.keys(actByCust)])];
+
+  let rows = allCusts.map(c => {
+    const tgt = sumField(tgtByCust[c]||[],'target');
+    const si = sumField(actByCust[c]||[],'sellIn');
+    const so = sumField(actByCust[c]||[],'sellOut');
+    const oh = sumField(actByCust[c]||[],'onHand');
+    const channel = (tgtByCust[c]||[{channel:''}])[0].channel;
+    const rep = (tgtByCust[c]||[{rep:''}])[0].rep;
+    return {cust:c, tgt, si, so, oh, channel, rep:rep?rep.split('@')[0]:''};
+  });
+
+  rows.sort((a,b)=>b.tgt-a.tgt);
+  rows = rows.slice(0,20); // Top 20
+
+  function achPill(actual, target) {
+    if (!target) return '<span class="ach-pill warn">—</span>';
+    const pct = actual/target;
+    return `<span class="ach-pill ${achClass(pct)}">${fmtPct(pct)}</span>`;
+  }
+
+  let html = `<table><thead><tr>
+    <th>Customer</th><th>Channel</th><th>Rep</th>
+    <th class="num">Target</th><th class="num">Sell In</th><th>SI Ach%</th>
+    <th class="num">Sell Out</th><th>SO Ach%</th><th class="num">On Hand</th>
+  </tr></thead><tbody>`;
+
+  rows.forEach(r => {
+    html += `<tr>
+      <td style="font-weight:500;max-width:160px;overflow:hidden;text-overflow:ellipsis">${r.cust}</td>
+      <td style="font-size:10px">${r.channel}</td>
+      <td style="font-size:10px">${r.rep}</td>
+      <td class="num">${fmt(r.tgt)}</td>
+      <td class="num">${fmt(r.si)}</td>
+      <td>${achPill(r.si, r.tgt)}</td>
+      <td class="num">${fmt(r.so)}</td>
+      <td>${achPill(r.so, r.tgt)}</td>
+      <td class="num">${fmt(r.oh)}</td>
+    </tr>`;
+  });
+
+  html += '</tbody></table>';
+  document.getElementById('custTable').innerHTML = html;
+}
+
+/* ═══════════════════════════════════════════
+   RENDER: SOH TABLE (from Disty INV)
+   ═══════════════════════════════════════════ */
+function renderSOH() {
+  const y = document.getElementById('fYear').value;
+  const q = document.getElementById('fQuarter').value;
+  const sgFilter = document.getElementById('fSG').value;
+
+  let rows = (D.inv && D.inv.rows) || [];
+  if (y) rows = rows.filter(r => r.y.replace(/^Y/,'') === y);
+  if (q) rows = rows.filter(r => r.q === q);
+  if (sgFilter) rows = rows.filter(r => r.sg === sgFilter);
+
+  // Find latest month in filtered data
+  const months = [...new Set(rows.map(r=>r.m))].sort();
+  const latestMonth = months[months.length-1] || '';
+  if (latestMonth) rows = rows.filter(r => r.m === latestMonth);
+
+  // Group by SG and Disty
+  const sgMap = {};
+  const distySet = new Set();
+  rows.forEach(r => {
+    const sg = r.sg || '(blank)';
+    const d = r.disty || 'Others';
+    distySet.add(d);
+    if (!sgMap[sg]) sgMap[sg] = {};
+    sgMap[sg][d] = (sgMap[sg][d]||0) + (r.onHand||0);
+  });
+
+  const distys = [...distySet].sort();
+  const sgs = Object.keys(sgMap).sort();
+
+  let html = `<table><thead><tr><th>Series Group</th>`;
+  distys.forEach(d => html += `<th class="num">${d}</th>`);
+  html += `<th class="num" style="font-weight:700">Total</th></tr></thead><tbody>`;
+
+  const totals = {};
+  distys.forEach(d => totals[d] = 0);
+  let grandTotal = 0;
+
+  sgs.forEach(sg => {
+    let rowTotal = 0;
+    html += `<tr><td style="font-weight:500">${sg}</td>`;
+    distys.forEach(d => {
+      const v = sgMap[sg][d] || 0;
+      rowTotal += v;
+      totals[d] += v;
+      html += `<td class="num">${v?fmt(v):'—'}</td>`;
+    });
+    grandTotal += rowTotal;
+    html += `<td class="num" style="font-weight:600">${fmt(rowTotal)}</td></tr>`;
+  });
+
+  html += `<tr class="row-total"><td>TOTAL</td>`;
+  distys.forEach(d => html += `<td class="num">${fmt(totals[d])}</td>`);
+  html += `<td class="num">${fmt(grandTotal)}</td></tr>`;
+
+  html += '</tbody></table>';
+  if (latestMonth) {
+    html = `<div style="font-size:10px;color:var(--text3);margin-bottom:6px">Latest month: ${latestMonth}</div>` + html;
+  }
+  document.getElementById('sohTable').innerHTML = html;
+}
+
+/* ═══════════════════════════════════════════
+   RENDER: WOI TABLE
+   ═══════════════════════════════════════════ */
+function renderWOI() {
+  const y = document.getElementById('fYear').value;
+  const q = document.getElementById('fQuarter').value;
+  const sgFilter = document.getElementById('fSG').value;
+
+  // SOH from Disty INV (latest month)
+  let invRows = (D.inv && D.inv.rows) || [];
+  if (y) invRows = invRows.filter(r => r.y.replace(/^Y/,'') === y);
+  if (q) invRows = invRows.filter(r => r.q === q);
+  if (sgFilter) invRows = invRows.filter(r => r.sg === sgFilter);
+  const months = [...new Set(invRows.map(r=>r.m))].sort();
+  const latestMonth = months[months.length-1] || '';
+  if (latestMonth) invRows = invRows.filter(r => r.m === latestMonth);
+
+  const sohBySG = {};
+  invRows.forEach(r => {
+    const sg = r.sg || '(blank)';
+    sohBySG[sg] = (sohBySG[sg]||0) + (r.onHand||0);
+  });
+
+  // Weekly sell-out (average of last 4 weeks) from sellout data
+  let soRows = (D.so && D.so.rows) || [];
+  if (sgFilter) soRows = soRows.filter(r => normSG(r.sg) === sgFilter);
+
+  // Get last 4 weeks
+  const weeks = [...new Set(soRows.map(r=>r.w))].sort();
+  const last4 = weeks.slice(-4);
+  const wkRows = soRows.filter(r => last4.includes(r.w));
+
+  const wkBySG = {};
+  wkRows.forEach(r => {
+    const sg = normSG(r.sg) || '(blank)';
+    wkBySG[sg] = (wkBySG[sg]||0) + (r.so||r.sellOut||0);
+  });
+
+  // Compute WOI = SOH / (avg weekly sell-out)
+  const allSGs = [...new Set([...Object.keys(sohBySG), ...Object.keys(wkBySG)])].sort();
+
+  let html = `<table><thead><tr>
+    <th>Series Group</th><th class="num">SOH</th>
+    <th class="num">Avg Wk SO</th><th class="num">WOI (wks)</th>
+  </tr></thead><tbody>`;
+
+  let totSOH = 0, totWkSO = 0;
+  allSGs.forEach(sg => {
+    const soh = sohBySG[sg] || 0;
+    const wkSO = last4.length > 0 ? (wkBySG[sg]||0)/last4.length : 0;
+    const woi = wkSO > 0 ? soh / wkSO : 0;
+    totSOH += soh;
+    totWkSO += wkSO;
+
+    const woiColor = woi > 12 ? 'var(--red)' : woi > 8 ? 'var(--amber)' : woi > 0 ? 'var(--green)' : 'var(--text3)';
+    html += `<tr>
+      <td style="font-weight:500">${sg}</td>
+      <td class="num">${fmt(soh)}</td>
+      <td class="num">${wkSO?wkSO.toFixed(0):'—'}</td>
+      <td class="num" style="color:${woiColor};font-weight:600">${woi>0?woi.toFixed(1):'—'}</td>
+    </tr>`;
+  });
+
+  const totWOI = totWkSO > 0 ? totSOH / totWkSO : 0;
+  html += `<tr class="row-total">
+    <td>TOTAL</td>
+    <td class="num">${fmt(totSOH)}</td>
+    <td class="num">${totWkSO?totWkSO.toFixed(0):'—'}</td>
+    <td class="num">${totWOI>0?totWOI.toFixed(1):'—'}</td>
+  </tr>`;
+  html += '</tbody></table>';
+  document.getElementById('woiTable').innerHTML = html;
+}
+
+/* ═══════════════════════════════════════════
+   POPULATE FILTERS
+   ═══════════════════════════════════════════ */
+function populateFilters() {
+  const targets = (D.tgt && D.tgt.targets) || [];
+
+  const years = [...new Set(targets.map(r=>r.y))].sort().reverse();
+  const quarters = [...new Set(targets.map(r=>r.q))].sort();
+  const channels = [...new Set(targets.map(r=>r.channel))].filter(Boolean).sort();
+  const sgs = [...new Set(targets.map(r=>r.sg))].filter(Boolean).sort();
+
+  function fill(id, opts, preselect) {
+    const sel = document.getElementById(id);
+    sel.innerHTML = '<option value="">All</option>' + opts.map(o=>`<option value="${o}" ${o===preselect?'selected':''}>${o}</option>`).join('');
+  }
+
+  // Default: latest year, latest quarter
+  const latestYear = years[0] || '';
+  // Find latest quarter for that year
+  const qForYear = [...new Set(targets.filter(r=>r.y===latestYear).map(r=>r.q))].sort();
+  const latestQ = qForYear[qForYear.length-1] || '';
+
+  fill('fYear', years, latestYear);
+  fill('fQuarter', quarters, latestQ);
+  fill('fChannel', channels);
+  fill('fSG', sgs);
+}
+
+/* ═══════════════════════════════════════════
+   RENDER ALL
+   ═══════════════════════════════════════════ */
+function renderAll() {
+  const kpi = renderKPI();
+  renderGauges(kpi);
+  renderSGTable();
+  renderDistyTables();
+  renderCustTable();
+  renderSOH();
+  renderWOI();
+}
+
+/* ═══════════════════════════════════════════
+   INIT
+   ═══════════════════════════════════════════ */
+(async function init() {
+  const ok = await fetchAll();
+  if (!ok) return;
+
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('dashboard').style.display = 'block';
+
+  populateFilters();
+  renderAll();
+
+  // Filter change listeners
+  ['fYear','fQuarter','fChannel','fSG'].forEach(id => {
+    document.getElementById(id).addEventListener('change', renderAll);
+  });
+
+  document.getElementById('btnReset').addEventListener('click', () => {
+    ['fYear','fQuarter','fChannel','fSG'].forEach(id => {
+      document.getElementById(id).selectedIndex = 0;
+    });
+    renderAll();
+  });
+})();
+</script>
+</body>
+</html>
