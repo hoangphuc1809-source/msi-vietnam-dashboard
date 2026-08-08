@@ -292,6 +292,7 @@ const GAS = (window.MSI_CONFIG && window.MSI_CONFIG.APPS_SCRIPT_URL)
   || 'https://script.google.com/macros/s/AKfycbwA403Z2FAYM_qyq0sGNqTfWuRiJc9rhSrb7RoZRFKzYD45YWFBF1y08L3Y_H3iQmC3/exec';
 
 const D = {}; // data store
+  const DASHBOARD_KEY = 'KQ7efIP3VXET9a3l-eH4RVYDVS6YyyYU';
 let gaugeChartSI = null, gaugeChartSO = null;
 
 /* ═══════════════════════════════════════════
@@ -309,7 +310,7 @@ async function gasJson(action, attempt=0) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 25000);
   try {
-    const res = await fetch(GAS + '?action=' + action, {signal: controller.signal});
+        const res = await fetch(GAS + '?action=' + action + '&key=' + DASHBOARD_KEY, {signal: controller.signal});
     clearTimeout(timer);
     const text = await res.text();
     try { return JSON.parse(text); }
