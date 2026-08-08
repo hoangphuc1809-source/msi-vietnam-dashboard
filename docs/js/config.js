@@ -2,7 +2,7 @@
 // Cap nhat APPS_SCRIPT_URL moi khi deploy lai Apps Script (xem apps-script/DEPLOYMENT_INFO.md)
 
 window.MSI_CONFIG = {
-  APPS_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbwA403Z2FAYM_qyq0sGNqTfWuRiJc9rhSrb7RoZRFKzYD45YWFBF1y08L3Y_H3iQmC3/exec',
+    APPS_SCRIPT_URL: '/api',
 
   // Auto-refresh interval (ms) - keo lai du lieu tu Google Sheet
   REFRESH_INTERVAL_MS: 5 * 60 * 1000, // 5 phut
