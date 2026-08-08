@@ -63,7 +63,7 @@ window.MsiDistyInvData = (function () {
     var _epoch = epoch_;
     ;(async function () {
       try {
-        var _res = await fetch(window.MSI_CONFIG.APPS_SCRIPT_URL + '?action=distyinv&_=' + Date.now(), { method: 'GET' });
+                var _res = await fetch(window.MSI_CONFIG.APPS_SCRIPT_URL + '?action=distyinv&key=' + encodeURIComponent(window.MSI_CONFIG.ACCESS_KEY) + '&_=' + Date.now(), { method: 'GET' });
         if (!_res.ok) throw new Error('HTTP ' + _res.status);
         var _json = await _res.json();
         if (_json.error) throw new Error(_json.error);
