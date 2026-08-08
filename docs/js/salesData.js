@@ -12,7 +12,7 @@ window.MsiSalesData = (function () {
   var loaded = false;
 
   async function fetchData() {
-    var liveUrl = window.MSI_CONFIG.APPS_SCRIPT_URL + '?action=sellout&_=' + Date.now();
+        var liveUrl = window.MSI_CONFIG.APPS_SCRIPT_URL + '?action=sellout&key=' + encodeURIComponent(window.MSI_CONFIG.ACCESS_KEY) + '&_=' + Date.now();
     try {
       var res = await fetch(liveUrl, { method: 'GET' });
       if (!res.ok) throw new Error('status ' + res.status);
