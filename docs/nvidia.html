@@ -743,6 +743,7 @@ Chart.register(ChartDataLabels);
    CONSTANTS & CONFIG
 ═══════════════════════════════════════ */
 const GAS = 'https://script.google.com/macros/s/AKfycbwA403Z2FAYM_qyq0sGNqTfWuRiJc9rhSrb7RoZRFKzYD45YWFBF1y08L3Y_H3iQmC3/exec';
+  const DASHBOARD_KEY = 'KQ7efIP3VXET9a3l-eH4RVYDVS6YyyYU';
 const GPU_ORDER = ['RTX 2050','RTX 3050','RTX 4050','RTX 4060','RTX 4070','RTX 4080','RTX 4090','RTX 5050','RTX 5060','RTX 5070','RTX 5070Ti','RTX 5080','RTX 5090','RTX Others'];
 const GEN5 = new Set(['RTX 5050','RTX 5060','RTX 5070','RTX 5070Ti','RTX 5080','RTX 5090']);
 const KA_DEALERS = ['Mobile World','FPT RETAIL JSC','CELLPHONES','PHONG VU'];
@@ -778,7 +779,7 @@ async function gasJson(action, attempt) {
   const controller = new AbortController();
   const tid = setTimeout(()=>controller.abort(), 30000); // 30s timeout
   try {
-    const res = await fetch(GAS + '?action=' + action, {signal: controller.signal});
+        const res = await fetch(GAS + '?action=' + action + '&key=' + DASHBOARD_KEY, {signal: controller.signal});
     clearTimeout(tid);
     const text = await res.text();
     try {
