@@ -19,7 +19,7 @@ window.MsiData = (function () {
   }
 
   async function fetchData() {
-    var url = window.MSI_CONFIG.APPS_SCRIPT_URL + '?action=ihs&_=' + Date.now();
+      var url = window.MSI_CONFIG.APPS_SCRIPT_URL + '?action=ihs&key=' + encodeURIComponent(window.MSI_CONFIG.ACCESS_KEY) + '&_=' + Date.now();
     var res = await fetch(url, { method: 'GET' });
     if (!res.ok) throw new Error('Fetch failed: ' + res.status);
     var json = await res.json();
