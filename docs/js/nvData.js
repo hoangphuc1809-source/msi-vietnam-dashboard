@@ -15,7 +15,7 @@ window.MsiNvData = (function () {
   // moi). Neu chua deploy hoac loi, tu dong fallback ve static snapshot de dashboard
   // khong vo - khong can sua gi them phia client khi Apps Script duoc cap nhat sau.
   async function fetchData() {
-    var liveUrl = window.MSI_CONFIG.APPS_SCRIPT_URL + '?action=nv&_=' + Date.now();
+      var liveUrl = window.MSI_CONFIG.APPS_SCRIPT_URL + '?action=nv&key=' + encodeURIComponent(window.MSI_CONFIG.ACCESS_KEY) + '&_=' + Date.now();
     try {
       var res = await fetch(liveUrl, { method: 'GET' });
       if (!res.ok) throw new Error('status ' + res.status);
